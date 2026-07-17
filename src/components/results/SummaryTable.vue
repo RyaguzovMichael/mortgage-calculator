@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import { useInputs } from '@/app/useInputs'
 import { money, VARIANT_COLORS, VARIANT_LABELS } from '@/app/format'
+import type { VariantResult } from '@/engine/types/plan'
 
 const { inputs, report } = useInputs()
 
@@ -18,6 +19,12 @@ const ranked = computed(() =>
 
 function months(value: number | null): string {
   return value === null ? '—' : `${value}`
+}
+
+// Flagged only when waiting actually cost something: at 0% growth every variant
+// pays the list price and colouring the column would be noise.
+function overpaysForWaiting(variant: VariantResult): boolean {
+  return variant.purchasePrice !== null && variant.purchasePrice > inputs.apartment.price
 }
 </script>
 
@@ -38,6 +45,7 @@ function months(value: number | null): string {
             <th class="left">Вариант</th>
             <th>Покупка</th>
             <th>Без долга</th>
+            <th>Цена покупки</th>
             <th>Аренда</th>
             <th>% кредита</th>
             <th>Доход с вкладов</th>
@@ -54,6 +62,9 @@ function months(value: number | null): string {
             </td>
             <td>{{ months(variant.purchaseMonth) }}</td>
             <td>{{ months(variant.debtFreeMonth) }}</td>
+            <td :class="{ overpay: overpaysForWaiting(variant) }">
+              {{ variant.purchasePrice === null ? '—' : money(variant.purchasePrice) }}
+            </td>
             <td>{{ money(variant.totals.rentPaid) }}</td>
             <td>{{ money(variant.totals.loanInterestPaid) }}</td>
             <td>{{ money(variant.totals.depositInterestEarned) }}</td>
@@ -134,6 +145,9 @@ td.left {
 .dim {
   color: var(--text-muted);
   text-decoration: line-through;
+}
+.overpay {
+  color: var(--critical);
 }
 .best td {
   background: color-mix(in srgb, var(--good) 10%, transparent);

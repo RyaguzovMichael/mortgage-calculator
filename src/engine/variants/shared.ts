@@ -6,6 +6,10 @@ import type { MonthContext } from './months'
 
 export const NO_PAYMENT: LoanPayment = { paid: 0, interest: 0, principal: 0 }
 
+export function purchasePriceAt(inputs: Inputs, purchaseMonth: number | null): number | null {
+  return purchaseMonth === null ? null : apartmentPriceAt(inputs, purchaseMonth)
+}
+
 // Selling the old flat is what forces the move: from that month on a variant is
 // either in its new apartment or paying rent.
 export function hasMovedOut(inputs: Inputs, monthIndex: number): boolean {
@@ -62,6 +66,7 @@ export function buildRow(args: {
     index: month.index,
     yearMonth: month.yearMonth,
     phase: phaseOf(inputs, month, owned, loan),
+    apartmentPrice: apartmentPriceAt(inputs, month.index),
     rentPaid,
     loanPayment: payment.paid,
     loanInterest: payment.interest,

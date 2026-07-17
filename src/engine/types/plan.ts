@@ -8,6 +8,10 @@ export interface VariantResult {
   readonly rows: readonly MonthRow[]
   readonly purchaseMonth: number | null
   readonly debtFreeMonth: number | null
+  // What the apartment cost on the month this variant actually bought it. Equal
+  // to the list price for everyone at 0% growth; above it, this is the price of
+  // waiting, and it is the whole reason growth cannot be ignored.
+  readonly purchasePrice: number | null
   readonly totals: VariantTotals
 }
 
@@ -19,6 +23,8 @@ export interface MonthRow {
   readonly index: number
   readonly yearMonth: YearMonth
   readonly phase: Phase
+  // The market price that month whether or not this variant owns the flat yet.
+  readonly apartmentPrice: number
   readonly rentPaid: number
   readonly loanPayment: number
   readonly loanInterest: number

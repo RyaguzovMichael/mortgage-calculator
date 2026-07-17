@@ -114,6 +114,35 @@ describe('deposit rate', () => {
   })
 })
 
+describe('apartment price', () => {
+  const growing: Inputs = {
+    ...DEFAULT_INPUTS,
+    apartment: { ...DEFAULT_INPUTS.apartment, annualGrowthRate: 0.12 },
+  }
+
+  it('holds at the list price when growth is off', () => {
+    for (const result of allVariants(DEFAULT_INPUTS)) {
+      expect(result.purchasePrice).toBe(DEFAULT_INPUTS.apartment.price)
+      for (const row of result.rows) {
+        expect(row.apartmentPrice).toBe(DEFAULT_INPUTS.apartment.price)
+      }
+    }
+  })
+
+  it('is what each variant actually paid, so waiting costs more', () => {
+    const results = allVariants(growing)
+    const immediate = results.find((result) => result.id === 'halyk-immediate')!
+    const allCash = results.find((result) => result.id === 'all-cash')!
+    expect(allCash.purchaseMonth).toBeGreaterThan(immediate.purchaseMonth!)
+    expect(allCash.purchasePrice).toBeGreaterThan(immediate.purchasePrice!)
+  })
+
+  it('reports the price of the month the variant bought, not of the last row', () => {
+    const result = simulateHalykImmediate(growing)
+    expect(result.purchasePrice).toBe(result.rows[result.purchaseMonth!]!.apartmentPrice)
+  })
+})
+
 describe('the Otbasy account in variants that never borrow from Otbasy', () => {
   const otbasySavings = DEFAULT_INPUTS.deposits.accounts.find(
     (account) => account.kind === 'otbasy',

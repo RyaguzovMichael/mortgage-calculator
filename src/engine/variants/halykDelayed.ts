@@ -4,7 +4,7 @@ import { summarize } from '../summary'
 import { apartmentPriceAt, type Inputs } from '../types/inputs'
 import type { MonthRow, VariantResult } from '../types/plan'
 import { months } from './months'
-import { buildRow, hasMovedOut, NO_PAYMENT, payRent, payScheduled } from './shared'
+import { buildRow, hasMovedOut, NO_PAYMENT, payRent, payScheduled, purchasePriceAt } from './shared'
 
 // Rent and save at the Kaspi rate for `savingMonths`, then buy with the whole
 // pile as the down payment and clear the smaller 24% loan with the full cash
@@ -62,5 +62,12 @@ export function simulateHalykDelayed(inputs: Inputs, savingMonths: number): Vari
     rows.push(buildRow({ inputs, month, wallet, owned, loan, rentPaid, payment }))
   }
 
-  return { id: 'halyk-delayed', rows, purchaseMonth, debtFreeMonth, totals: summarize(rows) }
+  return {
+    id: 'halyk-delayed',
+    rows,
+    purchaseMonth,
+    debtFreeMonth,
+    purchasePrice: purchasePriceAt(inputs, purchaseMonth),
+    totals: summarize(rows),
+  }
 }

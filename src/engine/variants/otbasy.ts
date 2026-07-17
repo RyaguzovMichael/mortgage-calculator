@@ -4,7 +4,7 @@ import { summarize } from '../summary'
 import { apartmentPriceAt, targetLoan, type Inputs } from '../types/inputs'
 import type { MonthRow, VariantResult } from '../types/plan'
 import { months } from './months'
-import { buildRow, hasMovedOut, NO_PAYMENT, payRent, payScheduled } from './shared'
+import { buildRow, hasMovedOut, NO_PAYMENT, payRent, payScheduled, purchasePriceAt } from './shared'
 
 // Rent, seed the Otbasy deposit from the sale proceeds and contribute monthly
 // until both the 50% balance and CC >= 5 gates open, then take the 8.5% loan.
@@ -87,7 +87,14 @@ export function simulateOtbasy(inputs: Inputs): VariantResult {
     rows.push(buildRow({ inputs, month, wallet, owned, loan, rentPaid, payment }))
   }
 
-  return { id: 'otbasy', rows, purchaseMonth, debtFreeMonth, totals: summarize(rows) }
+  return {
+    id: 'otbasy',
+    rows,
+    purchaseMonth,
+    debtFreeMonth,
+    purchasePrice: purchasePriceAt(inputs, purchaseMonth),
+    totals: summarize(rows),
+  }
 }
 
 function gatesOpen(wallet: Wallet, requiredBalance: number, ccTarget: number): boolean {

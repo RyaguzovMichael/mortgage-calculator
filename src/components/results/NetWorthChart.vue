@@ -33,8 +33,15 @@ interface Series {
 
 const monthCount = computed(() => report.value.variants[0]?.rows.length ?? 0)
 
+// The apartment price is the same for every variant, so any one of them can tell
+// us what it did over the window.
+const priceRows = computed(() => report.value.variants[0]?.rows ?? [])
+
 const bounds = computed(() => {
-  const values = report.value.variants.flatMap((variant) => variant.rows.map((row) => row.netWorth))
+  const values = [
+    ...report.value.variants.flatMap((variant) => variant.rows.map((row) => row.netWorth)),
+    ...priceRows.value.map((row) => row.apartmentPrice),
+  ]
   const min = Math.min(...values)
   const max = Math.max(...values)
   // A flat band would divide by zero; a hair of padding also keeps the top line
@@ -65,6 +72,25 @@ const series = computed<Series[]>(() =>
     }
   }),
 )
+
+// A reference line, not a series: it is what the variants are racing, so it wears
+// muted ink and a dash rather than a categorical hue.
+const pricePath = computed(() =>
+  priceRows.value
+    .map(
+      (row, index) =>
+        `${index === 0 ? 'M' : 'L'}${scaleX(row.index)} ${scaleY(row.apartmentPrice)}`,
+    )
+    .join(' '),
+)
+
+// Labelled at its own start rather than at the right edge, where the variants'
+// end labels already compete for room. It sits *below* the start: the line only
+// ever rises, so anything above it gets struck through by the line itself.
+const priceLabel = computed(() => {
+  const first = priceRows.value[0]
+  return first ? { x: PAD.left + 4, y: scaleY(first.apartmentPrice) + 13 } : null
+})
 
 const ticks = computed(() => {
   const { min, max } = bounds.value
@@ -115,6 +141,7 @@ const tooltip = computed(() => {
   return {
     x: scaleX(index),
     yearMonth: monthLabel(first.yearMonth),
+    apartmentPrice: first.apartmentPrice,
     // Richest first: the tooltip is read against the lines, which are ordered
     // vertically at that month.
     rows: rows
@@ -212,6 +239,11 @@ const tooltip = computed(() => {
           :y2="PAD.top + plot.height"
         />
 
+        <path class="price-line" :d="pricePath" fill="none" />
+        <text v-if="priceLabel" class="price-label" :x="priceLabel.x" :y="priceLabel.y">
+          цена квартиры
+        </text>
+
         <path
           v-for="entry in series"
           :key="entry.id"
@@ -280,6 +312,10 @@ const tooltip = computed(() => {
           <span class="swatch" :style="{ background: VARIANT_COLORS[entry.id] }" />
           <span class="name">{{ VARIANT_LABELS[entry.id] }}</span>
           <span class="value">{{ money(entry.row!.netWorth) }}</span>
+        </p>
+        <p class="row price">
+          <span class="name">цена квартиры</span>
+          <span class="value">{{ money(tooltip.apartmentPrice) }}</span>
         </p>
       </div>
     </div>
@@ -374,6 +410,16 @@ h2 {
   stroke-width: 1;
   stroke-dasharray: 3 3;
 }
+.price-line {
+  stroke: var(--text-muted);
+  stroke-width: 1.5;
+  stroke-dasharray: 5 4;
+}
+.price-label {
+  fill: var(--text-muted);
+  font-size: 10px;
+  text-anchor: start;
+}
 .tooltip {
   position: absolute;
   top: 0;
@@ -400,6 +446,12 @@ h2 {
 }
 .name {
   color: var(--text-secondary);
+}
+.price {
+  border-top: 1px solid var(--border);
+  margin-top: 5px;
+  padding-top: 5px;
+  color: var(--text-muted);
 }
 .value {
   margin-left: auto;

@@ -4,7 +4,7 @@ import { summarize } from '../summary'
 import { apartmentPriceAt, targetLoan, type Inputs } from '../types/inputs'
 import type { MonthRow, VariantResult } from '../types/plan'
 import { months } from './months'
-import { buildRow, hasMovedOut, NO_PAYMENT, payRent, payScheduled } from './shared'
+import { buildRow, hasMovedOut, NO_PAYMENT, payRent, payScheduled, purchasePriceAt } from './shared'
 
 // Buy as soon as the sale lands; no rent. The whole free cash flow goes into the
 // 24% loan every month — at that rate early repayment beats any deposit, so
@@ -59,5 +59,12 @@ export function simulateHalykImmediate(inputs: Inputs): VariantResult {
     rows.push(buildRow({ inputs, month, wallet, owned, loan, rentPaid, payment }))
   }
 
-  return { id: 'halyk-immediate', rows, purchaseMonth, debtFreeMonth, totals: summarize(rows) }
+  return {
+    id: 'halyk-immediate',
+    rows,
+    purchaseMonth,
+    debtFreeMonth,
+    purchasePrice: purchasePriceAt(inputs, purchaseMonth),
+    totals: summarize(rows),
+  }
 }

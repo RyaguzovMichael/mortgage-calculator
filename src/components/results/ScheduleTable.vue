@@ -39,6 +39,7 @@ const variant = computed(
             <th>Мес</th>
             <th class="left">Дата</th>
             <th class="left">Фаза</th>
+            <th>Цена кв.</th>
             <th>Аренда</th>
             <th>Платёж</th>
             <th>Проценты</th>
@@ -61,6 +62,7 @@ const variant = computed(
             <td>{{ row.index }}</td>
             <td class="left">{{ monthLabel(row.yearMonth) }}</td>
             <td class="left phase">{{ PHASE_LABELS[row.phase] }}</td>
+            <td>{{ money(row.apartmentPrice) }}</td>
             <td>{{ money(row.rentPaid) }}</td>
             <td>{{ money(row.loanPayment) }}</td>
             <td>{{ money(row.loanInterest) }}</td>
