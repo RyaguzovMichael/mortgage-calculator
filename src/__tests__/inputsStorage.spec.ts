@@ -1,5 +1,9 @@
 import { describe, it, expect, beforeEach, beforeAll, afterAll, vi } from 'vitest'
-import { DEFAULT_INPUTS, loadInputs, saveInputs } from '@/infrastructure/inputsStorage'
+// STORAGE_KEY comes from the module rather than being spelled out here: these two
+// tests wrote 'mortgage:inputs:v1' long after the key had been bumped to v3, so
+// loadInputs found nothing, returned null on its `raw === null` early-out, and
+// both passed without ever reaching the catch or the validator they exist for.
+import { DEFAULT_INPUTS, loadInputs, saveInputs, STORAGE_KEY } from '@/infrastructure/inputsStorage'
 
 // localStorage is not provided by this test environment, so back it with memory.
 class MemoryStorage {
@@ -42,12 +46,12 @@ describe('inputsStorage', () => {
   })
 
   it('returns null on unparseable data', () => {
-    localStorage.setItem('mortgage:inputs:v1', '{ not json')
+    localStorage.setItem(STORAGE_KEY,'{ not json')
     expect(loadInputs()).toBeNull()
   })
 
   it('returns null on a blob of the wrong shape', () => {
-    localStorage.setItem('mortgage:inputs:v1', JSON.stringify({ horizonMonths: 12 }))
+    localStorage.setItem(STORAGE_KEY,JSON.stringify({ horizonMonths: 12 }))
     expect(loadInputs()).toBeNull()
   })
 })

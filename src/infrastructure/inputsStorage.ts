@@ -2,7 +2,10 @@ import type { Inputs } from '@/engine/types/inputs'
 
 // Bump when the Inputs shape changes — a stored blob from an older shape would
 // otherwise deserialize into a half-populated object and silently skew results.
-const STORAGE_KEY = 'mortgage:inputs:v3'
+//
+// Exported so the specs cannot drift from it: they used to hard-code the key as a
+// string, and two of them went on passing for the wrong reason after a bump.
+export const STORAGE_KEY = 'mortgage:inputs:v3'
 
 // Real starting position as of 2026-07. See MODEL.md for provenance of every number.
 export const DEFAULT_INPUTS: Inputs = {
