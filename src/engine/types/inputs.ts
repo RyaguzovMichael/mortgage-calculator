@@ -1,0 +1,87 @@
+import type { YearMonth } from './yearMonth'
+
+// Every parameter of the model. See MODEL.md for what each one means and which
+// real-world fact it encodes. All rates are nominal annual, applied monthly.
+export interface Inputs {
+  readonly start: YearMonth
+  readonly horizonMonths: number
+  readonly apartment: ApartmentInputs
+  readonly sale: SaleInputs
+  readonly cashflow: CashflowInputs
+  readonly deposits: DepositInputs
+  readonly halyk: HalykInputs
+  readonly otbasy: OtbasyInputs
+  // null chains the delayed-Halyk savings window to Otbasy's purchase month, so
+  // the two variants are compared over the same window.
+  readonly halykDelayedSavingMonths: number | null
+}
+
+export interface ApartmentInputs {
+  readonly price: number
+  readonly annualGrowthRate: number
+}
+
+export interface SaleInputs {
+  readonly proceeds: number
+  readonly monthOffset: number
+}
+
+export interface CashflowInputs {
+  readonly monthlyFreeCash: number
+  readonly monthlyRent: number
+  readonly startMonthOffset: number
+}
+
+export interface DepositInputs {
+  readonly accounts: readonly DepositAccountInputs[]
+  readonly newDepositAnnualRate: number
+}
+
+export interface DepositAccountInputs {
+  readonly id: string
+  readonly label: string
+  readonly balance: number
+  readonly annualRate: number
+  readonly unlockMonthOffset: number
+  readonly kind: DepositKind
+}
+
+export type DepositKind = 'savings' | 'otbasy'
+
+export interface HalykInputs {
+  readonly annualRate: number
+  readonly downPaymentFraction: number
+  readonly maxTermMonths: number
+}
+
+// The deposit's own rate is not here: it lives on the `kind: 'otbasy'` account
+// in `DepositInputs.accounts`, which is the single source of truth for it.
+export interface OtbasyInputs {
+  readonly loanAnnualRate: number
+  readonly minBalanceFraction: number
+  readonly ccTarget: number
+  readonly govBonusRate: number
+  readonly govBonusCap: number
+  readonly govBonusMonth: number
+  readonly seedFromSale: number
+}
+
+// The loan size declared when signing the Otbasy contract. Frozen at that
+// number: the 50%-balance and CC tests measure against it, not against the
+// shrinking live gap between price and savings.
+export function targetLoan(inputs: Inputs): number {
+  return Math.max(0, inputs.apartment.price - inputs.sale.proceeds)
+}
+
+export function apartmentPriceAt(inputs: Inputs, monthIndex: number): number {
+  const monthlyGrowth = inputs.apartment.annualGrowthRate / 12
+  return inputs.apartment.price * (1 + monthlyGrowth) ** monthIndex
+}
+
+export function otbasyAccount(inputs: Inputs): DepositAccountInputs | undefined {
+  return inputs.deposits.accounts.find((account) => account.kind === 'otbasy')
+}
+
+export function savingsAccounts(inputs: Inputs): readonly DepositAccountInputs[] {
+  return inputs.deposits.accounts.filter((account) => account.kind === 'savings')
+}
