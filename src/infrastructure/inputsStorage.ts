@@ -2,7 +2,7 @@ import type { Inputs } from '@/engine/types/inputs'
 
 // Bump when the Inputs shape changes — a stored blob from an older shape would
 // otherwise deserialize into a half-populated object and silently skew results.
-const STORAGE_KEY = 'mortgage:inputs:v2'
+const STORAGE_KEY = 'mortgage:inputs:v3'
 
 // Real starting position as of 2026-07. See MODEL.md for provenance of every number.
 export const DEFAULT_INPUTS: Inputs = {
@@ -15,8 +15,6 @@ export const DEFAULT_INPUTS: Inputs = {
   sale: {
     proceeds: 35_000_000,
     monthOffset: 3,
-    depositAnnualRate: 0.184,
-    depositPayoutPeriodMonths: 6,
   },
   cashflow: {
     monthlyFreeCash: 500_000,
@@ -27,37 +25,15 @@ export const DEFAULT_INPUTS: Inputs = {
     annualIndexationRate: 0,
   },
   deposits: {
+    // Itemised for provenance only — month 0 pours all three into one deposit,
+    // so only the total reaches the model.
     accounts: [
-      {
-        id: 'kaspi-locked',
-        label: 'Kaspi (до 24.07)',
-        balance: 1_021_923.88,
-        annualRate: 0.184,
-        unlockMonthOffset: 1,
-        payoutPeriodMonths: 6,
-        kind: 'savings',
-      },
-      {
-        id: 'kaspi-liquid',
-        label: 'Kaspi (свободный)',
-        balance: 356_599,
-        annualRate: 0.14,
-        unlockMonthOffset: 0,
-        payoutPeriodMonths: 1,
-        kind: 'savings',
-      },
-      {
-        id: 'otbasy',
-        label: 'Отбасы',
-        balance: 648_509.26,
-        annualRate: 0.02,
-        unlockMonthOffset: 0,
-        payoutPeriodMonths: 1,
-        kind: 'otbasy',
-      },
+      { id: 'kaspi-locked', label: 'Kaspi (был до 24.07)', balance: 1_021_923.88 },
+      { id: 'kaspi-liquid', label: 'Kaspi (свободный)', balance: 356_599 },
+      { id: 'otbasy', label: 'Отбасы', balance: 648_509.26 },
     ],
-    newDepositAnnualRate: 0.184,
-    newDepositPayoutPeriodMonths: 6,
+    savingsAnnualRate: 0.184,
+    savingsPayoutPeriodMonths: 6,
   },
   halyk: {
     annualRate: 0.24,
@@ -66,6 +42,7 @@ export const DEFAULT_INPUTS: Inputs = {
   },
   otbasy: {
     loanAnnualRate: 0.085,
+    depositAnnualRate: 0.02,
     minBalanceFraction: 0.5,
     ccTarget: 5,
     govBonusRate: 0.2,

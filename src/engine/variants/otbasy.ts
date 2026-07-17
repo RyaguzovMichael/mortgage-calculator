@@ -6,8 +6,9 @@ import type { MonthRow, VariantResult } from '../types/plan'
 import { months } from './months'
 import { buildRow, hasMovedOut, NO_PAYMENT, payRent, payScheduled, purchasePriceAt } from './shared'
 
-// Rent, seed the Otbasy deposit from the sale proceeds and contribute monthly
-// until both the 50% balance and CC >= 5 gates open, then take the 8.5% loan.
+// Today's accounts all open the Otbasy contract in month 0; the sale then seeds
+// it further, and rent-era savings top it up until both the 50% balance and
+// CC >= 5 gates open. Then it takes the 8.5% loan.
 //
 // The whole variant leans on one fact: 8.5% is far below the deposit rate. So it
 // borrows the maximum the contract allows rather than the minimum it needs, and
@@ -27,7 +28,7 @@ export function simulateOtbasy(inputs: Inputs): VariantResult {
   let debtFreeMonth: number | null = null
 
   for (const month of months(inputs, wallet)) {
-    if (month.saleProceeds > 0) wallet.addSaleProceeds(month.saleProceeds)
+    if (month.saleProceeds > 0) wallet.addSavings(month.saleProceeds)
 
     let budget = month.freeCash
     let rentPaid = 0
@@ -36,7 +37,7 @@ export function simulateOtbasy(inputs: Inputs): VariantResult {
     // The seed is what makes the 50% gate reachable at all — contributions alone
     // take years once rent has eaten most of the cash flow.
     if (!seeded && hasMovedOut(inputs, month.index)) {
-      wallet.addOtbasy(wallet.takeSavings(inputs.otbasy.seedFromSale, month.index))
+      wallet.addOtbasy(wallet.takeSavings(inputs.otbasy.seedFromSale))
       seeded = true
     }
 
@@ -44,9 +45,9 @@ export function simulateOtbasy(inputs: Inputs): VariantResult {
       const price = apartmentPriceAt(inputs, month.index)
       // Borrow the most the contract allows; contribute only the remainder.
       const contribution = Math.max(0, price - target)
-      if (available(wallet, month.index) >= contribution) {
+      if (available(wallet) >= contribution) {
         const fromOtbasy = wallet.takeOtbasy(Math.min(contribution, wallet.otbasyBalance))
-        const paid = fromOtbasy + wallet.takeSavings(contribution - fromOtbasy, month.index)
+        const paid = fromOtbasy + wallet.takeSavings(contribution - fromOtbasy)
         loan = createLoan(
           Math.max(0, price - paid),
           inputs.otbasy.loanAnnualRate,
@@ -72,8 +73,8 @@ export function simulateOtbasy(inputs: Inputs): VariantResult {
 
       // Close it the moment savings can cover it — prepay, not pay: this
       // month's interest was already charged above.
-      if (wallet.unlockedSavings(month.index) >= loan.balance) {
-        const settled = loan.prepay(wallet.takeSavings(loan.balance, month.index))
+      if (wallet.savingsBalance >= loan.balance) {
+        const settled = loan.prepay(wallet.takeSavings(loan.balance))
         payment = {
           paid: payment.paid + settled,
           interest: payment.interest,
@@ -101,6 +102,6 @@ function gatesOpen(wallet: Wallet, requiredBalance: number, ccTarget: number): b
   return wallet.otbasyBalance >= requiredBalance && wallet.otbasyCc >= ccTarget
 }
 
-function available(wallet: Wallet, monthIndex: number): number {
-  return wallet.otbasyBalance + wallet.unlockedSavings(monthIndex)
+function available(wallet: Wallet): number {
+  return wallet.otbasyBalance + wallet.savingsBalance
 }

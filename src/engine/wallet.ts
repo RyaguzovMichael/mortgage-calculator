@@ -1,30 +1,26 @@
-import { createDeposit, type Deposit } from './deposit'
+import { createDeposit } from './deposit'
 import { createOtbasyAccount, type OtbasyAccount } from './otbasyAccount'
-import {
-  otbasyAccount as otbasyAccountInput,
-  savingsAccounts,
-  targetLoan,
-  type Inputs,
-} from './types/inputs'
+import { existingBalance, targetLoan, type Inputs } from './types/inputs'
 import type { YearMonth } from './types/yearMonth'
 
 // Everything a variant owns in cash, and the month-step bookkeeping all four
-// variants share: accrue every account, credit the Otbasy bonus, gate locked
-// accounts. Each existing account keeps its own rate for life; new money lands
-// in fresh deposits — the model never silently re-rates an old account.
+// variants share.
+//
+// There are exactly two places money can be: one savings deposit and, for the
+// Otbasy variant, the Otbasy account. Today's accounts are emptied into one of
+// them in month 0 and cease to exist; the sale money and every month's savings
+// land in the same deposit afterwards. Splitting by where money came from would
+// only invent rate differences the bank does not offer.
 export interface Wallet {
   readonly savingsBalance: number
-  readonly saleProceedsBalance: number
   readonly otbasyBalance: number
   readonly otbasyCc: number
   readonly otbasy: OtbasyAccount
 
   accrue(yearMonth: YearMonth): Accrual
   addSavings(amount: number): void
-  addSaleProceeds(amount: number): void
   addOtbasy(amount: number): void
-  unlockedSavings(monthIndex: number): number
-  takeSavings(amount: number, monthIndex: number): number
+  takeSavings(amount: number): number
   takeOtbasy(amount: number): number
 }
 
@@ -35,61 +31,32 @@ export interface Accrual {
   readonly govBonus: number
 }
 
-interface Pocket {
-  readonly deposit: Deposit
-  readonly unlockMonthOffset: number
-}
-
 export interface WalletOptions {
-  // A variant that will never take an Otbasy loan has no reason to leave money in
-  // an Otbasy account: without the loan the 2% is simply the worst rate on offer,
-  // and the state bonus alone does not close a 16-point gap. So those variants
-  // close the account up front and move the balance to the savings deposit.
+  // Where today's accounts get poured in month 0. The Otbasy variant starts its
+  // contract balance as high as it can, because that is what opens the 50% gate.
+  // Every other variant has no use for an Otbasy account at all: without the loan
+  // its 2% is simply the worst rate on offer, and the state bonus does not close
+  // a 16-point gap.
   readonly useOtbasy: boolean
 }
 
 export function createWallet(inputs: Inputs, options: WalletOptions = { useOtbasy: true }): Wallet {
-  const existingOtbasy = otbasyAccountInput(inputs)
-  const closedOtbasyBalance = options.useOtbasy ? 0 : (existingOtbasy?.balance ?? 0)
-
-  const saleProceeds = createDeposit(
-    0,
-    inputs.sale.depositAnnualRate,
-    inputs.sale.depositPayoutPeriodMonths,
+  const savings = createDeposit(
+    options.useOtbasy ? 0 : existingBalance(inputs),
+    inputs.deposits.savingsAnnualRate,
+    inputs.deposits.savingsPayoutPeriodMonths,
   )
-  const contributions = createDeposit(
-    closedOtbasyBalance,
-    inputs.deposits.newDepositAnnualRate,
-    inputs.deposits.newDepositPayoutPeriodMonths,
-  )
-
-  const pockets: Pocket[] = [
-    ...savingsAccounts(inputs).map((account) => ({
-      deposit: createDeposit(account.balance, account.annualRate, account.payoutPeriodMonths),
-      unlockMonthOffset: account.unlockMonthOffset,
-    })),
-    { deposit: contributions, unlockMonthOffset: 0 },
-    { deposit: saleProceeds, unlockMonthOffset: 0 },
-  ]
 
   const otbasy = createOtbasyAccount(
-    options.useOtbasy ? (existingOtbasy?.balance ?? 0) : 0,
-    existingOtbasy?.annualRate ?? 0,
+    options.useOtbasy ? existingBalance(inputs) : 0,
+    inputs.otbasy.depositAnnualRate,
     inputs.otbasy,
     targetLoan(inputs),
-    existingOtbasy?.payoutPeriodMonths ?? 1,
   )
-
-  function unlocked(monthIndex: number): Pocket[] {
-    return pockets.filter((pocket) => monthIndex >= pocket.unlockMonthOffset)
-  }
 
   return {
     get savingsBalance() {
-      return pockets.reduce((sum, pocket) => sum + pocket.deposit.balance, 0)
-    },
-    get saleProceedsBalance() {
-      return saleProceeds.balance
+      return savings.balance
     },
     get otbasyBalance() {
       return otbasy.balance
@@ -102,43 +69,22 @@ export function createWallet(inputs: Inputs, options: WalletOptions = { useOtbas
     },
 
     accrue(yearMonth: YearMonth) {
-      const interest = pockets.reduce((sum, pocket) => sum + pocket.deposit.accrue(), 0)
       return {
-        interest: interest + otbasy.accrue(),
+        interest: savings.accrue() + otbasy.accrue(),
         govBonus: otbasy.applyGovBonus(yearMonth),
       }
     },
 
     addSavings(amount: number) {
-      contributions.add(amount)
-    },
-
-    addSaleProceeds(amount: number) {
-      saleProceeds.add(amount)
+      savings.add(amount)
     },
 
     addOtbasy(amount: number) {
       otbasy.add(amount)
     },
 
-    unlockedSavings(monthIndex: number) {
-      return unlocked(monthIndex).reduce((sum, pocket) => sum + pocket.deposit.balance, 0)
-    },
-
-    takeSavings(amount: number, monthIndex: number) {
-      // Drain the worst-earning money first so the best-paying deposit keeps
-      // working. Note this ignores forfeitable pending interest: optimizing the
-      // withdrawal against the payout cycle is a decision for the variant, which
-      // controls *when* it buys, not for the wallet.
-      const available = unlocked(monthIndex).sort(
-        (left, right) => left.deposit.annualRate - right.deposit.annualRate,
-      )
-      let remaining = amount
-      for (const pocket of available) {
-        if (remaining <= 0) break
-        remaining -= pocket.deposit.take(remaining)
-      }
-      return amount - remaining
+    takeSavings(amount: number) {
+      return savings.take(amount)
     },
 
     takeOtbasy(amount: number) {

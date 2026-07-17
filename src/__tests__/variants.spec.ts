@@ -4,7 +4,7 @@ import { simulateHalykDelayed } from '@/engine/variants/halykDelayed'
 import { simulateOtbasy } from '@/engine/variants/otbasy'
 import { simulateAllCash } from '@/engine/variants/allCash'
 import { DEFAULT_INPUTS } from '@/infrastructure/inputsStorage'
-import type { Inputs } from '@/engine/types/inputs'
+import { existingBalance, type Inputs } from '@/engine/types/inputs'
 import type { VariantResult } from '@/engine/types/plan'
 
 function withRent(monthlyRent: number): Inputs {
@@ -75,14 +75,15 @@ describe('Halyk immediate', () => {
     expect(result.purchaseMonth).toBe(DEFAULT_INPUTS.sale.monthOffset)
   })
 
-  // The prototype never checked this; the down payment has to come from
-  // somewhere, and at month 0 only the unlocked account is spendable.
-  it('waits for the down payment to become affordable', () => {
+  // The prototype never checked this: the down payment has to be real money, and
+  // a small sale leaves the contribution out of reach for a while.
+  it('waits for the down payment to become affordable, renting meanwhile', () => {
     const result = simulateHalykImmediate({
       ...DEFAULT_INPUTS,
-      sale: { ...DEFAULT_INPUTS.sale, monthOffset: 0 },
+      sale: { ...DEFAULT_INPUTS.sale, proceeds: 5_000_000, monthOffset: 0 },
     })
     expect(result.purchaseMonth).toBeGreaterThan(0)
+    expect(result.totals.rentPaid).toBeGreaterThan(0)
   })
 })
 
@@ -97,16 +98,12 @@ describe('rent', () => {
 
 describe('deposit rate', () => {
   it('with nothing to earn, buying immediately wins', () => {
+    // One deposit means one rate to switch off — there is nowhere else for money
+    // to be earning.
     const inputs: Inputs = {
       ...DEFAULT_INPUTS,
-      // The sale proceeds are the biggest earner by far — zeroing only the
-      // account rates would leave 35M still compounding at 18.4%.
-      sale: { ...DEFAULT_INPUTS.sale, depositAnnualRate: 0 },
-      deposits: {
-        newDepositAnnualRate: 0,
-        newDepositPayoutPeriodMonths: 1,
-        accounts: DEFAULT_INPUTS.deposits.accounts.map((account) => ({ ...account, annualRate: 0 })),
-      },
+      deposits: { ...DEFAULT_INPUTS.deposits, savingsAnnualRate: 0 },
+      otbasy: { ...DEFAULT_INPUTS.otbasy, depositAnnualRate: 0 },
     }
     const immediate = simulateHalykImmediate(inputs).totals.totalLoss
     expect(immediate).toBeLessThan(simulateAllCash(inputs).totals.totalLoss)
@@ -137,8 +134,13 @@ describe('apartment price', () => {
     }
   })
 
+  // At a gentle 5%: enough for waiting to cost something, not so much that
+  // all-cash never catches the price at all.
   it('is what each variant actually paid, so waiting costs more', () => {
-    const results = allVariants(growing)
+    const results = allVariants({
+      ...DEFAULT_INPUTS,
+      apartment: { ...DEFAULT_INPUTS.apartment, annualGrowthRate: 0.05 },
+    })
     const immediate = results.find((result) => result.id === 'halyk-immediate')!
     const allCash = results.find((result) => result.id === 'all-cash')!
     expect(allCash.purchaseMonth).toBeGreaterThan(immediate.purchaseMonth!)
@@ -246,53 +248,97 @@ describe('indexation', () => {
   })
 })
 
-describe('the Otbasy account in variants that never borrow from Otbasy', () => {
-  const otbasySavings = DEFAULT_INPUTS.deposits.accounts.find(
-    (account) => account.kind === 'otbasy',
-  )!.balance
+describe("month 0 consolidation of today's accounts", () => {
+  const total = existingBalance(DEFAULT_INPUTS)
 
   it.each([
     ['halyk-immediate', simulateHalykImmediate(DEFAULT_INPUTS)],
     ['halyk-delayed', simulateHalykDelayed(DEFAULT_INPUTS, 11)],
     ['all-cash', simulateAllCash(DEFAULT_INPUTS)],
-  ] as const)('%s closes it — 2%% is dead money without the loan', (_id, result) => {
+  ] as const)('%s puts the lot in the savings deposit and opens no Otbasy account', (_id, result) => {
+    expect(result.rows[0]!.savingsBalance).toBeCloseTo(total, 2)
     for (const row of result.rows) {
       expect(row.otbasyBalance).toBe(0)
       expect(row.govBonus).toBe(0)
     }
   })
 
-  it('moves the balance to savings rather than losing it', () => {
-    const result = simulateHalykImmediate(DEFAULT_INPUTS)
-    const withoutOtbasyAccount = simulateHalykImmediate({
+  it('the Otbasy variant puts the lot on the Otbasy account instead', () => {
+    const first = simulateOtbasy(DEFAULT_INPUTS).rows[0]!
+    expect(first.savingsBalance).toBe(0)
+    // Not exactly `total`: the Otbasy deposit pays monthly, so month 0's own
+    // interest is already credited by the time the row is written.
+    expect(first.otbasyBalance).toBeGreaterThanOrEqual(total)
+    expect(first.otbasyBalance).toBeLessThan(total * 1.01)
+  })
+
+  // The three accounts are itemised for provenance; the model only ever sees the
+  // sum, so how it is split across them cannot change a single figure.
+  it('depends on the total only, not on how it is split across accounts', () => {
+    const merged = simulateHalykImmediate({
       ...DEFAULT_INPUTS,
       deposits: {
         ...DEFAULT_INPUTS.deposits,
-        accounts: DEFAULT_INPUTS.deposits.accounts.filter((account) => account.kind !== 'otbasy'),
+        accounts: [{ id: 'all', label: 'Всё вместе', balance: total }],
       },
     })
-    expect(result.rows[0]!.savingsBalance).toBeCloseTo(
-      withoutOtbasyAccount.rows[0]!.savingsBalance + otbasySavings,
-      2,
-    )
+    expect(merged.rows).toEqual(simulateHalykImmediate(DEFAULT_INPUTS).rows)
+  })
+})
+
+// Consolidation put every tenge in one deposit, which makes that deposit's payout
+// cycle decide everything. These pin the sharp edge it created.
+describe('one deposit for everything', () => {
+  // 12% indexes rent past the flat 500k income around month 30; from there every
+  // month needs a withdrawal.
+  const growing: Inputs = {
+    ...DEFAULT_INPUTS,
+    apartment: { ...DEFAULT_INPUTS.apartment, annualGrowthRate: 0.12 },
+  }
+
+  function payingMonthly(inputs: Inputs): Inputs {
+    return {
+      ...inputs,
+      deposits: { ...inputs.deposits, savingsAnnualRate: 0.141, savingsPayoutPeriodMonths: 1 },
+    }
+  }
+
+  it('a six-month deposit stops earning once every month needs a withdrawal', () => {
+    const rows = simulateAllCash(growing).rows
+    // Withdrawing forfeits everything accrued since the last payout, so the cycle
+    // restarts every month and never completes.
+    for (const row of rows.slice(40)) {
+      expect(row.depositInterestEarned).toBe(0)
+    }
   })
 
-  it('leaves the Otbasy variant itself untouched', () => {
-    expect(simulateOtbasy(DEFAULT_INPUTS).rows[0]!.otbasyBalance).toBeGreaterThan(0)
+  it('so the lower monthly-payout rate beats the higher six-month one', () => {
+    const sixMonth = simulateAllCash(growing).totals.depositInterestEarned
+    const monthly = simulateAllCash(payingMonthly(growing)).totals.depositInterestEarned
+    expect(monthly).toBeGreaterThan(sixMonth)
+  })
+
+  it('while with no withdrawals at all the higher rate wins, as it should', () => {
+    // Flat rent stays under the income, so nothing is ever taken out.
+    const sixMonth = simulateAllCash(DEFAULT_INPUTS).totals.depositInterestEarned
+    const monthly = simulateAllCash(payingMonthly(DEFAULT_INPUTS)).totals.depositInterestEarned
+    expect(sixMonth).toBeGreaterThan(monthly)
   })
 })
 
 describe('Otbasy seeding', () => {
-  // Without a seed the 50% gate is fed only by what's left after rent, and the
-  // wait swallows years of rent — this is the case that makes seeding mandatory.
+  // Without a seed the 50% gate is fed only by today's accounts plus what is left
+  // after rent, and the wait swallows years of rent — this is the case that makes
+  // seeding mandatory. (Consolidation moved this from ~38 months to 29: the
+  // existing 2M opens the contract on day one.)
   it('without a seed the gate takes years and rent piles up', () => {
     const unseeded = simulateOtbasy({
       ...DEFAULT_INPUTS,
       horizonMonths: 120,
       otbasy: { ...DEFAULT_INPUTS.otbasy, seedFromSale: 0 },
     })
-    expect(unseeded.purchaseMonth).toBeGreaterThan(30)
-    expect(unseeded.totals.rentPaid).toBeGreaterThan(12_000_000)
+    expect(unseeded.purchaseMonth).toBeGreaterThan(24)
+    expect(unseeded.totals.rentPaid).toBeGreaterThan(10_000_000)
   })
 
   it('seeding pulls the purchase years earlier', () => {

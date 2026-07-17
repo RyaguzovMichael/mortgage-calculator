@@ -26,7 +26,7 @@ export function simulateHalykImmediate(inputs: Inputs): VariantResult {
   let debtFreeMonth: number | null = null
 
   for (const month of months(inputs, wallet)) {
-    if (month.saleProceeds > 0) wallet.addSaleProceeds(month.saleProceeds)
+    if (month.saleProceeds > 0) wallet.addSavings(month.saleProceeds)
 
     let budget = month.freeCash
     let rentPaid = 0
@@ -34,8 +34,8 @@ export function simulateHalykImmediate(inputs: Inputs): VariantResult {
 
     if (!owned && hasMovedOut(inputs, month.index)) {
       const contribution = Math.max(0, apartmentPriceAt(inputs, month.index) - loanWanted)
-      if (wallet.unlockedSavings(month.index) >= contribution) {
-        wallet.takeSavings(contribution, month.index)
+      if (wallet.savingsBalance >= contribution) {
+        wallet.takeSavings(contribution)
         loan = createLoan(loanWanted, inputs.halyk.annualRate, inputs.halyk.maxTermMonths)
         owned = true
         purchaseMonth = month.index

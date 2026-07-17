@@ -1,6 +1,8 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useInputs } from '@/app/useInputs'
+import { money } from '@/app/format'
+import { existingBalance } from '@/engine/types/inputs'
 import TabBar from '../TabBar.vue'
 import NumberField from './NumberField.vue'
 import PercentField from './PercentField.vue'
@@ -21,6 +23,10 @@ const TABS = [
 type TabId = (typeof TABS)[number]['id']
 
 const active = ref<TabId>('apartment')
+
+// The one figure the model takes from the itemised accounts, shown so the sum is
+// visible without adding the fields up by hand.
+const existingTotal = computed(() => existingBalance(inputs))
 </script>
 
 <template>
@@ -58,18 +64,10 @@ const active = ref<TabId>('apartment')
         suffix="мес"
         hint="С этого месяца нужно съезжать: либо покупка, либо аренда."
       />
-      <ProductPicker
-        v-model:rate="inputs.sale.depositAnnualRate"
-        v-model:payout-period="inputs.sale.depositPayoutPeriodMonths"
-        label="Куда положить деньги от продажи"
-        hint="Самая крупная сумма в модели — она же сильнее всех страдает от сгорания процентов при покупке в середине периода."
-      />
-      <PercentField v-model="inputs.sale.depositAnnualRate" label="Ставка" />
-      <NumberField
-        v-model="inputs.sale.depositPayoutPeriodMonths"
-        label="Выплата процентов раз в"
-        suffix="мес"
-      />
+      <p class="note">
+        Деньги от продажи идут на тот же вклад, что и всё остальное — он задаётся во вкладке
+        «Деньги». Отдельной ставки у них нет.
+      </p>
     </section>
 
     <section v-show="active === 'money'">
@@ -101,33 +99,36 @@ const active = ref<TabId>('apartment')
     </section>
 
     <section v-show="active === 'money'">
-      <h3>Новые накопления</h3>
+      <h3>Вклад</h3>
       <ProductPicker
-        v-model:rate="inputs.deposits.newDepositAnnualRate"
-        v-model:payout-period="inputs.deposits.newDepositPayoutPeriodMonths"
-        label="Куда идут ежемесячные взносы"
+        v-model:rate="inputs.deposits.savingsAnnualRate"
+        v-model:payout-period="inputs.deposits.savingsPayoutPeriodMonths"
+        label="Куда идут все деньги"
+        hint="Один вклад на всё: сегодняшние накопления, деньги от продажи и ежемесячные взносы. В варианте Otbasy накопления вместо этого уходят на счёт Отбасы."
       />
-      <PercentField v-model="inputs.deposits.newDepositAnnualRate" label="Ставка" />
+      <PercentField v-model="inputs.deposits.savingsAnnualRate" label="Ставка" />
       <NumberField
-        v-model="inputs.deposits.newDepositPayoutPeriodMonths"
+        v-model="inputs.deposits.savingsPayoutPeriodMonths"
         label="Выплата процентов раз в"
         suffix="мес"
       />
     </section>
 
     <section v-show="active === 'money'">
-      <h3>Существующие вклады</h3>
+      <h3>Накопления сегодня — {{ money(existingTotal) }} ₸</h3>
       <p class="note">
-        Счёт Отбасы работает только в варианте Otbasy. В остальных трёх он закрывается в месяц 0 и
-        переносится в Kaspi: без кредита Отбасы его 2% — просто худшая ставка.
+        В месяц 0 все счета закрываются и сливаются в один вклад — в вариантах Halyk и «без ипотеки»
+        в выбранный выше, в варианте Otbasy на счёт Отбасы. Поэтому от них берётся только сумма:
+        своя ставка и своя дата разблокировки уже ни на что не влияют.
       </p>
-      <div v-for="account in inputs.deposits.accounts" :key="account.id" class="account">
-        <h4>{{ account.label }}</h4>
-        <NumberField v-model="account.balance" label="Баланс" suffix="₸" :step="10000" />
-        <PercentField v-model="account.annualRate" label="Ставка" />
-        <NumberField v-model="account.payoutPeriodMonths" label="Выплата раз в" suffix="мес" />
-        <NumberField v-model="account.unlockMonthOffset" label="Разблокирован с месяца" suffix="мес" />
-      </div>
+      <NumberField
+        v-for="account in inputs.deposits.accounts"
+        :key="account.id"
+        v-model="account.balance"
+        :label="account.label"
+        suffix="₸"
+        :step="10000"
+      />
     </section>
 
     <section v-show="active === 'loans'">
@@ -144,6 +145,7 @@ const active = ref<TabId>('apartment')
     <section v-show="active === 'loans'">
       <h3>Otbasy</h3>
       <PercentField v-model="inputs.otbasy.loanAnnualRate" label="Ставка кредита" :step="0.5" />
+      <PercentField v-model="inputs.otbasy.depositAnnualRate" label="Ставка депозита" />
       <NumberField
         v-model="inputs.otbasy.seedFromSale"
         label="Засев из денег от продажи"
@@ -203,11 +205,6 @@ h3 {
   color: var(--text-muted);
   margin: 0 0 8px;
 }
-h4 {
-  font-size: var(--text-md);
-  margin: 0 0 6px;
-  color: var(--text-secondary);
-}
 section {
   display: flex;
   flex-direction: column;
@@ -217,14 +214,6 @@ section {
   color: var(--text-muted);
   font-size: var(--text-sm);
   margin: 0;
-}
-.account {
-  border-left: 2px solid var(--border);
-  padding-left: 10px;
-  margin-bottom: 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
 }
 /* Scoped to the header: a bare `button` rule would also repaint the tabs, which
    need their own selected state. */

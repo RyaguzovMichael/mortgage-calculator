@@ -27,10 +27,6 @@ export interface SaleInputs {
   // sale month — see saleProceedsAt.
   readonly proceeds: number
   readonly monthOffset: number
-  // Kept separate from `newDepositAnnualRate`: banks commonly cap the headline
-  // rate above some amount, and this is by far the largest deposit in the model.
-  readonly depositAnnualRate: number
-  readonly depositPayoutPeriodMonths: number
 }
 
 export interface CashflowInputs {
@@ -44,26 +40,26 @@ export interface CashflowInputs {
   readonly annualIndexationRate: number
 }
 
+// Every variant empties the existing accounts into one deposit in month 0, and
+// everything afterwards — the sale money, each month's savings — lands in that
+// same deposit. So the model needs one product, not one per source of money.
 export interface DepositInputs {
   readonly accounts: readonly DepositAccountInputs[]
-  readonly newDepositAnnualRate: number
-  readonly newDepositPayoutPeriodMonths: number
+  readonly savingsAnnualRate: number
+  // Months between interest payouts; 1 is plain monthly capitalization. Kaspi's
+  // 18.4% pays every 6 months and forfeits everything accrued since the last
+  // payout if you withdraw early, so this drives when it is cheap to buy.
+  readonly savingsPayoutPeriodMonths: number
 }
 
+// Only the balance is modelled. The accounts are itemised to show where today's
+// money actually sits, but since they are all closed in month 0 their own rates
+// and lock-up dates never get a chance to matter.
 export interface DepositAccountInputs {
   readonly id: string
   readonly label: string
   readonly balance: number
-  readonly annualRate: number
-  readonly unlockMonthOffset: number
-  // Months between interest payouts; 1 is plain monthly capitalization. Kaspi's
-  // 18.4% pays every 6 months and forfeits everything accrued since the last
-  // payout if you withdraw early, so this drives when it is cheap to buy.
-  readonly payoutPeriodMonths: number
-  readonly kind: DepositKind
 }
-
-export type DepositKind = 'savings' | 'otbasy'
 
 export interface HalykInputs {
   readonly annualRate: number
@@ -71,10 +67,12 @@ export interface HalykInputs {
   readonly maxTermMonths: number
 }
 
-// The deposit's own rate is not here: it lives on the `kind: 'otbasy'` account
-// in `DepositInputs.accounts`, which is the single source of truth for it.
 export interface OtbasyInputs {
   readonly loanAnnualRate: number
+  // The Otbasy deposit's own rate. It lives here rather than on an account,
+  // because the accounts are only balances now — and this rate is a property of
+  // the Otbasy product, not of today's cash.
+  readonly depositAnnualRate: number
   readonly minBalanceFraction: number
   readonly ccTarget: number
   readonly govBonusRate: number
@@ -134,10 +132,8 @@ function raisesBy(start: YearMonth, monthIndex: number): number {
   return Math.floor((monthIndex - monthsToFirstRaise) / 12) + 1
 }
 
-export function otbasyAccount(inputs: Inputs): DepositAccountInputs | undefined {
-  return inputs.deposits.accounts.find((account) => account.kind === 'otbasy')
-}
-
-export function savingsAccounts(inputs: Inputs): readonly DepositAccountInputs[] {
-  return inputs.deposits.accounts.filter((account) => account.kind === 'savings')
+// What today's accounts hold between them — the one figure the model takes from
+// them, since month 0 pours the lot into a single deposit.
+export function existingBalance(inputs: Inputs): number {
+  return inputs.deposits.accounts.reduce((sum, account) => sum + account.balance, 0)
 }

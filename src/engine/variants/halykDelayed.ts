@@ -23,7 +23,7 @@ export function simulateHalykDelayed(inputs: Inputs, savingMonths: number): Vari
   let debtFreeMonth: number | null = null
 
   for (const month of months(inputs, wallet)) {
-    if (month.saleProceeds > 0) wallet.addSaleProceeds(month.saleProceeds)
+    if (month.saleProceeds > 0) wallet.addSavings(month.saleProceeds)
 
     let budget = month.freeCash
     let rentPaid = 0
@@ -31,7 +31,7 @@ export function simulateHalykDelayed(inputs: Inputs, savingMonths: number): Vari
 
     if (!owned && month.index >= savingMonths && hasMovedOut(inputs, month.index)) {
       const price = apartmentPriceAt(inputs, month.index)
-      const contribution = wallet.takeSavings(price, month.index)
+      const contribution = wallet.takeSavings(price)
       loan = createLoan(
         Math.max(0, price - contribution),
         inputs.halyk.annualRate,

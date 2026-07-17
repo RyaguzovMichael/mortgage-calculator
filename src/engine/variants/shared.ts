@@ -27,7 +27,7 @@ export function payRent(
 
   const fromBudget = Math.min(rent, budget)
   // Rent is not optional: a shortfall comes out of savings, not out of the rent.
-  const fromSavings = wallet.takeSavings(rent - fromBudget, month.index)
+  const fromSavings = wallet.takeSavings(rent - fromBudget)
   return { rentPaid: fromBudget + fromSavings, budget: budget - fromBudget }
 }
 
@@ -41,7 +41,7 @@ export function payScheduled(
 ): { payment: LoanPayment; budget: number } {
   let available = budget
   if (available < loan.scheduledPayment) {
-    available += wallet.takeSavings(loan.scheduledPayment - available, month.index)
+    available += wallet.takeSavings(loan.scheduledPayment - available)
   }
   const payment = loan.pay(available)
   return { payment, budget: Math.max(0, budget - payment.paid) }

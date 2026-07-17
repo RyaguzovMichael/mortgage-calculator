@@ -16,6 +16,7 @@ import { addMonths } from '@/engine/types/yearMonth'
 
 const OTBASY: OtbasyInputs = {
   loanAnnualRate: 0.085,
+  depositAnnualRate: 0.02,
   minBalanceFraction: 0.5,
   ccTarget: 5,
   govBonusRate: 0.2,

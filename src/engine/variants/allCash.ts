@@ -16,15 +16,15 @@ export function simulateAllCash(inputs: Inputs): VariantResult {
   let purchaseMonth: number | null = null
 
   for (const month of months(inputs, wallet)) {
-    if (month.saleProceeds > 0) wallet.addSaleProceeds(month.saleProceeds)
+    if (month.saleProceeds > 0) wallet.addSavings(month.saleProceeds)
 
     let budget = month.freeCash
     let rentPaid = 0
 
     if (!owned && hasMovedOut(inputs, month.index)) {
       const price = apartmentPriceAt(inputs, month.index)
-      if (wallet.unlockedSavings(month.index) >= price) {
-        wallet.takeSavings(price, month.index)
+      if (wallet.savingsBalance >= price) {
+        wallet.takeSavings(price)
         owned = true
         purchaseMonth = month.index
       }
