@@ -23,6 +23,19 @@ describe('createLoan', () => {
     }
   })
 
+  // A payment below the month's interest cannot pay down any principal; the
+  // shortfall capitalizes into the balance. It must NOT also be counted as
+  // interest paid — that money hasn't been paid, it's still owed inside the
+  // larger balance, and counting it now double-counts it against "% кредита"
+  // when the balance is later paid down.
+  it('counts only the interest a below-interest payment actually covered', () => {
+    const loan = createLoan(100_000, 0.24, 240) // month-1 interest = 2000
+    const payment = loan.pay(500)
+    expect(payment.paid).toBe(500)
+    expect(loan.totalInterest).toBeCloseTo(500, 6)
+    expect(loan.balance).toBeCloseTo(101_500, 6) // 1500 of unpaid interest capitalized
+  })
+
   it('sends everything above the accrued interest to principal', () => {
     const loan = createLoan(1_000_000, 0.12, 60)
     const extra = 100_000

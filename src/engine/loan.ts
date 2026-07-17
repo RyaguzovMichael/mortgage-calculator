@@ -44,7 +44,11 @@ export function createLoan(principal: number, annualRate: number, termMonths: nu
       const paid = Math.min(amount, balance + interest)
       const principalPaid = paid - interest
       balance = settle(balance - principalPaid)
-      totalInterest += interest
+      // Only interest the payment actually covered. A payment below the accrued
+      // interest pays down no principal and capitalizes the shortfall into the
+      // balance; counting that shortfall here as interest paid would double-count
+      // it when the enlarged balance is later paid off.
+      totalInterest += Math.min(interest, paid)
       return { paid, interest, principal: principalPaid }
     },
 
