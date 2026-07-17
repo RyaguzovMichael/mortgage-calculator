@@ -1,14 +1,19 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useInputs } from '@/app/useInputs'
-import { money } from '@/app/format'
+import { money, productTerms } from '@/app/format'
 import { existingBalance } from '@/engine/types/inputs'
+import { isBuiltInProduct } from '@/infrastructure/depositCatalogue'
 import TabBar from '../TabBar.vue'
 import NumberField from './NumberField.vue'
 import PercentField from './PercentField.vue'
 import ProductPicker from './ProductPicker.vue'
 
-const { inputs, reset } = useInputs()
+const { inputs, reset, addProduct, removeProduct, canRemoveProduct } = useInputs()
+
+// Split by where the deposit comes from, not by a stored flag: the file decides.
+const builtInProducts = computed(() => inputs.deposits.products.filter((p) => isBuiltInProduct(p.id)))
+const ownProducts = computed(() => inputs.deposits.products.filter((p) => !isBuiltInProduct(p.id)))
 
 // Grouped by what the number is *about*, not by which engine type holds it: the
 // deposit rate for the sale money lives with the sale, because that is the
@@ -16,6 +21,7 @@ const { inputs, reset } = useInputs()
 const TABS = [
   { id: 'apartment', label: 'Квартира' },
   { id: 'money', label: 'Деньги' },
+  { id: 'deposits', label: 'Вклады' },
   { id: 'loans', label: 'Ипотеки' },
   { id: 'run', label: 'Расчёт' },
 ] as const
@@ -125,6 +131,54 @@ const existingTotal = computed(() => existingBalance(inputs))
       />
     </section>
 
+    <section v-show="active === 'deposits'">
+      <h3>Встроенные вклады</h3>
+      <p class="note">
+        Из файла <code>data/deposits.yml</code>. Их нельзя изменить или удалить — правятся в файле,
+        и правка доезжает до всех.
+      </p>
+      <div v-for="product in builtInProducts" :key="product.id" class="built-in">
+        <span class="product-name">{{ product.name }}</span>
+        <span class="product-terms">{{ productTerms(product) }}</span>
+      </div>
+    </section>
+
+    <section v-show="active === 'deposits'">
+      <header class="section-head">
+        <h3>Свои вклады</h3>
+        <button type="button" @click="addProduct">+ Добавить</button>
+      </header>
+      <p v-if="ownProducts.length === 0" class="note">
+        Пока ничего. Добавьте вклад, если у вас есть предложение банка, которого нет выше — и
+        выберите его основным во вкладке «Деньги».
+      </p>
+      <div v-for="product in ownProducts" :key="product.id" class="own">
+        <div class="own-head">
+          <input v-model="product.name" type="text" :aria-label="`Название вклада ${product.id}`" />
+          <button
+            type="button"
+            :disabled="!canRemoveProduct(product.id)"
+            :title="
+              canRemoveProduct(product.id)
+                ? 'Удалить вклад'
+                : 'Нельзя удалить: сейчас на него идут все деньги'
+            "
+            @click="removeProduct(product.id)"
+          >
+            Удалить
+          </button>
+        </div>
+        <PercentField v-model="product.annualRate" label="Ставка" />
+        <NumberField
+          v-model="product.payoutPeriodMonths"
+          label="Выплата раз в"
+          suffix="мес"
+          hint="1 = снятие в любой момент без потерь. Больше — проценты сгорают при снятии до выплаты."
+        />
+        <p class="note">{{ productTerms(product) }}</p>
+      </div>
+    </section>
+
     <section v-show="active === 'loans'">
       <h3>Halyk</h3>
       <PercentField v-model="inputs.halyk.annualRate" label="Ставка" :step="0.5" />
@@ -208,6 +262,77 @@ section {
   color: var(--text-muted);
   font-size: var(--text-sm);
   margin: 0;
+}
+code {
+  font-family: var(--mono);
+}
+.section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+.section-head h3 {
+  margin: 0;
+}
+.built-in,
+.own {
+  border-left: 2px solid var(--border);
+  padding-left: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.own {
+  gap: 8px;
+  padding-bottom: 10px;
+}
+.product-name {
+  font-size: var(--text-lg);
+}
+.product-terms {
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+}
+.own-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.own-head input {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface-1);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: var(--text-lg);
+}
+.own-head input:focus-visible {
+  outline: 2px solid var(--series-1);
+  outline-offset: -1px;
+}
+.section-head button,
+.own-head button {
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text-secondary);
+  border-radius: 6px;
+  padding: 4px 10px;
+  font: inherit;
+  font-size: var(--text-md);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.section-head button:hover:not(:disabled),
+.own-head button:hover:not(:disabled) {
+  color: var(--text-primary);
+}
+.own-head button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 /* Scoped to the header: a bare `button` rule would also repaint the tabs, which
    need their own selected state. */

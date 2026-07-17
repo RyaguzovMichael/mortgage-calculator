@@ -25,7 +25,12 @@ export function monthLabel(yearMonth: YearMonth): string {
 // Built from the deposit's fields rather than stored as a label, so the rate in
 // the text cannot drift from the rate in the model.
 export function describeProduct(product: DepositProduct): string {
-  return `${product.name} — ${percent(product.annualRate)}, ${payoutPhrase(product.payoutPeriodMonths)}`
+  return `${product.name} — ${productTerms(product)}`
+}
+
+// The terms alone, for places that already show the name above them.
+export function productTerms(product: DepositProduct): string {
+  return `${percent(product.annualRate)}, ${payoutPhrase(product.payoutPeriodMonths)}`
 }
 
 // A monthly payout is worth spelling out: it is the same thing as "withdraw any

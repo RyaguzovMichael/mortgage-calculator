@@ -39,7 +39,7 @@ const view = ref<ViewId>('chart')
    column scrolls on its own. */
 .layout {
   display: grid;
-  grid-template-columns: 390px minmax(0, 1fr);
+  grid-template-columns: 430px minmax(0, 1fr);
   gap: 14px;
   padding: 14px;
   height: 100dvh;
