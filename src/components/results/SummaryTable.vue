@@ -127,6 +127,10 @@ th {
   font-size: var(--text-sm);
   text-transform: uppercase;
   letter-spacing: 0.03em;
+  /* Headings wrap so a column is only as wide as its numbers: "Доход с вкладов"
+     is three times the width of the figure under it. */
+  white-space: normal;
+  vertical-align: bottom;
 }
 td {
   font-family: var(--mono);

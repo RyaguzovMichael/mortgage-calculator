@@ -88,6 +88,11 @@ const variant = computed(
   border: 1px solid var(--border);
   border-radius: 10px;
   padding: 14px;
+  /* Header and note take what they need; the scroller gets the rest of whatever
+     height the parent hands this card. */
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 header {
   margin-bottom: 10px;
@@ -124,9 +129,9 @@ button.on {
   border-radius: 2px;
 }
 .scroll {
-  overflow-x: auto;
-  max-height: 460px;
-  overflow-y: auto;
+  overflow: auto;
+  flex: 1;
+  min-height: 200px;
 }
 table {
   border-collapse: collapse;

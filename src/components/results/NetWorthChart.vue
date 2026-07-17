@@ -6,24 +6,28 @@ import type { VariantId } from '@/engine/types/plan'
 
 const { report } = useInputs()
 
-const HEIGHT = 340
 // left fits "52,2 млн", right fits the longest variant name — both at --text-xs,
 // which is why they are wider than they look like they need to be.
 const PAD = { top: 16, right: 172, bottom: 32, left: 78 }
 
-// The viewBox tracks the element's real width so one user unit is one CSS pixel.
+// The viewBox tracks the element's real size so one user unit is one CSS pixel.
 // Letting a fixed viewBox stretch instead would scale the whole drawing — on a
-// wide screen the 12px axis labels would render at 30px and the chart would be
-// 800px tall.
+// wide screen the 12px axis labels would render at 30px.
+//
+// The svg is positioned absolutely inside .plot so its own size can never feed
+// back into the box being measured.
 const plotElement = ref<HTMLElement | null>(null)
 const width = ref(900)
+const height = ref(340)
 let observer: ResizeObserver | null = null
 
 onMounted(() => {
   const element = plotElement.value
   if (!element) return
   observer = new ResizeObserver(([entry]) => {
-    if (entry) width.value = Math.max(320, entry.contentRect.width)
+    if (!entry) return
+    width.value = Math.max(320, entry.contentRect.width)
+    height.value = Math.max(220, entry.contentRect.height)
   })
   observer.observe(element)
 })
@@ -32,7 +36,7 @@ onBeforeUnmount(() => observer?.disconnect())
 
 const plot = computed(() => ({
   width: Math.max(1, width.value - PAD.left - PAD.right),
-  height: HEIGHT - PAD.top - PAD.bottom,
+  height: Math.max(1, height.value - PAD.top - PAD.bottom),
 }))
 
 interface Point {
@@ -211,8 +215,7 @@ const tooltip = computed(() => {
     <div ref="plotElement" class="plot">
       <svg
         ref="svg"
-        :viewBox="`0 0 ${width} ${HEIGHT}`"
-        :style="{ height: `${HEIGHT}px` }"
+        :viewBox="`0 0 ${width} ${height}`"
         preserveAspectRatio="xMidYMid meet"
         role="img"
         aria-label="Чистые активы по вариантам во времени"
@@ -245,7 +248,7 @@ const tooltip = computed(() => {
             :key="row.index"
             class="x-label"
             :x="scaleX(row.index)"
-            :y="HEIGHT - PAD.bottom + 16"
+            :y="height - PAD.bottom + 16"
           >
             {{ monthLabel(row.yearMonth) }}
           </text>
@@ -349,6 +352,11 @@ const tooltip = computed(() => {
   border: 1px solid var(--border);
   border-radius: 10px;
   padding: 14px;
+  /* The header and legend take what they need; the plot gets the rest of
+     whatever height the parent hands this card. */
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 header {
   margin-bottom: 8px;
@@ -393,12 +401,17 @@ h2 {
 }
 .plot {
   position: relative;
+  flex: 1;
+  min-height: 220px;
 }
 /* Scoped to the plot: a bare `svg` rule would stretch the legend's tiny mark
-   swatches to the full width of the card. Height comes from the script, so the
-   drawing keeps a 1:1 scale instead of growing with the page. */
+   swatches to the full width of the card. Absolute so the svg fills the measured
+   box without its size becoming an input to that measurement. */
 .plot svg {
+  position: absolute;
+  inset: 0;
   width: 100%;
+  height: 100%;
   display: block;
 }
 .legend svg {

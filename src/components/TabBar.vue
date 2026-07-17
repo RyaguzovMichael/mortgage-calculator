@@ -27,13 +27,16 @@ const active = defineModel<T>({ required: true })
   display: flex;
   gap: 4px;
   border-bottom: 1px solid var(--border);
+  /* The labels are nowrap, so without this a strip that is a few pixels too wide
+     for its column overflows it instead of stacking. */
+  flex-wrap: wrap;
 }
 button {
   border: none;
   border-bottom: 2px solid transparent;
   background: none;
   color: var(--text-muted);
-  padding: 6px 8px;
+  padding: 6px 6px;
   font: inherit;
   font-size: var(--text-md);
   white-space: nowrap;
