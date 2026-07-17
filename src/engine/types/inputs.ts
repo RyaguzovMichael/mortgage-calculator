@@ -40,6 +40,19 @@ export interface CashflowInputs {
   readonly annualIndexationRate: number
 }
 
+// A deposit you can put money into. `payoutPeriodMonths` is the load-bearing
+// field, not the rate: interest does not join the balance until it is paid out,
+// and any withdrawal burns the whole period accrued so far. So 1 means "withdraw
+// whenever, lose nothing" and needs no separate flag.
+export interface DepositProduct {
+  readonly id: string
+  // Just the name — «Kaspi Депозит». The rate is not baked into the string, so
+  // the two cannot drift apart. Rendered by describeProduct() in app/format.ts.
+  readonly name: string
+  readonly annualRate: number
+  readonly payoutPeriodMonths: number
+}
+
 // Every variant empties the existing accounts into one deposit in month 0, and
 // everything afterwards — the sale money, each month's savings — lands in that
 // same deposit. So the model needs one product, not one per source of money.
