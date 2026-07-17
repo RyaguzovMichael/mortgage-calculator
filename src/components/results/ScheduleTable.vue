@@ -2,7 +2,7 @@
 import { computed, ref } from 'vue'
 import { useInputs } from '@/app/useInputs'
 import { money, monthLabel, PHASE_LABELS, VARIANT_COLORS, VARIANT_LABELS } from '@/app/format'
-import type { VariantId } from '@/engine/types/plan'
+import type { MonthRow, VariantId } from '@/engine/types/plan'
 
 const { report } = useInputs()
 const active = ref<VariantId>('halyk-immediate')
@@ -10,6 +10,49 @@ const active = ref<VariantId>('halyk-immediate')
 const variant = computed(
   () => report.value.variants.find((entry) => entry.id === active.value) ?? report.value.variants[0],
 )
+
+interface Column {
+  readonly key: string
+  readonly label: string
+  readonly value: (row: MonthRow) => number
+  readonly format?: (value: number) => string
+  readonly primary?: boolean
+}
+
+const NUMERIC_COLUMNS: readonly Column[] = [
+  { key: 'apartmentPrice', label: 'Цена кв.', value: (row) => row.apartmentPrice },
+  { key: 'rentPaid', label: 'Аренда', value: (row) => row.rentPaid },
+  { key: 'loanPayment', label: 'Платёж', value: (row) => row.loanPayment },
+  { key: 'loanInterest', label: 'Проценты', value: (row) => row.loanInterest },
+  { key: 'loanPrincipal', label: 'Тело', value: (row) => row.loanPrincipal },
+  { key: 'loanBalance', label: 'Долг', value: (row) => row.loanBalance },
+  { key: 'savingsBalance', label: 'Вклады', value: (row) => row.savingsBalance },
+  { key: 'otbasyBalance', label: 'Отбасы', value: (row) => row.otbasyBalance },
+  { key: 'otbasyCc', label: 'CC', value: (row) => row.otbasyCc, format: (v) => v.toFixed(2) },
+  { key: 'depositInterestEarned', label: 'Доход', value: (row) => row.depositInterestEarned },
+  { key: 'govBonus', label: 'Премия', value: (row) => row.govBonus },
+  { key: 'netWorth', label: 'Чистые активы', value: (row) => row.netWorth, primary: true },
+]
+
+// A column that is zero all the way down says nothing about this variant — the
+// Otbasy account and its bonus in every variant that never opens one, the loan
+// columns under "без ипотеки", rent under a variant that never rents. Dropping
+// them is what makes the remaining columns fit without scrolling sideways.
+//
+// Driven by the data rather than by variant id: the engine already decides which
+// variant touches what, and the table has no business restating that.
+const columns = computed(() =>
+  NUMERIC_COLUMNS.filter((column) =>
+    // Half a tenge: rounding leaves cent-sized dust in columns that are morally
+    // empty, and it would still print as "0".
+    variant.value?.rows.some((row) => Math.abs(column.value(row)) >= 0.005),
+  ),
+)
+
+function cell(column: Column, row: MonthRow): string {
+  const value = column.value(row)
+  return column.format ? column.format(value) : money(value)
+}
 </script>
 
 <template>
@@ -39,18 +82,13 @@ const variant = computed(
             <th>Мес</th>
             <th class="left">Дата</th>
             <th class="left">Фаза</th>
-            <th>Цена кв.</th>
-            <th>Аренда</th>
-            <th>Платёж</th>
-            <th>Проценты</th>
-            <th>Тело</th>
-            <th>Долг</th>
-            <th>Вклады</th>
-            <th>Отбасы</th>
-            <th>CC</th>
-            <th>Доход</th>
-            <th>Премия</th>
-            <th>Чистые активы</th>
+            <th
+              v-for="column in columns"
+              :key="column.key"
+              :class="{ primary: column.primary }"
+            >
+              {{ column.label }}
+            </th>
           </tr>
         </thead>
         <tbody>
@@ -62,23 +100,21 @@ const variant = computed(
             <td>{{ row.index }}</td>
             <td class="left">{{ monthLabel(row.yearMonth) }}</td>
             <td class="left phase">{{ PHASE_LABELS[row.phase] }}</td>
-            <td>{{ money(row.apartmentPrice) }}</td>
-            <td>{{ money(row.rentPaid) }}</td>
-            <td>{{ money(row.loanPayment) }}</td>
-            <td>{{ money(row.loanInterest) }}</td>
-            <td>{{ money(row.loanPrincipal) }}</td>
-            <td>{{ money(row.loanBalance) }}</td>
-            <td>{{ money(row.savingsBalance) }}</td>
-            <td>{{ money(row.otbasyBalance) }}</td>
-            <td>{{ row.otbasyCc.toFixed(2) }}</td>
-            <td>{{ money(row.depositInterestEarned) }}</td>
-            <td>{{ money(row.govBonus) }}</td>
-            <td class="primary">{{ money(row.netWorth) }}</td>
+            <td
+              v-for="column in columns"
+              :key="column.key"
+              :class="{ primary: column.primary }"
+            >
+              {{ cell(column, row) }}
+            </td>
           </tr>
         </tbody>
       </table>
     </div>
-    <p class="note">Подсвечена строка покупки. Доход показан в месяц выплаты процентов, а не начисления.</p>
+    <p class="note">
+      Подсвечена строка покупки. Доход показан в месяц выплаты процентов, а не начисления. Колонки,
+      пустые для этого варианта, скрыты.
+    </p>
   </section>
 </template>
 
