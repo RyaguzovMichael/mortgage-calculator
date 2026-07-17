@@ -101,16 +101,10 @@ const existingTotal = computed(() => existingBalance(inputs))
     <section v-show="active === 'money'">
       <h3>Вклад</h3>
       <ProductPicker
-        v-model:rate="inputs.deposits.savingsAnnualRate"
-        v-model:payout-period="inputs.deposits.savingsPayoutPeriodMonths"
+        v-model="inputs.deposits.savingsProductId"
+        :products="inputs.deposits.products"
         label="Куда идут все деньги"
-        hint="Один вклад на всё: сегодняшние накопления, деньги от продажи и ежемесячные взносы. В варианте Otbasy накопления вместо этого уходят на счёт Отбасы."
-      />
-      <PercentField v-model="inputs.deposits.savingsAnnualRate" label="Ставка" />
-      <NumberField
-        v-model="inputs.deposits.savingsPayoutPeriodMonths"
-        label="Выплата процентов раз в"
-        suffix="мес"
+        hint="Один вклад на всё: сегодняшние накопления, деньги от продажи и ежемесячные взносы. В варианте Otbasy накопления вместо этого уходят на счёт Отбасы. Свой вклад добавляется во вкладке «Вклады»."
       />
     </section>
 

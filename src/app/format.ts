@@ -1,3 +1,4 @@
+import type { DepositProduct } from '@/engine/types/inputs'
 import type { VariantId } from '@/engine/types/plan'
 import { formatYearMonth, type YearMonth } from '@/engine/types/yearMonth'
 
@@ -19,6 +20,29 @@ export function percent(rate: number): string {
 
 export function monthLabel(yearMonth: YearMonth): string {
   return formatYearMonth(yearMonth)
+}
+
+// Built from the deposit's fields rather than stored as a label, so the rate in
+// the text cannot drift from the rate in the model.
+export function describeProduct(product: DepositProduct): string {
+  return `${product.name} — ${percent(product.annualRate)}, ${payoutPhrase(product.payoutPeriodMonths)}`
+}
+
+// A monthly payout is worth spelling out: it is the same thing as "withdraw any
+// time, lose nothing", which is what the whole choice turns on.
+function payoutPhrase(months: number): string {
+  if (months === 1) return 'выплата каждый месяц, снятие без потерь'
+  return `выплата раз в ${months} ${monthsWord(months)}`
+}
+
+// Russian needs three forms, and 11-14 are the exception to the last-digit rule.
+function monthsWord(months: number): string {
+  const lastTwo = months % 100
+  if (lastTwo >= 11 && lastTwo <= 14) return 'месяцев'
+  const last = months % 10
+  if (last === 1) return 'месяц'
+  if (last >= 2 && last <= 4) return 'месяца'
+  return 'месяцев'
 }
 
 export const VARIANT_LABELS: Record<VariantId, string> = {

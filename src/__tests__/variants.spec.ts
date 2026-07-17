@@ -102,7 +102,11 @@ describe('deposit rate', () => {
     // to be earning.
     const inputs: Inputs = {
       ...DEFAULT_INPUTS,
-      deposits: { ...DEFAULT_INPUTS.deposits, savingsAnnualRate: 0 },
+      deposits: {
+        ...DEFAULT_INPUTS.deposits,
+        products: [{ id: 'zero', name: 'Под матрасом', annualRate: 0, payoutPeriodMonths: 1 }],
+        savingsProductId: 'zero',
+      },
       otbasy: { ...DEFAULT_INPUTS.otbasy, depositAnnualRate: 0 },
     }
     const immediate = simulateHalykImmediate(inputs).totals.totalLoss
@@ -304,11 +308,10 @@ describe('one deposit for everything', () => {
     apartment: { ...DEFAULT_INPUTS.apartment, annualGrowthRate: 0.12 },
   }
 
+  // Selects the catalogue's monthly-payout deposit by id, rather than restating
+  // its numbers here where they could drift from data/deposits.yml.
   function payingMonthly(inputs: Inputs): Inputs {
-    return {
-      ...inputs,
-      deposits: { ...inputs.deposits, savingsAnnualRate: 0.141, savingsPayoutPeriodMonths: 1 },
-    }
+    return { ...inputs, deposits: { ...inputs.deposits, savingsProductId: 'kaspi-savings' } }
   }
 
   it('a six-month deposit stops earning once every month needs a withdrawal', () => {

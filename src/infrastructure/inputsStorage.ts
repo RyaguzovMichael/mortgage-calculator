@@ -1,4 +1,5 @@
 import type { Inputs } from '@/engine/types/inputs'
+import { BUILT_IN_PRODUCTS } from './depositCatalogue'
 
 // Bump when the Inputs shape changes — a stored blob from an older shape would
 // otherwise deserialize into a half-populated object and silently skew results.
@@ -35,8 +36,9 @@ export const DEFAULT_INPUTS: Inputs = {
       { id: 'kaspi-liquid', label: 'Kaspi (свободный)', balance: 356_599 },
       { id: 'otbasy', label: 'Отбасы', balance: 648_509.26 },
     ],
-    savingsAnnualRate: 0.184,
-    savingsPayoutPeriodMonths: 6,
+    // Built-ins only; the user's own deposits are added on top at load time.
+    products: [...BUILT_IN_PRODUCTS],
+    savingsProductId: 'kaspi-deposit',
   },
   halyk: {
     annualRate: 0.24,

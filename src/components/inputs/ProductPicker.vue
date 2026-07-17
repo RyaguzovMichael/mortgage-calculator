@@ -1,44 +1,26 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-import { SAVINGS_PRODUCTS } from '@/engine/savingsProducts'
+import { describeProduct } from '@/app/format'
+import type { DepositProduct } from '@/engine/types/inputs'
 
-const props = defineProps<{ label: string; hint?: string }>()
-const rate = defineModel<number>('rate', { required: true })
-const payoutPeriod = defineModel<number>('payoutPeriod', { required: true })
+// Selection is an id, not a (rate, payout) pair matched by float equality. Two
+// deposits with the same numbers used to be the same deposit; now they are two.
+// There is no "custom" option either — a custom rate is a deposit you create.
+const props = defineProps<{ label: string; products: readonly DepositProduct[]; hint?: string }>()
 
-// "Custom" is a real state, not a fallback: the rate and payout period stay
-// free-form numbers, and a preset is only a shortcut that sets both at once.
-const selected = computed(() => {
-  const match = SAVINGS_PRODUCTS.find(
-    (product) =>
-      product.annualRate === rate.value && product.payoutPeriodMonths === payoutPeriod.value,
-  )
-  return match?.id ?? 'custom'
-})
-
-function pick(id: string): void {
-  const product = SAVINGS_PRODUCTS.find((candidate) => candidate.id === id)
-  if (!product) return
-  rate.value = product.annualRate
-  payoutPeriod.value = product.payoutPeriodMonths
-}
+const selectedId = defineModel<string>({ required: true })
 </script>
 
 <template>
   <fieldset class="picker">
     <legend>{{ props.label }}</legend>
-    <label v-for="product in SAVINGS_PRODUCTS" :key="product.id" class="option">
+    <label v-for="product in props.products" :key="product.id" class="option">
       <input
         type="radio"
-        :checked="selected === product.id"
+        :checked="selectedId === product.id"
         :name="props.label"
-        @change="pick(product.id)"
+        @change="selectedId = product.id"
       />
-      <span>{{ product.label }}</span>
-    </label>
-    <label class="option">
-      <input type="radio" :checked="selected === 'custom'" :name="props.label" disabled />
-      <span class="custom">Своя ставка — задайте поля ниже</span>
+      <span>{{ describeProduct(product) }}</span>
     </label>
     <p v-if="props.hint" class="hint">{{ props.hint }}</p>
   </fieldset>
@@ -69,9 +51,6 @@ legend {
 .option input {
   margin-top: 3px;
   accent-color: var(--series-1);
-}
-.custom {
-  color: var(--text-muted);
 }
 .hint {
   color: var(--text-muted);

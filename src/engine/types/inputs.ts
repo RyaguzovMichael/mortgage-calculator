@@ -58,11 +58,14 @@ export interface DepositProduct {
 // same deposit. So the model needs one product, not one per source of money.
 export interface DepositInputs {
   readonly accounts: readonly DepositAccountInputs[]
-  readonly savingsAnnualRate: number
-  // Months between interest payouts; 1 is plain monthly capitalization. Kaspi's
-  // 18.4% pays every 6 months and forfeits everything accrued since the last
-  // payout if you withdraw early, so this drives when it is cheap to buy.
-  readonly savingsPayoutPeriodMonths: number
+  // The one mutable array in Inputs: the panel adds and removes deposits, and CRUD
+  // on a `readonly T[]` does not compile. Reaching for Object.assign to get around
+  // it would be a hidden cast in the very type that documents the engine's
+  // contract. The engine only ever reads this.
+  products: DepositProduct[]
+  // Which deposit the money goes into, by id. Used to be a loose (rate, payout)
+  // pair, which meant two deposits with the same numbers were the same deposit.
+  readonly savingsProductId: string
 }
 
 // Only the balance is modelled. The accounts are itemised to show where today's
@@ -149,4 +152,20 @@ function raisesBy(start: YearMonth, monthIndex: number): number {
 // them, since month 0 pours the lot into a single deposit.
 export function existingBalance(inputs: Inputs): number {
   return inputs.deposits.accounts.reduce((sum, account) => sum + account.balance, 0)
+}
+
+export function findProduct(inputs: Inputs, id: string): DepositProduct | undefined {
+  return inputs.deposits.products.find((product) => product.id === id)
+}
+
+// Total: loadInputs repairs an id that no longer resolves and the panel gives no
+// way to unselect one, so this cannot fail on data the app produces. It throws
+// rather than substituting a default, because inventing a rate in a model whose
+// whole job is comparing rates is worse than stopping.
+export function savingsProduct(inputs: Inputs): DepositProduct {
+  const product = findProduct(inputs, inputs.deposits.savingsProductId)
+  if (!product) {
+    throw new Error(`Вклад «${inputs.deposits.savingsProductId}» не найден в каталоге`)
+  }
+  return product
 }

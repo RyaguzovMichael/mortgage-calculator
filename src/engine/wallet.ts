@@ -1,6 +1,6 @@
 import { createDeposit } from './deposit'
 import { createOtbasyAccount, type OtbasyAccount } from './otbasyAccount'
-import { existingBalance, targetLoan, type Inputs } from './types/inputs'
+import { existingBalance, savingsProduct, targetLoan, type Inputs } from './types/inputs'
 import type { YearMonth } from './types/yearMonth'
 
 // Everything a variant owns in cash, and the month-step bookkeeping all four
@@ -41,10 +41,11 @@ export interface WalletOptions {
 }
 
 export function createWallet(inputs: Inputs, options: WalletOptions = { useOtbasy: true }): Wallet {
+  const product = savingsProduct(inputs)
   const savings = createDeposit(
     options.useOtbasy ? 0 : existingBalance(inputs),
-    inputs.deposits.savingsAnnualRate,
-    inputs.deposits.savingsPayoutPeriodMonths,
+    product.annualRate,
+    product.payoutPeriodMonths,
   )
 
   const otbasy = createOtbasyAccount(
