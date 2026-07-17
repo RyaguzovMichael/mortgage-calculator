@@ -1,12 +1,12 @@
 import type { Inputs } from '@/engine/types/inputs'
-import { BUILT_IN_PRODUCTS } from './depositCatalogue'
+import { BUILT_IN_PRODUCTS, isBuiltInProduct } from './depositCatalogue'
 
 // Bump when the Inputs shape changes — a stored blob from an older shape would
 // otherwise deserialize into a half-populated object and silently skew results.
 //
 // Exported so the specs cannot drift from it: they used to hard-code the key as a
 // string, and two of them went on passing for the wrong reason after a bump.
-export const STORAGE_KEY = 'mortgage:inputs:v3'
+export const STORAGE_KEY = 'mortgage:inputs:v4'
 
 // Real starting position as of 2026-07. See MODEL.md for provenance of every number.
 export const DEFAULT_INPUTS: Inputs = {
@@ -63,14 +63,46 @@ export function loadInputs(): Inputs | null {
   if (raw === null) return null
   try {
     const parsed: unknown = JSON.parse(raw)
-    return structurallyValid(parsed) ? (parsed as Inputs) : null
+    return structurallyValid(parsed) ? withCatalogue(parsed as Inputs) : null
   } catch {
     return null
   }
 }
 
 export function saveInputs(inputs: Inputs): void {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(inputs))
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(withoutBuiltIns(inputs)))
+}
+
+// The built-ins belong to data/deposits.yml, not to the user's saved blob. Keeping
+// a copy would mean edits to the file never reached anyone who had already used
+// the app, and a deposit deleted from the file would live on in localStorage —
+// silently reclassified as one of the user's own, because "built-in" is decided by
+// membership in the file.
+function withoutBuiltIns(inputs: Inputs): Inputs {
+  return {
+    ...inputs,
+    deposits: {
+      ...inputs.deposits,
+      products: inputs.deposits.products.filter((product) => !isBuiltInProduct(product.id)),
+    },
+  }
+}
+
+function withCatalogue(inputs: Inputs): Inputs {
+  const own = inputs.deposits.products.filter((product) => !isBuiltInProduct(product.id))
+  const products = [...BUILT_IN_PRODUCTS, ...own]
+  return {
+    ...inputs,
+    deposits: {
+      ...inputs.deposits,
+      products,
+      // Repair rather than reject: a deposit the user deleted, or one dropped from
+      // the YAML, must not cost them their price, sale, cashflow and loan terms.
+      savingsProductId: products.some((product) => product.id === inputs.deposits.savingsProductId)
+        ? inputs.deposits.savingsProductId
+        : DEFAULT_INPUTS.deposits.savingsProductId,
+    },
+  }
 }
 
 // A marker check, not full schema validation — enough to reject a blob from a
@@ -82,6 +114,7 @@ function structurallyValid(value: unknown): boolean {
     typeof candidate.horizonMonths === 'number' &&
     typeof candidate.apartment?.price === 'number' &&
     typeof candidate.sale?.proceeds === 'number' &&
-    Array.isArray(candidate.deposits?.accounts)
+    Array.isArray(candidate.deposits?.accounts) &&
+    Array.isArray(candidate.deposits?.products)
   )
 }
