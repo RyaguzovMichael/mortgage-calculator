@@ -67,6 +67,7 @@ export function buildRow(args: {
     yearMonth: month.yearMonth,
     phase: phaseOf(inputs, month, owned, loan),
     apartmentPrice: apartmentPriceAt(inputs, month.index),
+    freeCash: month.freeCash,
     rentPaid,
     loanPayment: payment.paid,
     loanInterest: payment.interest,

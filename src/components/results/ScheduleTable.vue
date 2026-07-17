@@ -21,6 +21,8 @@ interface Column {
 
 const NUMERIC_COLUMNS: readonly Column[] = [
   { key: 'apartmentPrice', label: 'Цена кв.', value: (row) => row.apartmentPrice },
+  // "Свободно", not "Доход": the column two along is already deposit income.
+  { key: 'freeCash', label: 'Свободно', value: (row) => row.freeCash },
   { key: 'rentPaid', label: 'Аренда', value: (row) => row.rentPaid },
   { key: 'loanPayment', label: 'Платёж', value: (row) => row.loanPayment },
   { key: 'loanInterest', label: 'Проценты', value: (row) => row.loanInterest },

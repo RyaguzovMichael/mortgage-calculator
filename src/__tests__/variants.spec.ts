@@ -241,6 +241,14 @@ describe('indexation', () => {
     expect(risingIncome.debtFreeMonth!).toBeLessThan(flatIncome.debtFreeMonth!)
   })
 
+  it('reports the month income on the row, stepping in June', () => {
+    const rows = simulateHalykImmediate(indexedAt(0.1)).rows
+    expect(rows[0]!.freeCash).toBe(0)
+    expect(rows[1]!.freeCash).toBeCloseTo(500_000, 2)
+    expect(rows[10]!.freeCash).toBeCloseTo(500_000, 2)
+    expect(rows[11]!.freeCash).toBeCloseTo(550_000, 2)
+  })
+
   it('leaves the run untouched at 0% income indexation', () => {
     expect(simulateHalykImmediate(indexedAt(0)).rows).toEqual(
       simulateHalykImmediate(DEFAULT_INPUTS).rows,

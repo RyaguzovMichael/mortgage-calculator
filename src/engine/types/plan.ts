@@ -25,6 +25,9 @@ export interface MonthRow {
   readonly phase: Phase
   // The market price that month whether or not this variant owns the flat yet.
   readonly apartmentPrice: number
+  // The month's income, after indexation. Same for every variant — it is what
+  // each of them had to work with.
+  readonly freeCash: number
   readonly rentPaid: number
   readonly loanPayment: number
   readonly loanInterest: number
