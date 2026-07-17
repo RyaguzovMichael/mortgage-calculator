@@ -1,10 +1,25 @@
 <script setup lang="ts">
+import { ref } from 'vue'
 import { useInputs } from '@/app/useInputs'
 import NumberField from './NumberField.vue'
 import PercentField from './PercentField.vue'
 import ProductPicker from './ProductPicker.vue'
 
 const { inputs, reset } = useInputs()
+
+// Grouped by what the number is *about*, not by which engine type holds it: the
+// deposit rate for the sale money lives with the sale, because that is the
+// decision it belongs to.
+const TABS = [
+  { id: 'apartment', label: 'Квартира' },
+  { id: 'money', label: 'Деньги' },
+  { id: 'loans', label: 'Ипотеки' },
+  { id: 'run', label: 'Расчёт' },
+] as const
+
+type TabId = (typeof TABS)[number]['id']
+
+const active = ref<TabId>('apartment')
 </script>
 
 <template>
@@ -14,7 +29,21 @@ const { inputs, reset } = useInputs()
       <button type="button" @click="reset">Сбросить</button>
     </header>
 
-    <section>
+    <div class="tabs" role="tablist">
+      <button
+        v-for="tab in TABS"
+        :key="tab.id"
+        type="button"
+        role="tab"
+        :aria-selected="tab.id === active"
+        :class="{ on: tab.id === active }"
+        @click="active = tab.id"
+      >
+        {{ tab.label }}
+      </button>
+    </div>
+
+    <section v-show="active === 'apartment'">
       <h3>Квартира</h3>
       <NumberField v-model="inputs.apartment.price" label="Цена" suffix="₸" :step="500000" />
       <PercentField
@@ -25,7 +54,7 @@ const { inputs, reset } = useInputs()
       />
     </section>
 
-    <section>
+    <section v-show="active === 'apartment'">
       <h3>Продажа текущей квартиры</h3>
       <NumberField
         v-model="inputs.sale.proceeds"
@@ -54,7 +83,7 @@ const { inputs, reset } = useInputs()
       />
     </section>
 
-    <section>
+    <section v-show="active === 'money'">
       <h3>Денежный поток</h3>
       <NumberField
         v-model="inputs.cashflow.monthlyFreeCash"
@@ -82,7 +111,7 @@ const { inputs, reset } = useInputs()
       />
     </section>
 
-    <section>
+    <section v-show="active === 'money'">
       <h3>Новые накопления</h3>
       <ProductPicker
         v-model:rate="inputs.deposits.newDepositAnnualRate"
@@ -97,7 +126,7 @@ const { inputs, reset } = useInputs()
       />
     </section>
 
-    <section>
+    <section v-show="active === 'money'">
       <h3>Существующие вклады</h3>
       <p class="note">
         Счёт Отбасы работает только в варианте Otbasy. В остальных трёх он закрывается в месяц 0 и
@@ -112,7 +141,7 @@ const { inputs, reset } = useInputs()
       </div>
     </section>
 
-    <section>
+    <section v-show="active === 'loans'">
       <h3>Halyk</h3>
       <PercentField v-model="inputs.halyk.annualRate" label="Ставка" :step="0.5" />
       <PercentField
@@ -123,7 +152,7 @@ const { inputs, reset } = useInputs()
       <NumberField v-model="inputs.halyk.maxTermMonths" label="Макс. срок" suffix="мес" />
     </section>
 
-    <section>
+    <section v-show="active === 'loans'">
       <h3>Otbasy</h3>
       <PercentField v-model="inputs.otbasy.loanAnnualRate" label="Ставка кредита" :step="0.5" />
       <NumberField
@@ -144,14 +173,16 @@ const { inputs, reset } = useInputs()
       <NumberField v-model="inputs.otbasy.govBonusMonth" label="Месяц премии" hint="2 = февраль" />
     </section>
 
-    <section>
+    <section v-show="active === 'run'">
       <h3>Расчёт</h3>
-      <NumberField v-model="inputs.horizonMonths" label="Горизонт" suffix="мес" />
       <NumberField
-        v-model="inputs.start.year"
-        label="Старт: год"
+        v-model="inputs.horizonMonths"
+        label="Горизонт"
+        suffix="мес"
+        hint="Только потолок: расчёт всё равно обрывается, когда последний вариант гасит долг. Поднимать имеет смысл, если кто-то не успевает расплатиться."
       />
-      <NumberField v-model="inputs.start.month" label="Старт: месяц" />
+      <NumberField v-model="inputs.start.year" label="Старт: год" />
+      <NumberField v-model="inputs.start.month" label="Старт: месяц" hint="7 = июль." />
     </section>
   </aside>
 </template>
@@ -206,7 +237,9 @@ section {
   flex-direction: column;
   gap: 8px;
 }
-button {
+/* Scoped to the header: a bare `button` rule would also repaint the tabs, which
+   need their own selected state. */
+header button {
   border: 1px solid var(--border);
   background: var(--surface-2);
   color: var(--text-secondary);
@@ -216,7 +249,37 @@ button {
   font-size: 12px;
   cursor: pointer;
 }
-button:hover {
+header button:hover {
   color: var(--text-primary);
+}
+.tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--border);
+  margin-top: -8px;
+}
+.tabs button {
+  flex: 1;
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: none;
+  color: var(--text-muted);
+  padding: 6px 2px;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  /* Sits on the container's border, so the selected tab's line covers it. */
+  margin-bottom: -1px;
+}
+.tabs button:hover {
+  color: var(--text-secondary);
+}
+.tabs button.on {
+  color: var(--text-primary);
+  border-bottom-color: var(--series-1);
+}
+.tabs button:focus-visible {
+  outline: 2px solid var(--series-1);
+  outline-offset: -2px;
 }
 </style>
