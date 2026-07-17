@@ -11,6 +11,12 @@ const { inputs, report } = useInputs()
 // prices and it quietly mis-ranks — so say so rather than show it bare.
 const lossIsValid = computed(() => inputs.apartment.annualGrowthRate === 0)
 
+// The engine drops it when Otbasy never buys — say so, or a variant just goes
+// missing from the table with no explanation.
+const delayedIsDropped = computed(
+  () => !report.value.variants.some((variant) => variant.id === 'halyk-delayed'),
+)
+
 function months(value: number | null): string {
   return value === null ? '—' : `${value}`
 }
@@ -191,6 +197,12 @@ function classesFor(column: Column, variant: VariantResult): Record<string, bool
         </tbody>
       </table>
     </div>
+
+    <p v-if="delayedIsDropped" class="warning">
+      «Halyk отложенно» не считается: он ждёт ровно столько же, сколько Otbasy, а Otbasy не выходит
+      на покупку в пределах горизонта — ждать не за чем. Задайте окно накопления вручную или
+      поднимите горизонт.
+    </p>
 
     <p v-if="!lossIsValid" class="warning">
       Рост цены {{ (inputs.apartment.annualGrowthRate * 100).toFixed(1) }}%/год — колонка «потеря»

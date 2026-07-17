@@ -18,6 +18,39 @@ describe('simulateAll', () => {
     ])
   })
 
+  describe('delayed Halyk without an Otbasy purchase', () => {
+    // Otbasy buys on month 7 by default, so a six-month horizon denies it.
+    const tooShort = { ...DEFAULT_INPUTS, horizonMonths: 6 }
+
+    it('is dropped: there is no window to chain to', () => {
+      expect(simulateAll(tooShort).variants.find((variant) => variant.id === 'otbasy')!
+        .purchaseMonth).toBeNull()
+      expect(simulateAll(tooShort).variants.map((variant) => variant.id)).toEqual([
+        'halyk-immediate',
+        'otbasy',
+        'all-cash',
+      ])
+    })
+
+    // The old fallback ran it against the horizon, which made it "rent forever,
+    // never buy" — a variant that never existed, ranked as if it had.
+    it('is not silently run against the horizon instead', () => {
+      expect(
+        simulateAll(tooShort).variants.some((variant) => variant.id === 'halyk-delayed'),
+      ).toBe(false)
+    })
+
+    it('is kept when the window is set by hand, which needs no Otbasy', () => {
+      const explicit = { ...tooShort, halykDelayedSavingMonths: 3 }
+      expect(simulateAll(explicit).variants.map((variant) => variant.id)).toEqual([
+        'halyk-immediate',
+        'halyk-delayed',
+        'otbasy',
+        'all-cash',
+      ])
+    })
+  })
+
   it('picks the highest net worth as best', () => {
     const report = simulateAll(DEFAULT_INPUTS)
     const richest = [...report.variants].sort(

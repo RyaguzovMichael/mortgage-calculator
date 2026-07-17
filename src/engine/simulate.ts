@@ -20,12 +20,15 @@ export function simulateAll(inputs: Inputs): SimulationReport {
   // Otbasy runs first so the delayed-Halyk savings window can chain to its
   // purchase month, which is what makes the two comparable on one window.
   const otbasy = simulateOtbasy(inputs)
-  const savingMonths =
-    inputs.halykDelayedSavingMonths ?? otbasy.purchaseMonth ?? inputs.horizonMonths
+  const savingMonths = inputs.halykDelayedSavingMonths ?? otbasy.purchaseMonth
 
+  // No Otbasy purchase means no window to chain to, and delayed Halyk is defined
+  // as "wait exactly as long as Otbasy waits". So it is dropped rather than run
+  // against some invented window: falling back to the horizon would silently
+  // turn it into "rent forever, never buy" and rank that as a real option.
   const simulated = [
     simulateHalykImmediate(inputs),
-    simulateHalykDelayed(inputs, savingMonths),
+    ...(savingMonths === null ? [] : [simulateHalykDelayed(inputs, savingMonths)]),
     otbasy,
     simulateAllCash(inputs),
   ]
