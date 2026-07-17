@@ -64,12 +64,16 @@ export const DEFAULT_INPUTS: Inputs = {
 export function loadInputs(): Inputs | null {
   const raw = localStorage.getItem(STORAGE_KEY)
   if (raw === null) return null
+  let parsed: unknown
   try {
-    const parsed: unknown = JSON.parse(raw)
-    return structurallyValid(parsed) ? withCatalogue(parsed as Inputs) : null
+    parsed = JSON.parse(raw)
   } catch {
     return null
   }
+  // Only a plain object can be repaired; an array or a primitive is not this shape
+  // at all and there is nothing to salvage.
+  if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) return null
+  return withCatalogue(repair(DEFAULT_INPUTS, parsed) as Inputs)
 }
 
 export function saveInputs(inputs: Inputs): void {
@@ -108,16 +112,34 @@ function withCatalogue(inputs: Inputs): Inputs {
   }
 }
 
-// A marker check, not full schema validation — enough to reject a blob from a
-// different shape. STORAGE_KEY is versioned for the real breaking changes.
-function structurallyValid(value: unknown): boolean {
-  if (typeof value !== 'object' || value === null) return false
-  const candidate = value as Partial<Inputs>
-  return (
-    typeof candidate.horizonMonths === 'number' &&
-    typeof candidate.apartment?.price === 'number' &&
-    typeof candidate.sale?.proceeds === 'number' &&
-    typeof candidate.deposits?.savingsBalance === 'number' &&
-    Array.isArray(candidate.deposits?.products)
-  )
+// Rebuild the stored blob against the defaults as a schema: take each field from
+// storage when it is present and the right kind, fall back to the default when it
+// is missing or wrong. A single unparseable field (a cleared input leaves "")
+// then costs only that field, not the whole saved state — the failure this whole
+// function exists to prevent.
+//
+// Arrays (the deposit catalogue) are taken wholesale; withCatalogue then reconciles
+// the built-ins. STORAGE_KEY is still bumped for real shape changes.
+function repair(defaults: unknown, stored: unknown): unknown {
+  if (typeof defaults === 'number') {
+    return typeof stored === 'number' && Number.isFinite(stored) ? stored : defaults
+  }
+  if (typeof defaults === 'boolean') return typeof stored === 'boolean' ? stored : defaults
+  if (typeof defaults === 'string') return typeof stored === 'string' ? stored : defaults
+  // A null default marks a nullable number (halykDelayedSavingMonths): keep a real
+  // number, otherwise null.
+  if (defaults === null) {
+    return typeof stored === 'number' && Number.isFinite(stored) ? stored : null
+  }
+  if (Array.isArray(defaults)) return Array.isArray(stored) ? stored : defaults
+  if (typeof defaults === 'object') {
+    if (typeof stored !== 'object' || stored === null || Array.isArray(stored)) return defaults
+    const source = stored as Record<string, unknown>
+    const out: Record<string, unknown> = {}
+    for (const [key, value] of Object.entries(defaults)) {
+      out[key] = repair(value, source[key])
+    }
+    return out
+  }
+  return defaults
 }

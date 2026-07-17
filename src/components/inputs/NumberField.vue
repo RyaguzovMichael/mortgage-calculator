@@ -1,13 +1,41 @@
 <script setup lang="ts">
+import { ref, watch } from 'vue'
+
 defineProps<{ label: string; suffix?: string; step?: number; hint?: string }>()
 const value = defineModel<number>({ required: true })
+
+// The input's text is kept separate from the model so a half-typed or emptied
+// field never writes a non-number into the model. `v-model.number` does not
+// protect this: Vue's looseToNumber returns the raw STRING when parseFloat fails,
+// so clearing the field would put "" into a number slot, the deep watch would
+// save it, and the whole saved state would be rejected on reload.
+const text = ref(String(value.value))
+
+// Reflect external changes (the reset button, a preset) back into the text.
+watch(value, (next) => {
+  if (Number(text.value) !== next) text.value = String(next)
+})
+
+function onInput(event: Event): void {
+  const raw = (event.target as HTMLInputElement).value
+  text.value = raw
+  const parsed = Number(raw)
+  // Only propagate a real number; leave the model untouched while the field is
+  // empty or mid-edit, so the user can clear and retype freely.
+  if (raw.trim() !== '' && Number.isFinite(parsed)) value.value = parsed
+}
+
+function onBlur(): void {
+  const parsed = Number(text.value)
+  if (text.value.trim() === '' || !Number.isFinite(parsed)) text.value = String(value.value)
+}
 </script>
 
 <template>
   <label class="field">
     <span class="label">{{ label }}</span>
     <span class="control">
-      <input v-model.number="value" type="number" :step="step ?? 1" />
+      <input :value="text" type="number" :step="step ?? 1" @input="onInput" @blur="onBlur" />
       <span v-if="suffix" class="suffix">{{ suffix }}</span>
     </span>
     <span v-if="hint" class="hint">{{ hint }}</span>

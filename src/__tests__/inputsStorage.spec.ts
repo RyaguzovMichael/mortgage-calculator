@@ -52,9 +52,36 @@ describe('inputsStorage', () => {
     expect(loadInputs()).toBeNull()
   })
 
-  it('returns null on a blob of the wrong shape', () => {
-    localStorage.setItem(STORAGE_KEY,JSON.stringify({ horizonMonths: 12 }))
+  // The failure this guards: clearing a number field wrote "" into a number slot,
+  // the deep watch saved it, and the old all-or-nothing validator then threw the
+  // WHOLE blob away on reload — losing price, sale, cashflow, loan terms and every
+  // custom deposit over one bad field. Now that field falls back to its default
+  // and everything else survives.
+  it('repairs a single bad field instead of discarding everything', () => {
+    const saved = { ...DEFAULT_INPUTS, horizonMonths: 42 }
+    saveInputs(saved)
+    const raw = JSON.parse(localStorage.getItem(STORAGE_KEY)!)
+    raw.apartment.price = '' // what a cleared field leaves behind
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(raw))
+
+    const loaded = loadInputs()!
+    expect(loaded).not.toBeNull()
+    expect(loaded.apartment.price).toBe(DEFAULT_INPUTS.apartment.price) // repaired
+    expect(loaded.horizonMonths).toBe(42) // everything else kept
+  })
+
+  it('still rejects something that is not the Inputs shape at all', () => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify([1, 2, 3]))
     expect(loadInputs()).toBeNull()
+  })
+
+  // A partial object is repaired, not rejected: it keeps what it can and defaults
+  // the rest, which is the whole point — never lose more than the one bad field.
+  it('fills missing fields from the defaults instead of rejecting', () => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ horizonMonths: 12 }))
+    const loaded = loadInputs()!
+    expect(loaded.horizonMonths).toBe(12)
+    expect(loaded.apartment.price).toBe(DEFAULT_INPUTS.apartment.price)
   })
 })
 

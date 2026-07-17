@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import NumberField from './NumberField.vue'
 
 defineProps<{ label: string; step?: number; hint?: string }>()
 
@@ -17,54 +18,7 @@ const percent = computed({
 </script>
 
 <template>
-  <label class="field">
-    <span class="label">{{ label }}</span>
-    <span class="control">
-      <input v-model.number="percent" type="number" :step="step ?? 0.1" />
-      <span class="suffix">%</span>
-    </span>
-    <span v-if="hint" class="hint">{{ hint }}</span>
-  </label>
+  <!-- Delegates to NumberField so the non-number guard lives in one place and the
+       input styling is not a second copy. -->
+  <NumberField v-model="percent" :label="label" suffix="%" :step="step ?? 0.1" :hint="hint" />
 </template>
-
-<style scoped>
-.field {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-.label {
-  color: var(--text-secondary);
-  font-size: var(--text-md);
-}
-.control {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-input {
-  flex: 1;
-  min-width: 0;
-  padding: 6px 8px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: var(--surface-1);
-  color: var(--text-primary);
-  font: inherit;
-  font-family: var(--mono);
-  font-size: var(--text-lg);
-}
-input:focus-visible {
-  outline: 2px solid var(--series-1);
-  outline-offset: -1px;
-}
-.suffix {
-  color: var(--text-muted);
-  font-size: var(--text-md);
-  white-space: nowrap;
-}
-.hint {
-  color: var(--text-muted);
-  font-size: var(--text-sm);
-}
-</style>
