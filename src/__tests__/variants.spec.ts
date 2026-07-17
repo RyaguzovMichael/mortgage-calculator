@@ -72,7 +72,7 @@ describe('Halyk immediate', () => {
   it('pays no rent — it buys the month the sale lands', () => {
     const result = simulateHalykImmediate(DEFAULT_INPUTS)
     expect(result.totals.rentPaid).toBe(0)
-    expect(result.purchaseMonth).toBe(DEFAULT_INPUTS.sale.monthOffset)
+    expect(result.purchaseMonth).toBe(DEFAULT_INPUTS.housing.saleMonthOffset)
   })
 
   // The prototype never checked this: the down payment has to be real money, and
@@ -80,7 +80,7 @@ describe('Halyk immediate', () => {
   it('waits for the down payment to become affordable, renting meanwhile', () => {
     const result = simulateHalykImmediate({
       ...DEFAULT_INPUTS,
-      sale: { ...DEFAULT_INPUTS.sale, proceeds: 5_000_000, monthOffset: 0 },
+      housing: { ...DEFAULT_INPUTS.housing, saleProceeds: 5_000_000, saleMonthOffset: 0 },
     })
     expect(result.purchaseMonth).toBeGreaterThan(0)
     expect(result.totals.rentPaid).toBeGreaterThan(0)
@@ -93,6 +93,42 @@ describe('rent', () => {
     const immediate = simulateHalykImmediate(free)
     expect(simulateAllCash(free).totals.totalLoss).toBeLessThan(immediate.totals.totalLoss)
     expect(simulateHalykDelayed(free, 11).totals.totalLoss).toBeLessThan(immediate.totals.totalLoss)
+  })
+})
+
+describe('housing situation', () => {
+  function situated(situation: 'selling' | 'free' | 'renting'): Inputs {
+    return { ...DEFAULT_INPUTS, housing: { ...DEFAULT_INPUTS.housing, situation } }
+  }
+
+  it('living rent-free pays no rent at all', () => {
+    const result = simulateAllCash(situated('free'))
+    expect(result.totals.rentPaid).toBe(0)
+    for (const row of result.rows) expect(row.phase).not.toBe('renting')
+  })
+
+  it('renting pays rent from month 0, before any sale month would land', () => {
+    const rows = simulateAllCash(situated('renting')).rows
+    // Rent for this kind of flat is 400k; month 0 is well before the default
+    // sale month of 3, so a sale-gated model would show zero here.
+    expect(rows[0]!.rentPaid).toBeCloseTo(DEFAULT_INPUTS.cashflow.monthlyRent, 2)
+    expect(rows[0]!.phase).toBe('renting')
+  })
+
+  it('with no sale there are no proceeds, so buying takes far longer', () => {
+    const selling = simulateHalykImmediate(situated('selling'))
+    const free = simulateHalykImmediate(situated('free'))
+    // Selling hands over 35M at month 3; without it the down payment must be
+    // saved from scratch.
+    expect(free.purchaseMonth!).toBeGreaterThan(selling.purchaseMonth!)
+  })
+
+  it('rent-free vs renting differ only by the rent, not the purchase timing', () => {
+    // Neither has proceeds, so both save the same way; only the rent burden differs.
+    const free = simulateHalykImmediate(situated('free'))
+    const renting = simulateHalykImmediate(situated('renting'))
+    expect(free.totals.rentPaid).toBe(0)
+    expect(renting.totals.rentPaid).toBeGreaterThan(0)
   })
 })
 
@@ -176,8 +212,8 @@ describe('the flat being sold', () => {
 
   // The default sale lands on month 3, before the first half-year step, so it has
   // to be pushed out to see the appreciation at all.
-  function soldOnMonth(inputs: Inputs, monthOffset: number): Inputs {
-    return { ...inputs, sale: { ...inputs.sale, monthOffset } }
+  function soldOnMonth(inputs: Inputs, saleMonthOffset: number): Inputs {
+    return { ...inputs, housing: { ...inputs.housing, saleMonthOffset } }
   }
 
   it('hands over its appreciated value, not what it is worth today', () => {
@@ -195,8 +231,8 @@ describe('the flat being sold', () => {
     ['rising market', growing],
   ] as const)('does not make net worth jump on the sale month (%s)', (_label, inputs) => {
     const rows = simulateAllCash(inputs).rows
-    const before = rows[inputs.sale.monthOffset - 1]!
-    const atSale = rows[inputs.sale.monthOffset]!
+    const before = rows[inputs.housing.saleMonthOffset - 1]!
+    const atSale = rows[inputs.housing.saleMonthOffset]!
     // One month of rent and deposit interest apart, not tens of millions.
     expect(Math.abs(atSale.netWorth - before.netWorth)).toBeLessThan(1_500_000)
   })

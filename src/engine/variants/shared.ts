@@ -1,6 +1,13 @@
 import type { Loan, LoanPayment } from '../loan'
 import type { Wallet } from '../wallet'
-import { apartmentPriceAt, rentAt, saleProceedsAt, type Inputs } from '../types/inputs'
+import {
+  apartmentPriceAt,
+  purchaseAllowedFrom,
+  rentAt,
+  rentDueAt,
+  saleProceedsAt,
+  type Inputs,
+} from '../types/inputs'
 import type { MonthRow, Phase } from '../types/plan'
 import type { MonthContext } from './months'
 
@@ -10,10 +17,10 @@ export function purchasePriceAt(inputs: Inputs, purchaseMonth: number | null): n
   return purchaseMonth === null ? null : apartmentPriceAt(inputs, purchaseMonth)
 }
 
-// Selling the old flat is what forces the move: from that month on a variant is
-// either in its new apartment or paying rent.
-export function hasMovedOut(inputs: Inputs, monthIndex: number): boolean {
-  return monthIndex >= inputs.sale.monthOffset
+// The earliest month this variant may buy. Selling waits for the sale; the others
+// can buy from month 0.
+export function canBuyAt(inputs: Inputs, monthIndex: number): boolean {
+  return monthIndex >= purchaseAllowedFrom(inputs)
 }
 
 export function payRent(
@@ -53,8 +60,11 @@ export function payScheduled(
 }
 
 export function phaseOf(inputs: Inputs, month: MonthContext, owned: boolean, loan: Loan | null): Phase {
-  if (!owned) return hasMovedOut(inputs, month.index) ? 'renting' : 'pre-sale'
-  return loan !== null && loan.balance > 0 ? 'owned-with-loan' : 'owned'
+  if (owned) return loan !== null && loan.balance > 0 ? 'owned-with-loan' : 'owned'
+  if (rentDueAt(inputs, month.index)) return 'renting'
+  // Not renting and not owning: either living in the flat you'll sell (selling,
+  // before the sale) or living rent-free (free).
+  return inputs.housing.situation === 'selling' ? 'pre-sale' : 'free-housing'
 }
 
 export function buildRow(args: {
@@ -89,7 +99,8 @@ export function buildRow(args: {
 
 // Continuous across the sale and the purchase: before the sale the old flat is
 // carried at what it will fetch, after the purchase the new one at its price.
-// Without that, net worth would jump by tens of millions on those two months.
+// Without that, net worth would jump by tens of millions on those two months. A
+// variant that is not selling has no old flat to carry.
 function netWorth(
   inputs: Inputs,
   month: MonthContext,
@@ -97,7 +108,8 @@ function netWorth(
   owned: boolean,
   loan: Loan | null,
 ): number {
-  const oldApartment = hasMovedOut(inputs, month.index) ? 0 : saleProceedsAt(inputs, month.index)
+  const beforeSale = inputs.housing.situation === 'selling' && !rentDueAt(inputs, month.index)
+  const oldApartment = beforeSale ? saleProceedsAt(inputs, month.index) : 0
   const newApartment = owned ? apartmentPriceAt(inputs, month.index) : 0
   return (
     oldApartment +

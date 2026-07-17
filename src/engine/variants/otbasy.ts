@@ -1,10 +1,10 @@
 import { createLoan, type Loan } from '../loan'
 import { createWallet, type Wallet } from '../wallet'
 import { summarize } from '../summary'
-import { apartmentPriceAt, targetLoan, type Inputs } from '../types/inputs'
+import { apartmentPriceAt, rentDueAt, targetLoan, type Inputs } from '../types/inputs'
 import type { MonthRow, VariantResult } from '../types/plan'
 import { months } from './months'
-import { buildRow, hasMovedOut, NO_PAYMENT, payRent, payScheduled, purchasePriceAt } from './shared'
+import { buildRow, canBuyAt, NO_PAYMENT, payRent, payScheduled, purchasePriceAt } from './shared'
 
 // Today's accounts all open the Otbasy contract in month 0; the sale then seeds
 // it further, and rent-era savings top it up until both the 50% balance and
@@ -36,7 +36,7 @@ export function simulateOtbasy(inputs: Inputs): VariantResult {
 
     // The seed is what makes the 50% gate reachable at all — contributions alone
     // take years once rent has eaten most of the cash flow.
-    if (!seeded && hasMovedOut(inputs, month.index)) {
+    if (!seeded && canBuyAt(inputs, month.index)) {
       wallet.addOtbasy(wallet.takeSavings(inputs.otbasy.seedFromSale))
       seeded = true
     }
@@ -59,9 +59,13 @@ export function simulateOtbasy(inputs: Inputs): VariantResult {
       }
     }
 
-    if (!owned && hasMovedOut(inputs, month.index)) {
-      ;({ rentPaid, budget } = payRent(inputs, wallet, month, budget))
-      // Everything left feeds the Otbasy gates, not general savings.
+    // The accumulation phase runs from the month a purchase is allowed until it
+    // happens. Rent (when due) comes first; everything left feeds the Otbasy gates
+    // rather than general savings — that is what builds the balance and the CC.
+    if (!owned && canBuyAt(inputs, month.index)) {
+      if (rentDueAt(inputs, month.index)) {
+        ;({ rentPaid, budget } = payRent(inputs, wallet, month, budget))
+      }
       wallet.addOtbasy(budget)
       budget = 0
     }

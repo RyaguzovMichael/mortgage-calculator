@@ -6,7 +6,7 @@ import { BUILT_IN_PRODUCTS, isBuiltInProduct } from './depositCatalogue'
 //
 // Exported so the specs cannot drift from it: they used to hard-code the key as a
 // string, and two of them went on passing for the wrong reason after a bump.
-export const STORAGE_KEY = 'mortgage:inputs:v6'
+export const STORAGE_KEY = 'mortgage:inputs:v7'
 
 // Real starting position as of 2026-07. See MODEL.md for provenance of every number.
 export const DEFAULT_INPUTS: Inputs = {
@@ -16,9 +16,10 @@ export const DEFAULT_INPUTS: Inputs = {
     price: 45_000_000,
     annualGrowthRate: 0,
   },
-  sale: {
-    proceeds: 35_000_000,
-    monthOffset: 3,
+  housing: {
+    situation: 'selling',
+    saleProceeds: 35_000_000,
+    saleMonthOffset: 3,
   },
   cashflow: {
     monthlyFreeCash: 500_000,

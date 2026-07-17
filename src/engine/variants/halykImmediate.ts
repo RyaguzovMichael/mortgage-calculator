@@ -1,10 +1,10 @@
 import { createLoan, type Loan } from '../loan'
 import { createWallet } from '../wallet'
 import { summarize } from '../summary'
-import { apartmentPriceAt, targetLoan, type Inputs } from '../types/inputs'
+import { apartmentPriceAt, rentDueAt, targetLoan, type Inputs } from '../types/inputs'
 import type { MonthRow, VariantResult } from '../types/plan'
 import { months } from './months'
-import { buildRow, hasMovedOut, NO_PAYMENT, payRent, payScheduled, purchasePriceAt } from './shared'
+import { buildRow, canBuyAt, NO_PAYMENT, payRent, payScheduled, purchasePriceAt } from './shared'
 
 // Buy as soon as the sale lands; no rent. The whole free cash flow goes into the
 // 24% loan every month — at that rate early repayment beats any deposit, so
@@ -32,7 +32,7 @@ export function simulateHalykImmediate(inputs: Inputs): VariantResult {
     let rentPaid = 0
     let payment = NO_PAYMENT
 
-    if (!owned && hasMovedOut(inputs, month.index)) {
+    if (!owned && canBuyAt(inputs, month.index)) {
       const contribution = Math.max(0, apartmentPriceAt(inputs, month.index) - loanWanted)
       if (wallet.savingsBalance >= contribution) {
         wallet.takeSavings(contribution)
@@ -43,7 +43,7 @@ export function simulateHalykImmediate(inputs: Inputs): VariantResult {
       }
     }
 
-    if (!owned && hasMovedOut(inputs, month.index)) {
+    if (!owned && rentDueAt(inputs, month.index)) {
       ;({ rentPaid, budget } = payRent(inputs, wallet, month, budget))
     }
 

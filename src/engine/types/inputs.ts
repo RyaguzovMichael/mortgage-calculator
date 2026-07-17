@@ -7,7 +7,7 @@ export interface Inputs {
   readonly start: YearMonth
   readonly horizonMonths: number
   readonly apartment: ApartmentInputs
-  readonly sale: SaleInputs
+  readonly housing: HousingInputs
   readonly cashflow: CashflowInputs
   readonly deposits: DepositInputs
   readonly halyk: HalykInputs
@@ -22,11 +22,20 @@ export interface ApartmentInputs {
   readonly annualGrowthRate: number
 }
 
-export interface SaleInputs {
-  // What the current flat is worth *today*. It grows with the market until the
-  // sale month — see saleProceedsAt.
-  readonly proceeds: number
-  readonly monthOffset: number
+// Where you live until you buy, and it decides two things: whether you get sale
+// proceeds, and whether you pay rent meanwhile. One list, not two toggles, so an
+// impossible combination cannot be expressed.
+//   selling  — sell your flat; proceeds land, and you rent from the sale month
+//   free     — no flat to sell, but you live somewhere rent-free until you buy
+//   renting  — no flat to sell, and you rent from month 0
+export type HousingSituation = 'selling' | 'free' | 'renting'
+
+export interface HousingInputs {
+  readonly situation: HousingSituation
+  // Both read only when selling. saleProceeds is what the flat is worth *today*;
+  // it grows with the market up to the sale month (saleProceedsAt).
+  readonly saleProceeds: number
+  readonly saleMonthOffset: number
 }
 
 export interface CashflowInputs {
@@ -110,11 +119,40 @@ export interface OtbasyInputs {
   readonly seedFromSale: number
 }
 
+// Today's value of the flat you will sell — zero unless you are selling.
+export function proceedsToday(inputs: Inputs): number {
+  return inputs.housing.situation === 'selling' ? inputs.housing.saleProceeds : 0
+}
+
+// The month the sale lands, or null when there is no sale.
+export function saleMonth(inputs: Inputs): number | null {
+  return inputs.housing.situation === 'selling' ? inputs.housing.saleMonthOffset : null
+}
+
+// The earliest month a purchase can happen. Selling waits for the sale — you need
+// the proceeds and you have to move — while the others can buy from month 0.
+export function purchaseAllowedFrom(inputs: Inputs): number {
+  return inputs.housing.situation === 'selling' ? inputs.housing.saleMonthOffset : 0
+}
+
+// Is rent due this month, before you own? Selling rents from the sale; renting
+// rents throughout; free never rents.
+export function rentDueAt(inputs: Inputs, monthIndex: number): boolean {
+  switch (inputs.housing.situation) {
+    case 'selling':
+      return monthIndex >= inputs.housing.saleMonthOffset
+    case 'renting':
+      return true
+    case 'free':
+      return false
+  }
+}
+
 // The loan size declared when signing the Otbasy contract. Frozen at that
 // number: the 50%-balance and CC tests measure against it, not against the
 // shrinking live gap between price and savings.
 export function targetLoan(inputs: Inputs): number {
-  return Math.max(0, inputs.apartment.price - inputs.sale.proceeds)
+  return Math.max(0, inputs.apartment.price - proceedsToday(inputs))
 }
 
 // These three are the real-world rates, so they use annualGrowthFactor rather
@@ -128,10 +166,10 @@ export function apartmentPriceAt(inputs: Inputs, monthIndex: number): number {
 // together is what stops the saving variants from being flattered by a frozen
 // rent while the thing they are saving for runs away.
 // The flat being sold is in the same market as the one being bought, so it
-// appreciates at the same rate right up to the month it is sold. `proceeds` is
-// what it is worth today, not what it will fetch on the sale month.
+// appreciates at the same rate right up to the month it is sold. Zero when there
+// is nothing to sell.
 export function saleProceedsAt(inputs: Inputs, monthIndex: number): number {
-  return inputs.sale.proceeds * annualGrowthFactor(inputs.apartment.annualGrowthRate, monthIndex)
+  return proceedsToday(inputs) * annualGrowthFactor(inputs.apartment.annualGrowthRate, monthIndex)
 }
 
 export function rentAt(inputs: Inputs, monthIndex: number): number {

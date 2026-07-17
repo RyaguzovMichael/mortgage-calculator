@@ -1,10 +1,10 @@
 import { createLoan, type Loan } from '../loan'
 import { createWallet } from '../wallet'
 import { summarize } from '../summary'
-import { apartmentPriceAt, type Inputs } from '../types/inputs'
+import { apartmentPriceAt, rentDueAt, type Inputs } from '../types/inputs'
 import type { MonthRow, VariantResult } from '../types/plan'
 import { months } from './months'
-import { buildRow, hasMovedOut, NO_PAYMENT, payRent, payScheduled, purchasePriceAt } from './shared'
+import { buildRow, canBuyAt, NO_PAYMENT, payRent, payScheduled, purchasePriceAt } from './shared'
 
 // Rent and save at the Kaspi rate for `savingMonths`, then buy with the whole
 // pile as the down payment and clear the smaller 24% loan with the full cash
@@ -29,7 +29,7 @@ export function simulateHalykDelayed(inputs: Inputs, savingMonths: number): Vari
     let rentPaid = 0
     let payment = NO_PAYMENT
 
-    if (!owned && month.index >= savingMonths && hasMovedOut(inputs, month.index)) {
+    if (!owned && month.index >= savingMonths && canBuyAt(inputs, month.index)) {
       const price = apartmentPriceAt(inputs, month.index)
       const contribution = wallet.takeSavings(price)
       loan = createLoan(
@@ -42,7 +42,7 @@ export function simulateHalykDelayed(inputs: Inputs, savingMonths: number): Vari
       if (loan.balance === 0) debtFreeMonth = month.index
     }
 
-    if (!owned && hasMovedOut(inputs, month.index)) {
+    if (!owned && rentDueAt(inputs, month.index)) {
       ;({ rentPaid, budget } = payRent(inputs, wallet, month, budget))
     }
 

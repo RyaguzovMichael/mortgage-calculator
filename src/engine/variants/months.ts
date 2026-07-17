@@ -1,5 +1,5 @@
 import type { Wallet } from '../wallet'
-import { freeCashAt, saleProceedsAt, type Inputs } from '../types/inputs'
+import { freeCashAt, saleMonth, saleProceedsAt, type Inputs } from '../types/inputs'
 import { addMonths, type YearMonth } from '../types/yearMonth'
 
 // One month, already accrued, handed to a variant to act on. The generator owns
@@ -26,7 +26,7 @@ export function* months(inputs: Inputs, wallet: Wallet): Generator<MonthContext>
       interestEarned: accrual.interest,
       govBonus: accrual.govBonus,
       freeCash: freeCashAt(inputs, index),
-      saleProceeds: index === inputs.sale.monthOffset ? saleProceedsAt(inputs, index) : 0,
+      saleProceeds: index === saleMonth(inputs) ? saleProceedsAt(inputs, index) : 0,
     }
   }
 }

@@ -17,7 +17,9 @@ export interface VariantResult {
 
 export type VariantId = 'halyk-immediate' | 'halyk-delayed' | 'otbasy' | 'all-cash'
 
-export type Phase = 'pre-sale' | 'renting' | 'owned-with-loan' | 'owned'
+// pre-sale: living in the flat you will sell. free-housing: living rent-free
+// with no flat to sell. Both precede ownership; renting is the paying-rent case.
+export type Phase = 'pre-sale' | 'free-housing' | 'renting' | 'owned-with-loan' | 'owned'
 
 export interface MonthRow {
   readonly index: number

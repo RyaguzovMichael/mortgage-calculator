@@ -69,6 +69,7 @@ export const VARIANT_COLORS: Record<VariantId, string> = {
 // is a compile error rather than an `undefined` in the table.
 export const PHASE_LABELS: Record<Phase, string> = {
   'pre-sale': 'до продажи',
+  'free-housing': 'живу бесплатно',
   renting: 'аренда',
   'owned-with-loan': 'своя, кредит',
   owned: 'своя',

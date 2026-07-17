@@ -30,6 +30,12 @@ type TabId = (typeof TABS)[number]['id']
 
 const active = ref<TabId>('apartment')
 
+const HOUSING_OPTIONS = [
+  { id: 'selling', label: 'Продаю свою квартиру' },
+  { id: 'free', label: 'Не продаю, живу бесплатно' },
+  { id: 'renting', label: 'Не продаю, снимаю с месяца 0' },
+] as const
+
 // The one figure the model takes from these fields, shown so the sum is
 // visible without adding the fields up by hand.
 const existingTotal = computed(() => startingMoney(inputs))
@@ -56,23 +62,42 @@ const existingTotal = computed(() => startingMoney(inputs))
     </section>
 
     <section v-show="active === 'apartment'">
-      <h3>Продажа текущей квартиры</h3>
-      <NumberField
-        v-model="inputs.sale.proceeds"
-        label="Сумма"
-        suffix="₸"
-        :step="500000"
-        hint="Сколько ваша квартира стоит сегодня. Она дорожает вместе с рынком до месяца продажи — по той же ставке, что и покупаемая."
-      />
-      <NumberField
-        v-model="inputs.sale.monthOffset"
-        label="Месяц продажи"
-        suffix="мес"
-        hint="С этого месяца нужно съезжать: либо покупка, либо аренда."
-      />
-      <p class="note">
-        Деньги от продажи идут на тот же вклад, что и всё остальное — он задаётся во вкладке
-        «Деньги». Отдельной ставки у них нет.
+      <h3>Жильё сейчас</h3>
+      <fieldset class="radio-list">
+        <legend>Где вы живёте, пока не купили</legend>
+        <label v-for="option in HOUSING_OPTIONS" :key="option.id" class="option">
+          <input
+            v-model="inputs.housing.situation"
+            type="radio"
+            name="housing-situation"
+            :value="option.id"
+          />
+          <span>{{ option.label }}</span>
+        </label>
+      </fieldset>
+
+      <template v-if="inputs.housing.situation === 'selling'">
+        <NumberField
+          v-model="inputs.housing.saleProceeds"
+          label="Сумма продажи"
+          suffix="₸"
+          :step="500000"
+          hint="Сколько ваша квартира стоит сегодня. Она дорожает вместе с рынком до месяца продажи — по той же ставке, что и покупаемая. Деньги от продажи идут на тот же вклад, что и всё остальное."
+        />
+        <NumberField
+          v-model="inputs.housing.saleMonthOffset"
+          label="Месяц продажи"
+          suffix="мес"
+          hint="С этого месяца нужно съезжать: либо покупка, либо аренда."
+        />
+      </template>
+      <p v-else-if="inputs.housing.situation === 'renting'" class="note">
+        Снимаете с месяца 0 и до покупки. Аренда задаётся во вкладке «Деньги». Продавать нечего —
+        первоначальный взнос собирается только из накоплений и потока.
+      </p>
+      <p v-else class="note">
+        Живёте где-то бесплатно до покупки — аренды нет вообще. Продавать нечего: взнос из накоплений
+        и потока.
       </p>
     </section>
 
@@ -301,6 +326,32 @@ code {
   cursor: pointer;
 }
 .toggle input {
+  accent-color: var(--series-1);
+}
+.radio-list {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 10px 10px;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.radio-list legend {
+  color: var(--text-secondary);
+  font-size: var(--text-md);
+  padding: 0 4px;
+}
+.radio-list .option {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: var(--text-md);
+  cursor: pointer;
+}
+.radio-list .option input {
+  margin-top: 3px;
   accent-color: var(--series-1);
 }
 .section-head {

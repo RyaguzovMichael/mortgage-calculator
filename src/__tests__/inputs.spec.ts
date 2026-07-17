@@ -41,12 +41,12 @@ describe('apartmentPriceAt', () => {
 describe('saleProceedsAt', () => {
   it('appreciates with the market until the sale — same market, same rate', () => {
     const inputs = { ...JULY_START, apartment: { ...JULY_START.apartment, annualGrowthRate: 0.12 } }
-    expect(saleProceedsAt(inputs, 12)).toBeCloseTo(inputs.sale.proceeds * 1.12, 2)
-    expect(saleProceedsAt(inputs, 0)).toBe(inputs.sale.proceeds)
+    expect(saleProceedsAt(inputs, 12)).toBeCloseTo(inputs.housing.saleProceeds * 1.12, 2)
+    expect(saleProceedsAt(inputs, 0)).toBe(inputs.housing.saleProceeds)
   })
 
   it('is the value today when the market is flat', () => {
-    expect(saleProceedsAt(JULY_START, 36)).toBe(JULY_START.sale.proceeds)
+    expect(saleProceedsAt(JULY_START, 36)).toBe(JULY_START.housing.saleProceeds)
   })
 })
 

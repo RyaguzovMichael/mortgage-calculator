@@ -1,9 +1,9 @@
 import { createWallet } from '../wallet'
 import { summarize } from '../summary'
-import { apartmentPriceAt, type Inputs } from '../types/inputs'
+import { apartmentPriceAt, rentDueAt, type Inputs } from '../types/inputs'
 import type { MonthRow, VariantResult } from '../types/plan'
 import { months } from './months'
-import { buildRow, hasMovedOut, NO_PAYMENT, payRent, purchasePriceAt } from './shared'
+import { buildRow, canBuyAt, NO_PAYMENT, payRent, purchasePriceAt } from './shared'
 
 // Rent and pile everything into savings until it covers the full price, then buy
 // outright. No bank, no interest paid — rent is the entire cost, set against
@@ -21,7 +21,7 @@ export function simulateAllCash(inputs: Inputs): VariantResult {
     let budget = month.freeCash
     let rentPaid = 0
 
-    if (!owned && hasMovedOut(inputs, month.index)) {
+    if (!owned && canBuyAt(inputs, month.index)) {
       const price = apartmentPriceAt(inputs, month.index)
       if (wallet.savingsBalance >= price) {
         wallet.takeSavings(price)
@@ -30,7 +30,7 @@ export function simulateAllCash(inputs: Inputs): VariantResult {
       }
     }
 
-    if (!owned && hasMovedOut(inputs, month.index)) {
+    if (!owned && rentDueAt(inputs, month.index)) {
       ;({ rentPaid, budget } = payRent(inputs, wallet, month, budget))
     }
 
