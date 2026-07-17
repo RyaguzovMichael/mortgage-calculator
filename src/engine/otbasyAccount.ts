@@ -47,9 +47,6 @@ export function createOtbasyAccount(
     get totalInterest() {
       return accruedInterest + deposit.totalInterest
     },
-    get annualRate() {
-      return deposit.annualRate
-    },
     get monthsUntilPayout() {
       return deposit.monthsUntilPayout
     },

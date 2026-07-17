@@ -66,8 +66,14 @@ const bounds = computed(() => {
     ...report.value.variants.flatMap((variant) => variant.rows.map((row) => row.netWorth)),
     ...priceRows.value.map((row) => row.apartmentPrice),
   ]
-  const min = Math.min(...values)
-  const max = Math.max(...values)
+  // reduce, not Math.min(...values): a long horizon makes this thousands of
+  // values, and spreading them into a call overflows the stack — a white page.
+  let min = values[0] ?? 0
+  let max = values[0] ?? 0
+  for (const value of values) {
+    if (value < min) min = value
+    if (value > max) max = value
+  }
   // A flat band would divide by zero; a hair of padding also keeps the top line
   // off the frame.
   const span = max - min || 1
@@ -236,7 +242,7 @@ const tooltip = computed(() => {
         <g class="axis">
           <text
             v-for="tick in ticks"
-            :key="tick.value"
+            :key="`y-${tick.value}`"
             class="y-label"
             :x="PAD.left - 8"
             :y="tick.y + 3.5"
@@ -245,7 +251,7 @@ const tooltip = computed(() => {
           </text>
           <text
             v-for="row in monthTicks"
-            :key="row.index"
+            :key="`x-${row.index}`"
             class="x-label"
             :x="scaleX(row.index)"
             :y="height - PAD.bottom + 16"
@@ -386,11 +392,13 @@ h2 {
   gap: 6px;
 }
 /* The event marks carry shape, not identity, so they sit in muted ink and are
-   pushed away from the series keys. */
+   pushed away from the series keys. `:first-of-type` matched by element, not
+   class, so it never fired; `.marks ~ .marks` would double-gap — the first .marks
+   is the one to nudge, reached by "a .marks preceded by a non-.marks". */
 .marks {
   color: var(--text-muted);
 }
-.legend li.marks:first-of-type {
+.legend li:not(.marks) + .marks {
   margin-left: 4px;
 }
 .swatch {

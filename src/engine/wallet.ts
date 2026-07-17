@@ -1,5 +1,5 @@
 import { createDeposit } from './deposit'
-import { createOtbasyAccount, type OtbasyAccount } from './otbasyAccount'
+import { createOtbasyAccount } from './otbasyAccount'
 import {
   otbasyAccruedInterest,
   savingsProduct,
@@ -21,7 +21,6 @@ export interface Wallet {
   readonly savingsBalance: number
   readonly otbasyBalance: number
   readonly otbasyCc: number
-  readonly otbasy: OtbasyAccount
 
   accrue(yearMonth: YearMonth): Accrual
   addSavings(amount: number): void
@@ -75,9 +74,6 @@ export function createWallet(inputs: Inputs, options: WalletOptions = { useOtbas
     },
     get otbasyCc() {
       return otbasy.cc
-    },
-    get otbasy() {
-      return otbasy
     },
 
     accrue(yearMonth: YearMonth) {

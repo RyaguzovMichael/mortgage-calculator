@@ -1,5 +1,5 @@
 import type { DepositProduct } from '@/engine/types/inputs'
-import type { VariantId } from '@/engine/types/plan'
+import type { Phase, VariantId } from '@/engine/types/plan'
 import { formatYearMonth, type YearMonth } from '@/engine/types/yearMonth'
 
 const TENGE = new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 })
@@ -14,7 +14,8 @@ export function millions(value: number): string {
   return `${COMPACT.format(value / 1_000_000)} млн`
 }
 
-export function percent(rate: number): string {
+// Private helper of productTerms; nothing else needs it.
+function percent(rate: number): string {
   return `${COMPACT.format(rate * 100)}%`
 }
 
@@ -64,7 +65,9 @@ export const VARIANT_COLORS: Record<VariantId, string> = {
   'all-cash': 'var(--series-4)',
 }
 
-export const PHASE_LABELS: Record<string, string> = {
+// Typed on Phase, not string: a new phase must be given a label, and a typo'd key
+// is a compile error rather than an `undefined` in the table.
+export const PHASE_LABELS: Record<Phase, string> = {
   'pre-sale': 'до продажи',
   renting: 'аренда',
   'owned-with-loan': 'своя, кредит',

@@ -60,10 +60,6 @@ export function createLoan(principal: number, annualRate: number, termMonths: nu
   }
 }
 
-export function isRepaid(loan: Loan): boolean {
-  return loan.balance <= 0
-}
-
 // Floating-point residue would otherwise keep a loan alive for another month.
 function settle(balance: number): number {
   return balance < 0.01 ? 0 : balance

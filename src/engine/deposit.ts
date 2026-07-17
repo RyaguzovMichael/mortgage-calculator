@@ -11,7 +11,6 @@ export interface Deposit {
   readonly balance: number
   readonly pendingInterest: number
   readonly totalInterest: number
-  readonly annualRate: number
   readonly monthsUntilPayout: number
   // Returns interest actually credited this month — zero except on a payout month.
   accrue(): number
@@ -39,9 +38,6 @@ export function createDeposit(
     },
     get totalInterest() {
       return totalInterest
-    },
-    get annualRate() {
-      return annualRate
     },
     get monthsUntilPayout() {
       return period - monthsSincePayout

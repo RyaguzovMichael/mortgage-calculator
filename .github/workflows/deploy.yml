@@ -27,6 +27,11 @@ jobs:
       - name: Install dependencies
         run: pnpm i
 
+      # A direct push to master deploys straight from here; CI only runs on PRs, so
+      # without this the tests never gate a deploy.
+      - name: Test
+        run: pnpm exec vitest --run
+
       - name: Type check & build
         run: pnpm run build
         env:
