@@ -1,6 +1,12 @@
 import { createDeposit } from './deposit'
 import { createOtbasyAccount, type OtbasyAccount } from './otbasyAccount'
-import { existingBalance, savingsProduct, targetLoan, type Inputs } from './types/inputs'
+import {
+  otbasyAccruedInterest,
+  savingsProduct,
+  startingMoney,
+  targetLoan,
+  type Inputs,
+} from './types/inputs'
 import type { YearMonth } from './types/yearMonth'
 
 // Everything a variant owns in cash, and the month-step bookkeeping all four
@@ -42,15 +48,19 @@ export interface WalletOptions {
 
 export function createWallet(inputs: Inputs, options: WalletOptions = { useOtbasy: true }): Wallet {
   const product = savingsProduct(inputs)
+  const money = startingMoney(inputs)
+
   const savings = createDeposit(
-    options.useOtbasy ? 0 : existingBalance(inputs),
+    options.useOtbasy ? 0 : money,
     product.annualRate,
     product.payoutPeriodMonths,
   )
 
+  // Only the Otbasy variant inherits the head start on CC: the others close the
+  // account in month 0, and a CC on an account holding nothing would be noise.
   const otbasy = createOtbasyAccount(
-    options.useOtbasy ? existingBalance(inputs) : 0,
-    inputs.otbasy.depositAnnualRate,
+    options.useOtbasy ? money : 0,
+    options.useOtbasy ? otbasyAccruedInterest(inputs) : 0,
     inputs.otbasy,
     targetLoan(inputs),
   )

@@ -6,7 +6,7 @@ import { BUILT_IN_PRODUCTS, isBuiltInProduct } from './depositCatalogue'
 //
 // Exported so the specs cannot drift from it: they used to hard-code the key as a
 // string, and two of them went on passing for the wrong reason after a bump.
-export const STORAGE_KEY = 'mortgage:inputs:v4'
+export const STORAGE_KEY = 'mortgage:inputs:v5'
 
 // Real starting position as of 2026-07. See MODEL.md for provenance of every number.
 export const DEFAULT_INPUTS: Inputs = {
@@ -29,13 +29,9 @@ export const DEFAULT_INPUTS: Inputs = {
     annualIndexationRate: 0,
   },
   deposits: {
-    // Itemised for provenance only — month 0 pours all three into one deposit,
-    // so only the total reaches the model.
-    accounts: [
-      { id: 'kaspi-locked', label: 'Kaspi (был до 24.07)', balance: 1_021_923.88 },
-      { id: 'kaspi-liquid', label: 'Kaspi (свободный)', balance: 356_599 },
-      { id: 'otbasy', label: 'Отбасы', balance: 648_509.26 },
-    ],
+    // The two Kaspi accounts, 1 021 923,88 + 356 599. They used to be itemised,
+    // which only ever showed where the money sits: month 0 merges everything.
+    savingsBalance: 1_378_522.88,
     // Built-ins only; the user's own deposits are added on top at load time.
     products: [...BUILT_IN_PRODUCTS],
     savingsProductId: 'kaspi-deposit',
@@ -46,6 +42,13 @@ export const DEFAULT_INPUTS: Inputs = {
     maxTermMonths: 240,
   },
   otbasy: {
+    hasDeposit: true,
+    balance: 648_509.26,
+    // Both left at zero because I do not know the real figures, and a plausible
+    // guess here would move the CC gate without anyone noticing. Fill them in from
+    // the Otbasy statement: accrued interest is what CC is actually built from.
+    accruedInterest: 0,
+    monthsOpen: 0,
     loanAnnualRate: 0.085,
     depositAnnualRate: 0.02,
     minBalanceFraction: 0.5,
@@ -114,7 +117,7 @@ function structurallyValid(value: unknown): boolean {
     typeof candidate.horizonMonths === 'number' &&
     typeof candidate.apartment?.price === 'number' &&
     typeof candidate.sale?.proceeds === 'number' &&
-    Array.isArray(candidate.deposits?.accounts) &&
+    typeof candidate.deposits?.savingsBalance === 'number' &&
     Array.isArray(candidate.deposits?.products)
   )
 }

@@ -2,7 +2,7 @@
 import { computed, ref } from 'vue'
 import { useInputs } from '@/app/useInputs'
 import { money, productTerms } from '@/app/format'
-import { existingBalance } from '@/engine/types/inputs'
+import { startingMoney } from '@/engine/types/inputs'
 import { isBuiltInProduct } from '@/infrastructure/depositCatalogue'
 import TabBar from '../TabBar.vue'
 import NumberField from './NumberField.vue'
@@ -30,9 +30,9 @@ type TabId = (typeof TABS)[number]['id']
 
 const active = ref<TabId>('apartment')
 
-// The one figure the model takes from the itemised accounts, shown so the sum is
+// The one figure the model takes from these fields, shown so the sum is
 // visible without adding the fields up by hand.
-const existingTotal = computed(() => existingBalance(inputs))
+const existingTotal = computed(() => startingMoney(inputs))
 </script>
 
 <template>
@@ -117,18 +117,44 @@ const existingTotal = computed(() => existingBalance(inputs))
     <section v-show="active === 'money'">
       <h3>Накопления сегодня — {{ money(existingTotal) }} ₸</h3>
       <p class="note">
-        В месяц 0 все счета закрываются и сливаются в один вклад — в вариантах Halyk и «без ипотеки»
-        в выбранный выше, в варианте Otbasy на счёт Отбасы. Поэтому от них берётся только сумма:
-        своя ставка и своя дата разблокировки уже ни на что не влияют.
+        В месяц 0 всё сливается в один вклад — в вариантах Halyk и «без ипотеки» в выбранный выше,
+        в варианте Otbasy на счёт Отбасы. Поэтому важна только сумма, а не то, в каком банке она
+        лежит сегодня. Отдельно от неё стоит только Отбасы: у него свои проценты и свой CC.
       </p>
       <NumberField
-        v-for="account in inputs.deposits.accounts"
-        :key="account.id"
-        v-model="account.balance"
-        :label="account.label"
+        v-model="inputs.deposits.savingsBalance"
+        label="Свободные накопления"
         suffix="₸"
         :step="10000"
+        hint="Всё, что не на счету Отбасы, одной суммой."
       />
+
+      <label class="toggle">
+        <input v-model="inputs.otbasy.hasDeposit" type="checkbox" />
+        <span>У меня есть депозит Отбасы</span>
+      </label>
+
+      <template v-if="inputs.otbasy.hasDeposit">
+        <NumberField
+          v-model="inputs.otbasy.balance"
+          label="Баланс Отбасы"
+          suffix="₸"
+          :step="10000"
+        />
+        <NumberField
+          v-model="inputs.otbasy.accruedInterest"
+          label="Из них накопленные проценты"
+          suffix="₸"
+          :step="1000"
+          hint="Сколько банк начислил за всё время. Именно из этого считается CC, поэтому старт с нуля отодвигал бы порог CC ≥ 5 дальше, чем он есть на самом деле. Не прибавляется к деньгам — они уже внутри баланса."
+        />
+        <NumberField
+          v-model="inputs.otbasy.monthsOpen"
+          label="Уже коплю"
+          suffix="мес"
+          hint="Пока ни на что не влияет — записывается на будущее, под минимальный срок накопления Отбасы."
+        />
+      </template>
     </section>
 
     <section v-show="active === 'deposits'">
@@ -265,6 +291,17 @@ section {
 }
 code {
   font-family: var(--mono);
+}
+.toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--text-md);
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+.toggle input {
+  accent-color: var(--series-1);
 }
 .section-head {
   display: flex;

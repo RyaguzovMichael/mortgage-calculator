@@ -11,14 +11,22 @@ export interface OtbasyAccount extends Deposit {
   applyGovBonus(yearMonth: YearMonth): number
 }
 
+// The Otbasy deposit pays out monthly, so there is no period to forfeit and no
+// reason to make it a parameter.
+const PAYOUT_PERIOD_MONTHS = 1
+
+// `balance` and `accruedInterest` are the starting state and stay parameters,
+// because each variant opens this account differently — Otbasy pours every tenge
+// in, the others never open one at all. The rate is not a parameter: it comes off
+// `inputs`, which used to carry it too, so the caller could pass one rate while
+// the account read another.
 export function createOtbasyAccount(
   balance: number,
-  annualRate: number,
+  accruedInterest: number,
   inputs: OtbasyInputs,
   targetLoan: number,
-  payoutPeriodMonths = 1,
 ): OtbasyAccount {
-  const deposit = createDeposit(balance, annualRate, payoutPeriodMonths)
+  const deposit = createDeposit(balance, inputs.depositAnnualRate, PAYOUT_PERIOD_MONTHS)
   let contributionsThisYear = 0
 
   return {
@@ -28,8 +36,10 @@ export function createOtbasyAccount(
     get pendingInterest() {
       return deposit.pendingInterest
     },
+    // Includes what the bank credited before month 0: the account did not start
+    // life when the model did.
     get totalInterest() {
-      return deposit.totalInterest
+      return accruedInterest + deposit.totalInterest
     },
     get annualRate() {
       return deposit.annualRate
@@ -38,7 +48,7 @@ export function createOtbasyAccount(
       return deposit.monthsUntilPayout
     },
     get cc() {
-      return calculateCc(deposit.totalInterest, targetLoan)
+      return calculateCc(accruedInterest + deposit.totalInterest, targetLoan)
     },
     get contributionsThisYear() {
       return contributionsThisYear

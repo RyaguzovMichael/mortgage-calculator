@@ -57,7 +57,10 @@ export interface DepositProduct {
 // everything afterwards — the sale money, each month's savings — lands in that
 // same deposit. So the model needs one product, not one per source of money.
 export interface DepositInputs {
-  readonly accounts: readonly DepositAccountInputs[]
+  // Everything that is not on the Otbasy account, as one number. Itemising it
+  // would be decoration: month 0 pours the lot into a single deposit, so only the
+  // total was ever reaching the model.
+  readonly savingsBalance: number
   // The one mutable array in Inputs: the panel adds and removes deposits, and CRUD
   // on a `readonly T[]` does not compile. Reaching for Object.assign to get around
   // it would be a hidden cast in the very type that documents the engine's
@@ -68,15 +71,6 @@ export interface DepositInputs {
   readonly savingsProductId: string
 }
 
-// Only the balance is modelled. The accounts are itemised to show where today's
-// money actually sits, but since they are all closed in month 0 their own rates
-// and lock-up dates never get a chance to matter.
-export interface DepositAccountInputs {
-  readonly id: string
-  readonly label: string
-  readonly balance: number
-}
-
 export interface HalykInputs {
   readonly annualRate: number
   readonly downPaymentFraction: number
@@ -84,10 +78,25 @@ export interface HalykInputs {
 }
 
 export interface OtbasyInputs {
+  // Whether an Otbasy account exists today. When false the three fields below are
+  // ignored and the Otbasy variant opens its contract from nothing.
+  readonly hasDeposit: boolean
+  readonly balance: number
+  // Interest the bank has already credited over the account's life. It is what CC
+  // is built from, so starting the model at zero pretends years of saving never
+  // happened and puts the CC gate further away than it really is.
+  //
+  // Already part of `balance` — the bank credited it to the account. It feeds the
+  // CC numerator only; adding it to the money would count it twice.
+  readonly accruedInterest: number
+  // How long the account has been running. Recorded for the Otbasy rules we have
+  // not modelled yet (the minimum saving term); nothing reads it today, and the
+  // panel says so rather than implying it moves a number.
+  readonly monthsOpen: number
   readonly loanAnnualRate: number
-  // The Otbasy deposit's own rate. It lives here rather than on an account,
-  // because the accounts are only balances now — and this rate is a property of
-  // the Otbasy product, not of today's cash.
+  // The Otbasy deposit's own rate — a property of the state programme, not
+  // something you pick, which is why it is a plain field and not a catalogue
+  // reference like the savings deposit.
   readonly depositAnnualRate: number
   readonly minBalanceFraction: number
   readonly ccTarget: number
@@ -148,10 +157,20 @@ function raisesBy(start: YearMonth, monthIndex: number): number {
   return Math.floor((monthIndex - monthsToFirstRaise) / 12) + 1
 }
 
-// What today's accounts hold between them — the one figure the model takes from
-// them, since month 0 pours the lot into a single deposit.
-export function existingBalance(inputs: Inputs): number {
-  return inputs.deposits.accounts.reduce((sum, account) => sum + account.balance, 0)
+// Everything you hold today. Month 0 pours the lot into one deposit — the chosen
+// one, or the Otbasy account in the Otbasy variant.
+export function startingMoney(inputs: Inputs): number {
+  return inputs.deposits.savingsBalance + otbasyBalance(inputs)
+}
+
+// The toggle is the only thing that decides whether the Otbasy figures count, so
+// nothing downstream has to remember to check it.
+export function otbasyBalance(inputs: Inputs): number {
+  return inputs.otbasy.hasDeposit ? inputs.otbasy.balance : 0
+}
+
+export function otbasyAccruedInterest(inputs: Inputs): number {
+  return inputs.otbasy.hasDeposit ? inputs.otbasy.accruedInterest : 0
 }
 
 export function findProduct(inputs: Inputs, id: string): DepositProduct | undefined {

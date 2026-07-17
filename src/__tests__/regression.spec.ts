@@ -15,6 +15,10 @@ import { addMonths } from '@/engine/types/yearMonth'
 // affordable. What is reproduced here is the maths that carried over verbatim.
 
 const OTBASY: OtbasyInputs = {
+  hasDeposit: true,
+  balance: 0,
+  accruedInterest: 0,
+  monthsOpen: 0,
   loanAnnualRate: 0.085,
   depositAnnualRate: 0.02,
   minBalanceFraction: 0.5,
@@ -40,7 +44,7 @@ describe('Halyk amortization (prototype: 20 months, 1,738,894.27 interest)', () 
 
 describe('Otbasy accumulation (prototype: 11 months, balance 6,380,717.66, CC 5.92)', () => {
   it('reaches both gates from 648,509.26 on 500k/month', () => {
-    const account = createOtbasyAccount(648_509.26, 0.02, OTBASY, 10_000_000)
+    const account = createOtbasyAccount(648_509.26, 0, OTBASY, 10_000_000)
     const start = { year: 2026, month: 8 }
     let months = 0
     while (months < 600) {

@@ -4,7 +4,7 @@ import { simulateHalykDelayed } from '@/engine/variants/halykDelayed'
 import { simulateOtbasy } from '@/engine/variants/otbasy'
 import { simulateAllCash } from '@/engine/variants/allCash'
 import { DEFAULT_INPUTS } from '@/infrastructure/inputsStorage'
-import { existingBalance, type Inputs } from '@/engine/types/inputs'
+import { startingMoney, type Inputs } from '@/engine/types/inputs'
 import type { VariantResult } from '@/engine/types/plan'
 
 function withRent(monthlyRent: number): Inputs {
@@ -261,7 +261,7 @@ describe('indexation', () => {
 })
 
 describe("month 0 consolidation of today's accounts", () => {
-  const total = existingBalance(DEFAULT_INPUTS)
+  const total = startingMoney(DEFAULT_INPUTS)
 
   it.each([
     ['halyk-immediate', simulateHalykImmediate(DEFAULT_INPUTS)],
@@ -284,17 +284,23 @@ describe("month 0 consolidation of today's accounts", () => {
     expect(first.otbasyBalance).toBeLessThan(total * 1.01)
   })
 
-  // The three accounts are itemised for provenance; the model only ever sees the
-  // sum, so how it is split across them cannot change a single figure.
-  it('depends on the total only, not on how it is split across accounts', () => {
-    const merged = simulateHalykImmediate({
+  // Month 0 merges the two anyway, so where the money sits today cannot change a
+  // single row of a variant that does not use Otbasy.
+  it('depends on the total only, not on the split between savings and Otbasy', () => {
+    const allInSavings = simulateHalykImmediate({
       ...DEFAULT_INPUTS,
-      deposits: {
-        ...DEFAULT_INPUTS.deposits,
-        accounts: [{ id: 'all', label: 'Всё вместе', balance: total }],
-      },
+      deposits: { ...DEFAULT_INPUTS.deposits, savingsBalance: total },
+      otbasy: { ...DEFAULT_INPUTS.otbasy, balance: 0 },
     })
-    expect(merged.rows).toEqual(simulateHalykImmediate(DEFAULT_INPUTS).rows)
+    expect(allInSavings.rows).toEqual(simulateHalykImmediate(DEFAULT_INPUTS).rows)
+  })
+
+  it('drops the Otbasy money when the toggle says there is no such account', () => {
+    const without = simulateHalykImmediate({
+      ...DEFAULT_INPUTS,
+      otbasy: { ...DEFAULT_INPUTS.otbasy, hasDeposit: false },
+    })
+    expect(without.rows[0]!.savingsBalance).toBeCloseTo(DEFAULT_INPUTS.deposits.savingsBalance, 2)
   })
 })
 
