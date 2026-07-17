@@ -22,7 +22,7 @@ const value = defineModel<number>({ required: true })
 }
 .label {
   color: var(--text-secondary);
-  font-size: 12px;
+  font-size: var(--text-md);
 }
 .control {
   display: flex;
@@ -39,7 +39,7 @@ input {
   color: var(--text-primary);
   font: inherit;
   font-family: var(--mono);
-  font-size: 13px;
+  font-size: var(--text-lg);
 }
 input:focus-visible {
   outline: 2px solid var(--series-1);
@@ -47,11 +47,11 @@ input:focus-visible {
 }
 .suffix {
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: var(--text-md);
   white-space: nowrap;
 }
 .hint {
   color: var(--text-muted);
-  font-size: 11px;
+  font-size: var(--text-sm);
 }
 </style>

@@ -26,6 +26,15 @@
 
   --font: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   --mono: ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, monospace;
+
+  /* The type scale — one knob for the whole UI, and not a theme concern, so it
+     lives here and not in the palette blocks below. In rem so the browser's own
+     zoom and font-size preference still carry. */
+  --text-xs: 0.75rem; /* 12px — chart axis labels */
+  --text-sm: 0.8125rem; /* 13px — hints, notes */
+  --text-md: 0.875rem; /* 14px — field labels, legends, table cells */
+  --text-lg: 0.9375rem; /* 15px — inputs, summary cells */
+  --text-xl: 1.0625rem; /* 17px — card titles */
 }
 
 @media (prefers-color-scheme: dark) {
@@ -73,6 +82,6 @@ body {
   font-family: var(--font);
   background: var(--surface-0);
   color: var(--text-primary);
-  font-size: 14px;
+  font-size: 1rem;
   line-height: 1.5;
 }

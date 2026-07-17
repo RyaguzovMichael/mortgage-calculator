@@ -93,7 +93,7 @@ header {
   margin-bottom: 10px;
 }
 h2 {
-  font-size: 15px;
+  font-size: var(--text-xl);
   margin: 0 0 8px;
 }
 .tabs {
@@ -111,7 +111,7 @@ button {
   border-radius: 6px;
   padding: 4px 10px;
   font: inherit;
-  font-size: 12px;
+  font-size: var(--text-md);
   cursor: pointer;
 }
 button.on {
@@ -131,7 +131,7 @@ button.on {
 table {
   border-collapse: collapse;
   width: 100%;
-  font-size: 12px;
+  font-size: var(--text-md);
 }
 th,
 td {
@@ -146,7 +146,7 @@ thead th {
   background: var(--surface-1);
   color: var(--text-muted);
   font-weight: 500;
-  font-size: 10px;
+  font-size: var(--text-xs);
   text-transform: uppercase;
   letter-spacing: 0.03em;
 }
@@ -170,7 +170,7 @@ td {
 }
 .note {
   color: var(--text-muted);
-  font-size: 11px;
+  font-size: var(--text-sm);
   margin: 8px 0 0;
 }
 </style>

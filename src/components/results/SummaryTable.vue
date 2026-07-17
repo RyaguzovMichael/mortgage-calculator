@@ -98,12 +98,12 @@ header {
   margin-bottom: 10px;
 }
 h2 {
-  font-size: 15px;
+  font-size: var(--text-xl);
   margin: 0;
 }
 .sub {
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: var(--text-md);
   margin: 2px 0 0;
 }
 .scroll {
@@ -112,7 +112,7 @@ h2 {
 table {
   border-collapse: collapse;
   width: 100%;
-  font-size: 13px;
+  font-size: var(--text-lg);
 }
 th,
 td {
@@ -124,7 +124,7 @@ td {
 th {
   color: var(--text-muted);
   font-weight: 500;
-  font-size: 11px;
+  font-size: var(--text-sm);
   text-transform: uppercase;
   letter-spacing: 0.03em;
 }
@@ -161,7 +161,7 @@ td.left {
 }
 .warning,
 .note {
-  font-size: 12px;
+  font-size: var(--text-md);
   margin: 10px 0 0;
   color: var(--text-secondary);
 }

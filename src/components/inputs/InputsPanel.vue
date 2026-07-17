@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useInputs } from '@/app/useInputs'
+import TabBar from '../TabBar.vue'
 import NumberField from './NumberField.vue'
 import PercentField from './PercentField.vue'
 import ProductPicker from './ProductPicker.vue'
@@ -29,19 +30,7 @@ const active = ref<TabId>('apartment')
       <button type="button" @click="reset">Сбросить</button>
     </header>
 
-    <div class="tabs" role="tablist">
-      <button
-        v-for="tab in TABS"
-        :key="tab.id"
-        type="button"
-        role="tab"
-        :aria-selected="tab.id === active"
-        :class="{ on: tab.id === active }"
-        @click="active = tab.id"
-      >
-        {{ tab.label }}
-      </button>
-    </div>
+    <TabBar v-model="active" :tabs="TABS" />
 
     <section v-show="active === 'apartment'">
       <h3>Квартира</h3>
@@ -204,18 +193,18 @@ header {
   gap: 8px;
 }
 h2 {
-  font-size: 15px;
+  font-size: var(--text-xl);
   margin: 0;
 }
 h3 {
-  font-size: 12px;
+  font-size: var(--text-md);
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: var(--text-muted);
   margin: 0 0 8px;
 }
 h4 {
-  font-size: 12px;
+  font-size: var(--text-md);
   margin: 0 0 6px;
   color: var(--text-secondary);
 }
@@ -226,7 +215,7 @@ section {
 }
 .note {
   color: var(--text-muted);
-  font-size: 11px;
+  font-size: var(--text-sm);
   margin: 0;
 }
 .account {
@@ -246,40 +235,10 @@ header button {
   border-radius: 6px;
   padding: 4px 10px;
   font: inherit;
-  font-size: 12px;
+  font-size: var(--text-md);
   cursor: pointer;
 }
 header button:hover {
   color: var(--text-primary);
-}
-.tabs {
-  display: flex;
-  gap: 4px;
-  border-bottom: 1px solid var(--border);
-  margin-top: -8px;
-}
-.tabs button {
-  flex: 1;
-  border: none;
-  border-bottom: 2px solid transparent;
-  background: none;
-  color: var(--text-muted);
-  padding: 6px 2px;
-  font: inherit;
-  font-size: 12px;
-  cursor: pointer;
-  /* Sits on the container's border, so the selected tab's line covers it. */
-  margin-bottom: -1px;
-}
-.tabs button:hover {
-  color: var(--text-secondary);
-}
-.tabs button.on {
-  color: var(--text-primary);
-  border-bottom-color: var(--series-1);
-}
-.tabs button:focus-visible {
-  outline: 2px solid var(--series-1);
-  outline-offset: -2px;
 }
 </style>

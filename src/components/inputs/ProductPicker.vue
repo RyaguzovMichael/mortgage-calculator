@@ -56,14 +56,14 @@ function pick(id: string): void {
 }
 legend {
   color: var(--text-secondary);
-  font-size: 12px;
+  font-size: var(--text-md);
   padding: 0 4px;
 }
 .option {
   display: flex;
   align-items: flex-start;
   gap: 8px;
-  font-size: 12px;
+  font-size: var(--text-md);
   cursor: pointer;
 }
 .option input {
@@ -75,7 +75,7 @@ legend {
 }
 .hint {
   color: var(--text-muted);
-  font-size: 11px;
+  font-size: var(--text-sm);
   margin: 4px 0 0;
 }
 </style>

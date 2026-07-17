@@ -1,19 +1,39 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useInputs } from '@/app/useInputs'
 import { millions, money, monthLabel, VARIANT_COLORS, VARIANT_LABELS } from '@/app/format'
 import type { VariantId } from '@/engine/types/plan'
 
 const { report } = useInputs()
 
-const WIDTH = 900
 const HEIGHT = 340
-const PAD = { top: 16, right: 132, bottom: 30, left: 62 }
+// left fits "52,2 млн", right fits the longest variant name — both at --text-xs,
+// which is why they are wider than they look like they need to be.
+const PAD = { top: 16, right: 172, bottom: 32, left: 78 }
 
-const plot = {
-  width: WIDTH - PAD.left - PAD.right,
+// The viewBox tracks the element's real width so one user unit is one CSS pixel.
+// Letting a fixed viewBox stretch instead would scale the whole drawing — on a
+// wide screen the 12px axis labels would render at 30px and the chart would be
+// 800px tall.
+const plotElement = ref<HTMLElement | null>(null)
+const width = ref(900)
+let observer: ResizeObserver | null = null
+
+onMounted(() => {
+  const element = plotElement.value
+  if (!element) return
+  observer = new ResizeObserver(([entry]) => {
+    if (entry) width.value = Math.max(320, entry.contentRect.width)
+  })
+  observer.observe(element)
+})
+
+onBeforeUnmount(() => observer?.disconnect())
+
+const plot = computed(() => ({
+  width: Math.max(1, width.value - PAD.left - PAD.right),
   height: HEIGHT - PAD.top - PAD.bottom,
-}
+}))
 
 interface Point {
   readonly x: number
@@ -51,12 +71,12 @@ const bounds = computed(() => {
 })
 
 function scaleX(index: number): number {
-  return PAD.left + (index / Math.max(1, monthCount.value - 1)) * plot.width
+  return PAD.left + (index / Math.max(1, monthCount.value - 1)) * plot.value.width
 }
 
 function scaleY(value: number): number {
   const { min, max } = bounds.value
-  return PAD.top + plot.height - ((value - min) / (max - min)) * plot.height
+  return PAD.top + plot.value.height - ((value - min) / (max - min)) * plot.value.height
 }
 
 const series = computed<Series[]>(() =>
@@ -123,9 +143,9 @@ const svg = ref<SVGSVGElement | null>(null)
 function onMove(event: MouseEvent): void {
   const element = svg.value
   if (!element) return
-  const rect = element.getBoundingClientRect()
-  const ratio = (event.clientX - rect.left) / rect.width
-  const index = Math.round(((ratio * WIDTH - PAD.left) / plot.width) * (monthCount.value - 1))
+  // One user unit is one CSS pixel, so the pointer offset is already an x.
+  const x = event.clientX - element.getBoundingClientRect().left
+  const index = Math.round(((x - PAD.left) / plot.value.width) * (monthCount.value - 1))
   hovered.value = index >= 0 && index < monthCount.value ? index : null
 }
 
@@ -188,10 +208,11 @@ const tooltip = computed(() => {
       </li>
     </ul>
 
-    <div class="plot">
+    <div ref="plotElement" class="plot">
       <svg
         ref="svg"
-        :viewBox="`0 0 ${WIDTH} ${HEIGHT}`"
+        :viewBox="`0 0 ${width} ${HEIGHT}`"
+        :style="{ height: `${HEIGHT}px` }"
         preserveAspectRatio="xMidYMid meet"
         role="img"
         aria-label="Чистые активы по вариантам во времени"
@@ -306,7 +327,7 @@ const tooltip = computed(() => {
         </g>
       </svg>
 
-      <div v-if="tooltip" class="tooltip" :style="{ left: `${(tooltip.x / WIDTH) * 100}%` }">
+      <div v-if="tooltip" class="tooltip" :style="{ left: `${tooltip.x}px` }">
         <p class="when">{{ tooltip.yearMonth }}</p>
         <p v-for="entry in tooltip.rows" :key="entry.id" class="row">
           <span class="swatch" :style="{ background: VARIANT_COLORS[entry.id] }" />
@@ -333,12 +354,12 @@ header {
   margin-bottom: 8px;
 }
 h2 {
-  font-size: 15px;
+  font-size: var(--text-xl);
   margin: 0;
 }
 .sub {
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: var(--text-md);
   margin: 2px 0 0;
 }
 .legend {
@@ -348,7 +369,7 @@ h2 {
   list-style: none;
   padding: 0;
   margin: 0 0 6px;
-  font-size: 12px;
+  font-size: var(--text-md);
   color: var(--text-secondary);
 }
 .legend li {
@@ -374,10 +395,10 @@ h2 {
   position: relative;
 }
 /* Scoped to the plot: a bare `svg` rule would stretch the legend's tiny mark
-   swatches to the full width of the card. */
+   swatches to the full width of the card. Height comes from the script, so the
+   drawing keeps a 1:1 scale instead of growing with the page. */
 .plot svg {
   width: 100%;
-  height: auto;
   display: block;
 }
 .legend svg {
@@ -389,7 +410,7 @@ h2 {
 }
 .axis text {
   fill: var(--text-muted);
-  font-size: 10px;
+  font-size: var(--text-xs);
   font-family: var(--mono);
 }
 /* Anchors live here, not on the elements: a CSS rule beats a presentation
@@ -402,7 +423,7 @@ h2 {
 }
 .end-labels text {
   fill: var(--text-secondary);
-  font-size: 10px;
+  font-size: var(--text-xs);
   text-anchor: start;
 }
 .crosshair {
@@ -417,7 +438,7 @@ h2 {
 }
 .price-label {
   fill: var(--text-muted);
-  font-size: 10px;
+  font-size: var(--text-xs);
   text-anchor: start;
 }
 .tooltip {
@@ -429,7 +450,7 @@ h2 {
   border-radius: 8px;
   padding: 8px 10px;
   pointer-events: none;
-  font-size: 12px;
+  font-size: var(--text-md);
   min-width: 200px;
   box-shadow: 0 4px 14px rgb(0 0 0 / 0.14);
 }
