@@ -2,7 +2,7 @@ import type { Inputs } from '@/engine/types/inputs'
 
 // Bump when the Inputs shape changes — a stored blob from an older shape would
 // otherwise deserialize into a half-populated object and silently skew results.
-const STORAGE_KEY = 'mortgage:inputs:v1'
+const STORAGE_KEY = 'mortgage:inputs:v2'
 
 // Real starting position as of 2026-07. See MODEL.md for provenance of every number.
 export const DEFAULT_INPUTS: Inputs = {
@@ -22,6 +22,9 @@ export const DEFAULT_INPUTS: Inputs = {
     monthlyFreeCash: 500_000,
     monthlyRent: 400_000,
     startMonthOffset: 1,
+    // 0 by default: an unindexed income is the pessimistic, known case. Anything
+    // else would be me guessing your raise schedule.
+    annualIndexationRate: 0,
   },
   deposits: {
     accounts: [

@@ -1,6 +1,6 @@
 import type { Loan, LoanPayment } from '../loan'
 import type { Wallet } from '../wallet'
-import { apartmentPriceAt, type Inputs } from '../types/inputs'
+import { apartmentPriceAt, rentAt, type Inputs } from '../types/inputs'
 import type { MonthRow, Phase } from '../types/plan'
 import type { MonthContext } from './months'
 
@@ -22,7 +22,7 @@ export function payRent(
   month: MonthContext,
   budget: number,
 ): { rentPaid: number; budget: number } {
-  const rent = inputs.cashflow.monthlyRent
+  const rent = rentAt(inputs, month.index)
   if (rent <= 0) return { rentPaid: 0, budget }
 
   const fromBudget = Math.min(rent, budget)

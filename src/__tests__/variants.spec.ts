@@ -162,6 +162,56 @@ describe('apartment price', () => {
   })
 })
 
+describe('indexation', () => {
+  function growingAt(annualGrowthRate: number): Inputs {
+    return { ...DEFAULT_INPUTS, apartment: { ...DEFAULT_INPUTS.apartment, annualGrowthRate } }
+  }
+
+  function indexedAt(annualIndexationRate: number): Inputs {
+    return { ...DEFAULT_INPUTS, cashflow: { ...DEFAULT_INPUTS.cashflow, annualIndexationRate } }
+  }
+
+  it('leaves rent flat when the apartment price is flat', () => {
+    for (const row of simulateAllCash(DEFAULT_INPUTS).rows.filter((row) => row.rentPaid > 0)) {
+      expect(row.rentPaid).toBeCloseTo(DEFAULT_INPUTS.cashflow.monthlyRent, 6)
+    }
+  })
+
+  it('raises rent by the apartment growth rate — same market, same rate', () => {
+    const rows = simulateAllCash(growingAt(0.12)).rows
+    const first = rows.find((row) => row.rentPaid > 0)!
+    const twelveMonthsOn = rows[first.index + 12]!
+    expect(twelveMonthsOn.rentPaid).toBeCloseTo(first.rentPaid * 1.12, 2)
+  })
+
+  // The point of the whole feature: a frozen rent was quietly subsidizing every
+  // variant that waits.
+  it('makes waiting worse than it looked when the market runs', () => {
+    const growing = growingAt(0.12)
+    const withFrozenRent = simulateAllCash({ ...growing, cashflow: { ...growing.cashflow } })
+    expect(withFrozenRent.totals.rentPaid).toBeGreaterThan(
+      simulateAllCash(DEFAULT_INPUTS).totals.rentPaid,
+    )
+  })
+
+  it('indexes income on its own rate, not the apartment growth rate', () => {
+    const flatIncome = simulateHalykImmediate(growingAt(0.12))
+    const risingIncome = simulateHalykImmediate({
+      ...growingAt(0.12),
+      cashflow: { ...DEFAULT_INPUTS.cashflow, annualIndexationRate: 0.12 },
+    })
+    // Same price, same rent, more cash to throw at the loan: strictly earlier out
+    // of debt.
+    expect(risingIncome.debtFreeMonth!).toBeLessThan(flatIncome.debtFreeMonth!)
+  })
+
+  it('leaves the run untouched at 0% income indexation', () => {
+    expect(simulateHalykImmediate(indexedAt(0)).rows).toEqual(
+      simulateHalykImmediate(DEFAULT_INPUTS).rows,
+    )
+  })
+})
+
 describe('the Otbasy account in variants that never borrow from Otbasy', () => {
   const otbasySavings = DEFAULT_INPUTS.deposits.accounts.find(
     (account) => account.kind === 'otbasy',
