@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest'
-import { apartmentPriceAt, freeCashAt, rentAt, type Inputs } from '@/engine/types/inputs'
+import {
+  apartmentPriceAt,
+  freeCashAt,
+  rentAt,
+  saleProceedsAt,
+  type Inputs,
+} from '@/engine/types/inputs'
 import { DEFAULT_INPUTS } from '@/infrastructure/inputsStorage'
 
 // The model starts in July 2026, so the Junes are months 11, 23, 35...
@@ -10,6 +16,17 @@ function indexed(annualIndexationRate: number): Inputs {
 }
 
 describe('apartmentPriceAt', () => {
+  it('steps every six months instead of drifting every month', () => {
+    const inputs = { ...JULY_START, apartment: { ...JULY_START.apartment, annualGrowthRate: 0.12 } }
+    const base = inputs.apartment.price
+    expect(apartmentPriceAt(inputs, 0)).toBe(base)
+    expect(apartmentPriceAt(inputs, 5)).toBe(base)
+    expect(apartmentPriceAt(inputs, 6)).toBeCloseTo(base * 1.12 ** 0.5, 2)
+    expect(apartmentPriceAt(inputs, 11)).toBeCloseTo(base * 1.12 ** 0.5, 2)
+    // Two half-steps must land exactly on the stated annual rate.
+    expect(apartmentPriceAt(inputs, 12)).toBeCloseTo(base * 1.12, 2)
+  })
+
   it('is the year-over-year rate, not a monthly-compounded one', () => {
     const grown = apartmentPriceAt(
       { ...JULY_START, apartment: { ...JULY_START.apartment, annualGrowthRate: 0.24 } },
@@ -18,6 +35,18 @@ describe('apartmentPriceAt', () => {
     expect(grown).toBeCloseTo(JULY_START.apartment.price * 1.24, 2)
     // The bug this replaced: 24/12 compounded monthly is 26.82% a year.
     expect(grown).not.toBeCloseTo(JULY_START.apartment.price * 1.02 ** 12, 2)
+  })
+})
+
+describe('saleProceedsAt', () => {
+  it('appreciates with the market until the sale — same market, same rate', () => {
+    const inputs = { ...JULY_START, apartment: { ...JULY_START.apartment, annualGrowthRate: 0.12 } }
+    expect(saleProceedsAt(inputs, 12)).toBeCloseTo(inputs.sale.proceeds * 1.12, 2)
+    expect(saleProceedsAt(inputs, 0)).toBe(inputs.sale.proceeds)
+  })
+
+  it('is the value today when the market is flat', () => {
+    expect(saleProceedsAt(JULY_START, 36)).toBe(JULY_START.sale.proceeds)
   })
 })
 

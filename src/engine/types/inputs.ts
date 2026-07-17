@@ -23,6 +23,8 @@ export interface ApartmentInputs {
 }
 
 export interface SaleInputs {
+  // What the current flat is worth *today*. It grows with the market until the
+  // sale month — see saleProceedsAt.
   readonly proceeds: number
   readonly monthOffset: number
   // Kept separate from `newDepositAnnualRate`: banks commonly cap the headline
@@ -98,6 +100,13 @@ export function apartmentPriceAt(inputs: Inputs, monthIndex: number): number {
 // where flats gain 24% a year is not one where rent holds at 400k. Tying the two
 // together is what stops the saving variants from being flattered by a frozen
 // rent while the thing they are saving for runs away.
+// The flat being sold is in the same market as the one being bought, so it
+// appreciates at the same rate right up to the month it is sold. `proceeds` is
+// what it is worth today, not what it will fetch on the sale month.
+export function saleProceedsAt(inputs: Inputs, monthIndex: number): number {
+  return inputs.sale.proceeds * annualGrowthFactor(inputs.apartment.annualGrowthRate, monthIndex)
+}
+
 export function rentAt(inputs: Inputs, monthIndex: number): number {
   return (
     inputs.cashflow.monthlyRent * annualGrowthFactor(inputs.apartment.annualGrowthRate, monthIndex)

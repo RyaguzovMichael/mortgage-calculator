@@ -1,6 +1,6 @@
 import type { Loan, LoanPayment } from '../loan'
 import type { Wallet } from '../wallet'
-import { apartmentPriceAt, rentAt, type Inputs } from '../types/inputs'
+import { apartmentPriceAt, rentAt, saleProceedsAt, type Inputs } from '../types/inputs'
 import type { MonthRow, Phase } from '../types/plan'
 import type { MonthContext } from './months'
 
@@ -91,7 +91,7 @@ function netWorth(
   owned: boolean,
   loan: Loan | null,
 ): number {
-  const oldApartment = hasMovedOut(inputs, month.index) ? 0 : inputs.sale.proceeds
+  const oldApartment = hasMovedOut(inputs, month.index) ? 0 : saleProceedsAt(inputs, month.index)
   const newApartment = owned ? apartmentPriceAt(inputs, month.index) : 0
   return (
     oldApartment +

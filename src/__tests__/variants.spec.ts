@@ -162,6 +162,40 @@ describe('apartment price', () => {
   })
 })
 
+describe('the flat being sold', () => {
+  const growing: Inputs = {
+    ...DEFAULT_INPUTS,
+    apartment: { ...DEFAULT_INPUTS.apartment, annualGrowthRate: 0.12 },
+  }
+
+  // The default sale lands on month 3, before the first half-year step, so it has
+  // to be pushed out to see the appreciation at all.
+  function soldOnMonth(inputs: Inputs, monthOffset: number): Inputs {
+    return { ...inputs, sale: { ...inputs.sale, monthOffset } }
+  }
+
+  it('hands over its appreciated value, not what it is worth today', () => {
+    const savingsAtSale = (inputs: Inputs): number =>
+      simulateAllCash(soldOnMonth(inputs, 12)).rows[12]!.savingsBalance
+    // A year of 12% on 35M is ~4.2M; the only other thing that differs is one
+    // month of indexed rent, worth ~48k.
+    expect(savingsAtSale(growing)).toBeGreaterThan(savingsAtSale(DEFAULT_INPUTS) + 3_000_000)
+  })
+
+  // Selling swaps a flat for cash of equal value; if net worth jumps on that
+  // month, one side of the swap is being priced wrong.
+  it.each([
+    ['flat market', DEFAULT_INPUTS],
+    ['rising market', growing],
+  ] as const)('does not make net worth jump on the sale month (%s)', (_label, inputs) => {
+    const rows = simulateAllCash(inputs).rows
+    const before = rows[inputs.sale.monthOffset - 1]!
+    const atSale = rows[inputs.sale.monthOffset]!
+    // One month of rent and deposit interest apart, not tens of millions.
+    expect(Math.abs(atSale.netWorth - before.netWorth)).toBeLessThan(1_500_000)
+  })
+})
+
 describe('indexation', () => {
   function growingAt(annualGrowthRate: number): Inputs {
     return { ...DEFAULT_INPUTS, apartment: { ...DEFAULT_INPUTS.apartment, annualGrowthRate } }
