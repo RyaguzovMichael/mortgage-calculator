@@ -36,15 +36,20 @@ export function payRent(
 export function payScheduled(
   loan: Loan,
   wallet: Wallet,
-  month: MonthContext,
   budget: number,
 ): { payment: LoanPayment; budget: number } {
-  let available = budget
-  if (available < loan.scheduledPayment) {
-    available += wallet.takeSavings(loan.scheduledPayment - available)
-  }
-  const payment = loan.pay(available)
-  return { payment, budget: Math.max(0, budget - payment.paid) }
+  const topUp = Math.max(0, loan.scheduledPayment - budget)
+  const fromSavings = wallet.takeSavings(topUp)
+  const payment = loan.pay(budget + fromSavings)
+
+  // The loan caps what it takes at the stub of balance left, so on the final month
+  // it needs less than the scheduled amount. Return the part of the savings top-up
+  // it did not use — otherwise that money simply disappears.
+  const spentFromBudget = Math.min(payment.paid, budget)
+  const spentFromSavings = payment.paid - spentFromBudget
+  if (spentFromSavings < fromSavings) wallet.addSavings(fromSavings - spentFromSavings)
+
+  return { payment, budget: budget - spentFromBudget }
 }
 
 export function phaseOf(inputs: Inputs, month: MonthContext, owned: boolean, loan: Loan | null): Phase {

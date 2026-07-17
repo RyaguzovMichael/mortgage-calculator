@@ -48,7 +48,7 @@ export function simulateHalykImmediate(inputs: Inputs): VariantResult {
     }
 
     if (loan !== null && loan.balance > 0) {
-      ;({ payment, budget } = payScheduled(loan, wallet, month, budget))
+      ;({ payment, budget } = payScheduled(loan, wallet, budget))
       const extra = loan.prepay(budget)
       budget -= extra
       payment = { paid: payment.paid + extra, interest: payment.interest, principal: payment.principal + extra }

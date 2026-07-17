@@ -67,7 +67,7 @@ export function simulateOtbasy(inputs: Inputs): VariantResult {
     }
 
     if (loan !== null && loan.balance > 0) {
-      ;({ payment, budget } = payScheduled(loan, wallet, month, budget))
+      ;({ payment, budget } = payScheduled(loan, wallet, budget))
       wallet.addSavings(budget)
       budget = 0
 

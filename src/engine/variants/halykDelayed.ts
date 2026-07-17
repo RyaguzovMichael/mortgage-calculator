@@ -47,7 +47,7 @@ export function simulateHalykDelayed(inputs: Inputs, savingMonths: number): Vari
     }
 
     if (loan !== null && loan.balance > 0) {
-      ;({ payment, budget } = payScheduled(loan, wallet, month, budget))
+      ;({ payment, budget } = payScheduled(loan, wallet, budget))
       const extra = loan.prepay(budget)
       budget -= extra
       payment = {
