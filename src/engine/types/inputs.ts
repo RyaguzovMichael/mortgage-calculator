@@ -82,9 +82,14 @@ export function targetLoan(inputs: Inputs): number {
   return Math.max(0, inputs.apartment.price - inputs.sale.proceeds)
 }
 
+// The one rate in the model that is NOT a nominal annual rate compounded monthly.
+// Banks quote nominal rates and capitalize monthly because that is what the
+// contract says; a property-price statistic is already the year-over-year change,
+// so it is spread geometrically across the year instead. Treating it like a bank
+// rate would turn a quoted 24% into an effective 26.82% and quietly add 16M to
+// the 2031 price.
 export function apartmentPriceAt(inputs: Inputs, monthIndex: number): number {
-  const monthlyGrowth = inputs.apartment.annualGrowthRate / 12
-  return inputs.apartment.price * (1 + monthlyGrowth) ** monthIndex
+  return inputs.apartment.price * (1 + inputs.apartment.annualGrowthRate) ** (monthIndex / 12)
 }
 
 export function otbasyAccount(inputs: Inputs): DepositAccountInputs | undefined {

@@ -120,6 +120,14 @@ describe('apartment price', () => {
     apartment: { ...DEFAULT_INPUTS.apartment, annualGrowthRate: 0.12 },
   }
 
+  // The stated rate is the year-over-year change, not a nominal rate to be
+  // compounded monthly: 12% must mean 12% after a year, not 12.68%.
+  it('grows by exactly the stated rate over twelve months', () => {
+    const rows = simulateHalykImmediate(growing).rows
+    expect(rows[12]!.apartmentPrice).toBeCloseTo(DEFAULT_INPUTS.apartment.price * 1.12, 2)
+    expect(rows[24]!.apartmentPrice).toBeCloseTo(DEFAULT_INPUTS.apartment.price * 1.12 ** 2, 2)
+  })
+
   it('holds at the list price when growth is off', () => {
     for (const result of allVariants(DEFAULT_INPUTS)) {
       expect(result.purchasePrice).toBe(DEFAULT_INPUTS.apartment.price)
@@ -135,6 +143,17 @@ describe('apartment price', () => {
     const allCash = results.find((result) => result.id === 'all-cash')!
     expect(allCash.purchaseMonth).toBeGreaterThan(immediate.purchaseMonth!)
     expect(allCash.purchasePrice).toBeGreaterThan(immediate.purchasePrice!)
+  })
+
+  // Savings compound at 18.4%; if the flat outruns that, the pile never catches
+  // it and there is no month at which cash-buying is possible.
+  it('outruns the savings when it grows faster than they do, so all-cash never buys', () => {
+    const result = simulateAllCash({
+      ...DEFAULT_INPUTS,
+      apartment: { ...DEFAULT_INPUTS.apartment, annualGrowthRate: 0.24 },
+    })
+    expect(result.purchaseMonth).toBeNull()
+    expect(result.purchasePrice).toBeNull()
   })
 
   it('reports the price of the month the variant bought, not of the last row', () => {
