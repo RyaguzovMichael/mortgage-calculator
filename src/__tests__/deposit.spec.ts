@@ -38,3 +38,61 @@ describe('createDeposit', () => {
     expect(deposit.balance).toBe(0)
   })
 })
+
+// Kaspi's 18.4% pays every 6 months and burns everything accrued since the last
+// payout if you touch it early. This is what makes the purchase month expensive
+// or cheap depending on where it lands in the cycle.
+describe('createDeposit with a 6-month payout period', () => {
+  it('holds interest pending and credits nothing until the payout month', () => {
+    const deposit = createDeposit(1_000_000, 0.184, 6)
+    for (let month = 0; month < 5; month++) {
+      expect(deposit.accrue()).toBe(0)
+    }
+    expect(deposit.balance).toBe(1_000_000)
+    expect(deposit.pendingInterest).toBeCloseTo(5 * 1_000_000 * (0.184 / 12), 6)
+  })
+
+  it('credits the whole period at the payout month', () => {
+    const deposit = createDeposit(1_000_000, 0.184, 6)
+    let credited = 0
+    for (let month = 0; month < 6; month++) {
+      credited = deposit.accrue()
+    }
+    expect(credited).toBeCloseTo(6 * 1_000_000 * (0.184 / 12), 6)
+    expect(deposit.balance).toBeCloseTo(1_000_000 + credited, 6)
+    expect(deposit.pendingInterest).toBe(0)
+  })
+
+  it('does not compound within a period, but does across periods', () => {
+    const deposit = createDeposit(1_000_000, 0.12, 6)
+    for (let month = 0; month < 12; month++) deposit.accrue()
+    // Two periods of simple 6% on the balance at the start of each period.
+    expect(deposit.balance).toBeCloseTo(1_000_000 * 1.06 * 1.06, 4)
+  })
+
+  it('burns the pending interest when touched early', () => {
+    const deposit = createDeposit(1_000_000, 0.184, 6)
+    for (let month = 0; month < 5; month++) deposit.accrue()
+    expect(deposit.pendingInterest).toBeGreaterThan(0)
+
+    deposit.take(1)
+    expect(deposit.pendingInterest).toBe(0)
+    expect(deposit.totalInterest).toBe(0)
+  })
+
+  it('keeps interest already paid out — only the current period is at risk', () => {
+    const deposit = createDeposit(1_000_000, 0.184, 6)
+    for (let month = 0; month < 6; month++) deposit.accrue()
+    const paidOut = deposit.totalInterest
+    deposit.accrue()
+    deposit.take(1)
+    expect(deposit.totalInterest).toBe(paidOut)
+  })
+
+  it('reports the months left until the next payout', () => {
+    const deposit = createDeposit(1_000_000, 0.184, 6)
+    expect(deposit.monthsUntilPayout).toBe(6)
+    deposit.accrue()
+    expect(deposit.monthsUntilPayout).toBe(5)
+  })
+})

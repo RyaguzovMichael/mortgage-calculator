@@ -15,6 +15,8 @@ export const DEFAULT_INPUTS: Inputs = {
   sale: {
     proceeds: 35_000_000,
     monthOffset: 3,
+    depositAnnualRate: 0.184,
+    depositPayoutPeriodMonths: 6,
   },
   cashflow: {
     monthlyFreeCash: 500_000,
@@ -29,6 +31,7 @@ export const DEFAULT_INPUTS: Inputs = {
         balance: 1_021_923.88,
         annualRate: 0.184,
         unlockMonthOffset: 1,
+        payoutPeriodMonths: 6,
         kind: 'savings',
       },
       {
@@ -37,6 +40,7 @@ export const DEFAULT_INPUTS: Inputs = {
         balance: 356_599,
         annualRate: 0.14,
         unlockMonthOffset: 0,
+        payoutPeriodMonths: 1,
         kind: 'savings',
       },
       {
@@ -45,10 +49,12 @@ export const DEFAULT_INPUTS: Inputs = {
         balance: 648_509.26,
         annualRate: 0.02,
         unlockMonthOffset: 0,
+        payoutPeriodMonths: 1,
         kind: 'otbasy',
       },
     ],
     newDepositAnnualRate: 0.184,
+    newDepositPayoutPeriodMonths: 6,
   },
   halyk: {
     annualRate: 0.24,

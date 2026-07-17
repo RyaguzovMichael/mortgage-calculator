@@ -1,3 +1,5 @@
+import { annuityPayment, monthlyRate } from './money'
+
 export interface Loan {
   readonly balance: number
   readonly totalInterest: number
@@ -18,10 +20,47 @@ export interface LoanPayment {
   readonly principal: number
 }
 
+const NOTHING: LoanPayment = { paid: 0, interest: 0, principal: 0 }
+
 export function createLoan(principal: number, annualRate: number, termMonths: number): Loan {
-  throw new Error('not implemented')
+  let balance = principal
+  let totalInterest = 0
+  const scheduledPayment = annuityPayment(principal, annualRate, termMonths)
+
+  return {
+    get balance() {
+      return balance
+    },
+    get totalInterest() {
+      return totalInterest
+    },
+    get scheduledPayment() {
+      return scheduledPayment
+    },
+
+    pay(amount: number) {
+      if (balance <= 0) return NOTHING
+      const interest = balance * monthlyRate(annualRate)
+      const paid = Math.min(amount, balance + interest)
+      const principalPaid = paid - interest
+      balance = settle(balance - principalPaid)
+      totalInterest += interest
+      return { paid, interest, principal: principalPaid }
+    },
+
+    prepay(amount: number) {
+      const repaid = Math.min(amount, balance)
+      balance = settle(balance - repaid)
+      return repaid
+    },
+  }
 }
 
 export function isRepaid(loan: Loan): boolean {
   return loan.balance <= 0
+}
+
+// Floating-point residue would otherwise keep a loan alive for another month.
+function settle(balance: number): number {
+  return balance < 0.01 ? 0 : balance
 }

@@ -27,7 +27,10 @@ export interface MonthRow {
   readonly savingsBalance: number
   readonly otbasyBalance: number
   readonly otbasyCc: number
+  // Interest actually credited this month. Zero on a deposit's non-payout
+  // months, because interest still pending is forfeitable and not yours yet.
   readonly depositInterestEarned: number
+  readonly govBonus: number
   readonly netWorth: number
 }
 
@@ -35,8 +38,10 @@ export interface VariantTotals {
   readonly rentPaid: number
   readonly loanInterestPaid: number
   readonly depositInterestEarned: number
-  // rent + loan interest − deposit income. Comparable across variants because
-  // each one ends holding the same apartment with no debt, so the price cancels.
+  readonly govBonusReceived: number
+  // rent + loan interest − deposit income − state bonus. Comparable across
+  // variants because each ends holding the same apartment with no debt, so the
+  // price cancels out and only the cash flows differ.
   readonly totalLoss: number
   readonly netWorthAtHorizon: number
 }

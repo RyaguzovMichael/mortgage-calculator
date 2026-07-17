@@ -24,6 +24,10 @@ export interface ApartmentInputs {
 export interface SaleInputs {
   readonly proceeds: number
   readonly monthOffset: number
+  // Kept separate from `newDepositAnnualRate`: banks commonly cap the headline
+  // rate above some amount, and this is by far the largest deposit in the model.
+  readonly depositAnnualRate: number
+  readonly depositPayoutPeriodMonths: number
 }
 
 export interface CashflowInputs {
@@ -35,6 +39,7 @@ export interface CashflowInputs {
 export interface DepositInputs {
   readonly accounts: readonly DepositAccountInputs[]
   readonly newDepositAnnualRate: number
+  readonly newDepositPayoutPeriodMonths: number
 }
 
 export interface DepositAccountInputs {
@@ -43,6 +48,10 @@ export interface DepositAccountInputs {
   readonly balance: number
   readonly annualRate: number
   readonly unlockMonthOffset: number
+  // Months between interest payouts; 1 is plain monthly capitalization. Kaspi's
+  // 18.4% pays every 6 months and forfeits everything accrued since the last
+  // payout if you withdraw early, so this drives when it is cheap to buy.
+  readonly payoutPeriodMonths: number
   readonly kind: DepositKind
 }
 

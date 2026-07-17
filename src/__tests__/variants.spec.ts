@@ -37,7 +37,7 @@ describe('every variant', () => {
     (_id, result) => {
       expect(result.purchaseMonth).not.toBeNull()
       expect(result.debtFreeMonth).not.toBeNull()
-      expect(result.rows.at(-1)?.loanBalance).toBe(0)
+      expect(result.rows[result.rows.length - 1]?.loanBalance).toBe(0)
     },
   )
 
@@ -58,10 +58,12 @@ describe('every variant', () => {
       const rentPaid = result.rows.reduce((sum, row) => sum + row.rentPaid, 0)
       const interestPaid = result.rows.reduce((sum, row) => sum + row.loanInterest, 0)
       const earned = result.rows.reduce((sum, row) => sum + row.depositInterestEarned, 0)
+      const bonus = result.rows.reduce((sum, row) => sum + row.govBonus, 0)
       expect(result.totals.rentPaid).toBeCloseTo(rentPaid, 4)
       expect(result.totals.loanInterestPaid).toBeCloseTo(interestPaid, 4)
       expect(result.totals.depositInterestEarned).toBeCloseTo(earned, 4)
-      expect(result.totals.totalLoss).toBeCloseTo(rentPaid + interestPaid - earned, 4)
+      expect(result.totals.govBonusReceived).toBeCloseTo(bonus, 4)
+      expect(result.totals.totalLoss).toBeCloseTo(rentPaid + interestPaid - earned - bonus, 4)
     },
   )
 })
@@ -97,8 +99,12 @@ describe('deposit rate', () => {
   it('with nothing to earn, buying immediately wins', () => {
     const inputs: Inputs = {
       ...DEFAULT_INPUTS,
+      // The sale proceeds are the biggest earner by far — zeroing only the
+      // account rates would leave 35M still compounding at 18.4%.
+      sale: { ...DEFAULT_INPUTS.sale, depositAnnualRate: 0 },
       deposits: {
         newDepositAnnualRate: 0,
+        newDepositPayoutPeriodMonths: 1,
         accounts: DEFAULT_INPUTS.deposits.accounts.map((account) => ({ ...account, annualRate: 0 })),
       },
     }
