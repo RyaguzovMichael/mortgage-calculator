@@ -59,8 +59,9 @@ export function createWallet(inputs: Inputs, options: WalletOptions = { useOtbas
   // Only the Otbasy variant inherits the head start on CC: the others close the
   // account in month 0, and a CC on an account holding nothing would be noise.
   const otbasy = createOtbasyAccount(
-    options.useOtbasy ? money : 0,
-    options.useOtbasy ? otbasyAccruedInterest(inputs) : 0,
+    options.useOtbasy
+      ? { balance: money, accruedInterest: otbasyAccruedInterest(inputs) }
+      : { balance: 0, accruedInterest: 0 },
     inputs.otbasy,
     targetLoan(inputs),
   )

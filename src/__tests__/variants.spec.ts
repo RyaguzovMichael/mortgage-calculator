@@ -224,14 +224,20 @@ describe('indexation', () => {
     expect(twelveMonthsOn.rentPaid).toBeCloseTo(first.rentPaid * 1.12, 2)
   })
 
-  // The point of the whole feature: a frozen rent was quietly subsidizing every
-  // variant that waits.
-  it('makes waiting worse than it looked when the market runs', () => {
-    const growing = growingAt(0.12)
-    const withFrozenRent = simulateAllCash({ ...growing, cashflow: { ...growing.cashflow } })
-    expect(withFrozenRent.totals.rentPaid).toBeGreaterThan(
-      simulateAllCash(DEFAULT_INPUTS).totals.rentPaid,
-    )
+  // The point of the whole feature: indexed rent makes the total exceed
+  // months × base, so a variant that waits pays more than a flat-rent estimate.
+  // (The old version spread growing.cashflow into itself — nothing was frozen, and
+  // it merely restated rentAt.)
+  it('makes total rent exceed months × base rate once the market runs', () => {
+    const base = DEFAULT_INPUTS.cashflow.monthlyRent
+
+    const growing = simulateAllCash(growingAt(0.12))
+    const growingMonths = growing.rows.filter((row) => row.rentPaid > 0).length
+    expect(growing.totals.rentPaid).toBeGreaterThan(growingMonths * base)
+
+    const flat = simulateAllCash(DEFAULT_INPUTS)
+    const flatMonths = flat.rows.filter((row) => row.rentPaid > 0).length
+    expect(flat.totals.rentPaid).toBeCloseTo(flatMonths * base, 2)
   })
 
   it('indexes income on its own rate, not the apartment growth rate', () => {

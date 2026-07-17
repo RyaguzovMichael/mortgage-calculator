@@ -94,6 +94,10 @@ export interface OtbasyInputs {
   // panel says so rather than implying it moves a number.
   readonly monthsOpen: number
   readonly loanAnnualRate: number
+  // Otbasy's own maximum term. Separate from Halyk's: they are two different
+  // contracts that only happen to both be 240 today. Editing Halyk's term must not
+  // silently re-term the Otbasy loan.
+  readonly maxTermMonths: number
   // The Otbasy deposit's own rate — a property of the state programme, not
   // something you pick, which is why it is a plain field and not a catalogue
   // reference like the savings deposit.

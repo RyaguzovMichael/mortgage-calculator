@@ -51,7 +51,7 @@ export function simulateOtbasy(inputs: Inputs): VariantResult {
         loan = createLoan(
           Math.max(0, price - paid),
           inputs.otbasy.loanAnnualRate,
-          inputs.halyk.maxTermMonths,
+          inputs.otbasy.maxTermMonths,
         )
         owned = true
         purchaseMonth = month.index

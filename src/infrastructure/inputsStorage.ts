@@ -6,7 +6,7 @@ import { BUILT_IN_PRODUCTS, isBuiltInProduct } from './depositCatalogue'
 //
 // Exported so the specs cannot drift from it: they used to hard-code the key as a
 // string, and two of them went on passing for the wrong reason after a bump.
-export const STORAGE_KEY = 'mortgage:inputs:v5'
+export const STORAGE_KEY = 'mortgage:inputs:v6'
 
 // Real starting position as of 2026-07. See MODEL.md for provenance of every number.
 export const DEFAULT_INPUTS: Inputs = {
@@ -50,6 +50,7 @@ export const DEFAULT_INPUTS: Inputs = {
     accruedInterest: 0,
     monthsOpen: 0,
     loanAnnualRate: 0.085,
+    maxTermMonths: 240,
     depositAnnualRate: 0.02,
     minBalanceFraction: 0.5,
     ccTarget: 5,

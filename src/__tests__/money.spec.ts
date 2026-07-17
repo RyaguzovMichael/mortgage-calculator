@@ -14,8 +14,10 @@ describe('annuityPayment', () => {
     expect(annuityPayment(12_000_000, 0.24, 240)).toBeCloseTo(242_088.98, 2)
   })
 
-  it('matches the reference schedule for an 8% loan', () => {
-    expect(annuityPayment(8_000_000, 0.24, 240)).toBeCloseTo(161_392.65, 2)
+  // The Otbasy arm's rate. Value cross-checked by amortizing 8,000,000 at 8.5%
+  // over 240 months to a zero residual — not by re-running annuityPayment itself.
+  it('matches the reference schedule for an 8.5% loan', () => {
+    expect(annuityPayment(8_000_000, 0.085, 240)).toBeCloseTo(69_425.86, 2)
   })
 
   it('splits principal evenly when the rate is zero', () => {

@@ -15,17 +15,23 @@ export interface OtbasyAccount extends Deposit {
 // reason to make it a parameter.
 const PAYOUT_PERIOD_MONTHS = 1
 
-// `balance` and `accruedInterest` are the starting state and stay parameters,
-// because each variant opens this account differently — Otbasy pours every tenge
-// in, the others never open one at all. The rate is not a parameter: it comes off
-// `inputs`, which used to carry it too, so the caller could pass one rate while
-// the account read another.
+// The starting state is one named object, not two loose numbers: `balance` and
+// `accruedInterest` are the same order of magnitude and were positionally
+// swappable — a spec passed a balance that contradicted the fixture and nothing
+// noticed. It stays a parameter (not read off `inputs`) because each variant opens
+// this account with a different balance: Otbasy pours every tenge in, the others
+// never open one. The rate does come off `inputs`.
+export interface OtbasyStart {
+  readonly balance: number
+  readonly accruedInterest: number
+}
+
 export function createOtbasyAccount(
-  balance: number,
-  accruedInterest: number,
+  start: OtbasyStart,
   inputs: OtbasyInputs,
   targetLoan: number,
 ): OtbasyAccount {
+  const { balance, accruedInterest } = start
   const deposit = createDeposit(balance, inputs.depositAnnualRate, PAYOUT_PERIOD_MONTHS)
   let contributionsThisYear = 0
 
