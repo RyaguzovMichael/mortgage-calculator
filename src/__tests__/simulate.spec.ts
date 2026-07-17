@@ -17,12 +17,26 @@ describe('simulateAll', () => {
     ])
   })
 
-  it('picks the lowest total loss as best', () => {
+  it('picks the highest net worth as best', () => {
     const report = simulateAll(DEFAULT_INPUTS)
-    const lowest = [...report.variants].sort(
+    const richest = [...report.variants].sort(
+      (left, right) => right.totals.netWorthAtHorizon - left.totals.netWorthAtHorizon,
+    )[0]
+    expect(report.bestVariant).toBe(richest!.id)
+  })
+
+  // totalLoss silently mis-ranks once the price moves, because the variants then
+  // buy at different prices and the apartment no longer cancels out.
+  it('does not fall back to total loss when prices grow', () => {
+    const growing = {
+      ...DEFAULT_INPUTS,
+      apartment: { ...DEFAULT_INPUTS.apartment, annualGrowthRate: 0.1 },
+    }
+    const report = simulateAll(growing)
+    const cheapest = [...report.variants].sort(
       (left, right) => left.totals.totalLoss - right.totals.totalLoss,
     )[0]
-    expect(report.bestVariant).toBe(lowest!.id)
+    expect(report.bestVariant).not.toBe(cheapest!.id)
   })
 
   it('chains the delayed-Halyk window to Otbasy purchase month by default', () => {
