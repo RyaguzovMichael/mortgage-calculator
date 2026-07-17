@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useInputs } from '@/app/useInputs'
 import { money, VARIANT_COLORS, VARIANT_LABELS } from '@/app/format'
 import type { VariantResult } from '@/engine/types/plan'
@@ -11,20 +11,130 @@ const { inputs, report } = useInputs()
 // prices and it quietly mis-ranks — so say so rather than show it bare.
 const lossIsValid = computed(() => inputs.apartment.annualGrowthRate === 0)
 
-const ranked = computed(() =>
-  [...report.value.variants].sort(
-    (left, right) => right.totals.netWorthAtEnd - left.totals.netWorthAtEnd,
-  ),
-)
-
 function months(value: number | null): string {
   return value === null ? '—' : `${value}`
 }
 
-// Flagged only when waiting actually cost something: at 0% growth every variant
-// pays the list price and colouring the column would be noise.
-function overpaysForWaiting(variant: VariantResult): boolean {
-  return variant.purchasePrice !== null && variant.purchasePrice > inputs.apartment.price
+function maybeMoney(value: number | null): string {
+  return value === null ? '—' : money(value)
+}
+
+interface Column {
+  readonly key: string
+  readonly label: string
+  readonly left?: boolean
+  // null means "never happened" and always sorts last, whichever way the column
+  // is pointing — "—" at the top of a ranking is just noise.
+  readonly sort: (variant: VariantResult) => number | string | null
+  readonly cell: (variant: VariantResult) => string
+}
+
+const COLUMNS: readonly Column[] = [
+  {
+    key: 'variant',
+    label: 'Вариант',
+    left: true,
+    sort: (variant) => VARIANT_LABELS[variant.id],
+    cell: (variant) => VARIANT_LABELS[variant.id],
+  },
+  {
+    key: 'purchaseMonth',
+    label: 'Покупка',
+    sort: (variant) => variant.purchaseMonth,
+    cell: (variant) => months(variant.purchaseMonth),
+  },
+  {
+    key: 'debtFreeMonth',
+    label: 'Без долга',
+    sort: (variant) => variant.debtFreeMonth,
+    cell: (variant) => months(variant.debtFreeMonth),
+  },
+  {
+    key: 'purchasePrice',
+    label: 'Цена покупки',
+    sort: (variant) => variant.purchasePrice,
+    cell: (variant) => maybeMoney(variant.purchasePrice),
+  },
+  {
+    key: 'rentPaid',
+    label: 'Аренда',
+    sort: (variant) => variant.totals.rentPaid,
+    cell: (variant) => money(variant.totals.rentPaid),
+  },
+  {
+    key: 'loanInterestPaid',
+    label: '% кредита',
+    sort: (variant) => variant.totals.loanInterestPaid,
+    cell: (variant) => money(variant.totals.loanInterestPaid),
+  },
+  {
+    key: 'depositInterestEarned',
+    label: 'Доход с вкладов',
+    sort: (variant) => variant.totals.depositInterestEarned,
+    cell: (variant) => money(variant.totals.depositInterestEarned),
+  },
+  {
+    key: 'govBonusReceived',
+    label: 'Гос. премия',
+    sort: (variant) => variant.totals.govBonusReceived,
+    cell: (variant) => money(variant.totals.govBonusReceived),
+  },
+  {
+    key: 'totalLoss',
+    label: 'Потеря',
+    sort: (variant) => variant.totals.totalLoss,
+    cell: (variant) => money(variant.totals.totalLoss),
+  },
+  {
+    key: 'netWorthAtEnd',
+    label: 'Чистые активы',
+    sort: (variant) => variant.totals.netWorthAtEnd,
+    cell: (variant) => money(variant.totals.netWorthAtEnd),
+  },
+]
+
+const sortKey = ref('netWorthAtEnd')
+const descending = ref(true)
+
+function sortBy(column: Column): void {
+  if (sortKey.value === column.key) {
+    descending.value = !descending.value
+    return
+  }
+  sortKey.value = column.key
+  // Biggest-first is what you want of a money column; names read better A→Z.
+  descending.value = column.key !== 'variant'
+}
+
+const ranked = computed(() => {
+  const column = COLUMNS.find((entry) => entry.key === sortKey.value) ?? COLUMNS[0]!
+  return [...report.value.variants].sort((left, right) =>
+    compare(column.sort(left), column.sort(right)),
+  )
+})
+
+function compare(left: number | string | null, right: number | string | null): number {
+  if (left === null || right === null) {
+    // Before the direction is applied, so "never" stays at the bottom either way.
+    return left === right ? 0 : left === null ? 1 : -1
+  }
+  const order =
+    typeof left === 'string' ? left.localeCompare(String(right)) : left - Number(right)
+  return descending.value ? -order : order
+}
+
+function classesFor(column: Column, variant: VariantResult): Record<string, boolean> {
+  return {
+    left: column.left === true,
+    primary: column.key === 'netWorthAtEnd',
+    dim: column.key === 'totalLoss' && !lossIsValid.value,
+    // Flagged only when waiting actually cost something: at 0% growth every
+    // variant pays the list price and colouring the column would be noise.
+    overpay:
+      column.key === 'purchasePrice' &&
+      variant.purchasePrice !== null &&
+      variant.purchasePrice > inputs.apartment.price,
+  }
 }
 </script>
 
@@ -42,35 +152,41 @@ function overpaysForWaiting(variant: VariantResult): boolean {
       <table>
         <thead>
           <tr>
-            <th class="left">Вариант</th>
-            <th>Покупка</th>
-            <th>Без долга</th>
-            <th>Цена покупки</th>
-            <th>Аренда</th>
-            <th>% кредита</th>
-            <th>Доход с вкладов</th>
-            <th>Гос. премия</th>
-            <th :class="{ dim: !lossIsValid }">Потеря</th>
-            <th class="primary">Чистые активы</th>
+            <th
+              v-for="column in COLUMNS"
+              :key="column.key"
+              :class="{
+                left: column.left,
+                primary: column.key === 'netWorthAtEnd',
+                dim: column.key === 'totalLoss' && !lossIsValid,
+                on: sortKey === column.key,
+              }"
+              :aria-sort="
+                sortKey === column.key ? (descending ? 'descending' : 'ascending') : 'none'
+              "
+            >
+              <button type="button" @click="sortBy(column)">
+                {{ column.label }}
+                <span class="arrow">{{
+                  sortKey === column.key ? (descending ? '↓' : '↑') : ''
+                }}</span>
+              </button>
+            </th>
           </tr>
         </thead>
         <tbody>
           <tr v-for="variant in ranked" :key="variant.id" :class="{ best: variant.id === report.bestVariant }">
-            <td class="left">
-              <span class="swatch" :style="{ background: VARIANT_COLORS[variant.id] }" />
-              {{ VARIANT_LABELS[variant.id] }}
+            <td
+              v-for="column in COLUMNS"
+              :key="column.key"
+              :class="classesFor(column, variant)"
+            >
+              <span
+                v-if="column.key === 'variant'"
+                class="swatch"
+                :style="{ background: VARIANT_COLORS[variant.id] }"
+              />{{ column.cell(variant) }}
             </td>
-            <td>{{ months(variant.purchaseMonth) }}</td>
-            <td>{{ months(variant.debtFreeMonth) }}</td>
-            <td :class="{ overpay: overpaysForWaiting(variant) }">
-              {{ variant.purchasePrice === null ? '—' : money(variant.purchasePrice) }}
-            </td>
-            <td>{{ money(variant.totals.rentPaid) }}</td>
-            <td>{{ money(variant.totals.loanInterestPaid) }}</td>
-            <td>{{ money(variant.totals.depositInterestEarned) }}</td>
-            <td>{{ money(variant.totals.govBonusReceived) }}</td>
-            <td :class="{ dim: !lossIsValid }">{{ money(variant.totals.totalLoss) }}</td>
-            <td class="primary">{{ money(variant.totals.netWorthAtEnd) }}</td>
           </tr>
         </tbody>
       </table>
@@ -124,13 +240,41 @@ td {
 th {
   color: var(--text-muted);
   font-weight: 500;
-  font-size: var(--text-sm);
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
   /* Headings wrap so a column is only as wide as its numbers: "Доход с вкладов"
      is three times the width of the figure under it. */
   white-space: normal;
   vertical-align: bottom;
+  padding: 0;
+}
+/* The whole heading is the hit target, so the button carries the cell's padding
+   rather than sitting inside it. */
+th button {
+  width: 100%;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-size: var(--text-sm);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  text-align: inherit;
+  padding: 7px 10px;
+  cursor: pointer;
+}
+th button:hover {
+  color: var(--text-primary);
+}
+th button:focus-visible {
+  outline: 2px solid var(--series-1);
+  outline-offset: -2px;
+}
+th.on {
+  color: var(--text-primary);
+}
+.arrow {
+  /* Reserved even when empty, so switching columns does not shuffle the widths. */
+  display: inline-block;
+  width: 0.75em;
 }
 td {
   font-family: var(--mono);
