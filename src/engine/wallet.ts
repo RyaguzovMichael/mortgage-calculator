@@ -40,14 +40,25 @@ interface Pocket {
   readonly unlockMonthOffset: number
 }
 
-export function createWallet(inputs: Inputs): Wallet {
+export interface WalletOptions {
+  // A variant that will never take an Otbasy loan has no reason to leave money in
+  // an Otbasy account: without the loan the 2% is simply the worst rate on offer,
+  // and the state bonus alone does not close a 16-point gap. So those variants
+  // close the account up front and move the balance to the savings deposit.
+  readonly useOtbasy: boolean
+}
+
+export function createWallet(inputs: Inputs, options: WalletOptions = { useOtbasy: true }): Wallet {
+  const existingOtbasy = otbasyAccountInput(inputs)
+  const closedOtbasyBalance = options.useOtbasy ? 0 : (existingOtbasy?.balance ?? 0)
+
   const saleProceeds = createDeposit(
     0,
     inputs.sale.depositAnnualRate,
     inputs.sale.depositPayoutPeriodMonths,
   )
   const contributions = createDeposit(
-    0,
+    closedOtbasyBalance,
     inputs.deposits.newDepositAnnualRate,
     inputs.deposits.newDepositPayoutPeriodMonths,
   )
@@ -61,9 +72,8 @@ export function createWallet(inputs: Inputs): Wallet {
     { deposit: saleProceeds, unlockMonthOffset: 0 },
   ]
 
-  const existingOtbasy = otbasyAccountInput(inputs)
   const otbasy = createOtbasyAccount(
-    existingOtbasy?.balance ?? 0,
+    options.useOtbasy ? (existingOtbasy?.balance ?? 0) : 0,
     existingOtbasy?.annualRate ?? 0,
     inputs.otbasy,
     targetLoan(inputs),

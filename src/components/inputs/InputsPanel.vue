@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useInputs } from '@/app/useInputs'
 import NumberField from './NumberField.vue'
+import PercentField from './PercentField.vue'
 import ProductPicker from './ProductPicker.vue'
 
 const { inputs, reset } = useInputs()
@@ -16,12 +17,11 @@ const { inputs, reset } = useInputs()
     <section>
       <h3>Квартира</h3>
       <NumberField v-model="inputs.apartment.price" label="Цена" suffix="₸" :step="500000" />
-      <NumberField
+      <PercentField
         v-model="inputs.apartment.annualGrowthRate"
         label="Рост цены в год"
-        suffix="доля"
-        :step="0.01"
-        hint="0.1 = 10%/год. При росте > 0 сравнивайте по чистым активам, не по потере."
+        :step="1"
+        hint="При росте > 0 сравнивайте по чистым активам, не по потере."
       />
     </section>
 
@@ -40,7 +40,7 @@ const { inputs, reset } = useInputs()
         label="Куда положить деньги от продажи"
         hint="Самая крупная сумма в модели — она же сильнее всех страдает от сгорания процентов при покупке в середине периода."
       />
-      <NumberField v-model="inputs.sale.depositAnnualRate" label="Ставка" suffix="доля" :step="0.001" />
+      <PercentField v-model="inputs.sale.depositAnnualRate" label="Ставка" />
       <NumberField
         v-model="inputs.sale.depositPayoutPeriodMonths"
         label="Выплата процентов раз в"
@@ -77,12 +77,7 @@ const { inputs, reset } = useInputs()
         v-model:payout-period="inputs.deposits.newDepositPayoutPeriodMonths"
         label="Куда идут ежемесячные взносы"
       />
-      <NumberField
-        v-model="inputs.deposits.newDepositAnnualRate"
-        label="Ставка"
-        suffix="доля"
-        :step="0.001"
-      />
+      <PercentField v-model="inputs.deposits.newDepositAnnualRate" label="Ставка" />
       <NumberField
         v-model="inputs.deposits.newDepositPayoutPeriodMonths"
         label="Выплата процентов раз в"
@@ -92,10 +87,14 @@ const { inputs, reset } = useInputs()
 
     <section>
       <h3>Существующие вклады</h3>
+      <p class="note">
+        Счёт Отбасы работает только в варианте Otbasy. В остальных трёх он закрывается в месяц 0 и
+        переносится в Kaspi: без кредита Отбасы его 2% — просто худшая ставка.
+      </p>
       <div v-for="account in inputs.deposits.accounts" :key="account.id" class="account">
         <h4>{{ account.label }}</h4>
         <NumberField v-model="account.balance" label="Баланс" suffix="₸" :step="10000" />
-        <NumberField v-model="account.annualRate" label="Ставка" suffix="доля" :step="0.001" />
+        <PercentField v-model="account.annualRate" label="Ставка" />
         <NumberField v-model="account.payoutPeriodMonths" label="Выплата раз в" suffix="мес" />
         <NumberField v-model="account.unlockMonthOffset" label="Разблокирован с месяца" suffix="мес" />
       </div>
@@ -103,24 +102,18 @@ const { inputs, reset } = useInputs()
 
     <section>
       <h3>Halyk</h3>
-      <NumberField v-model="inputs.halyk.annualRate" label="Ставка" suffix="доля" :step="0.01" />
-      <NumberField
+      <PercentField v-model="inputs.halyk.annualRate" label="Ставка" :step="0.5" />
+      <PercentField
         v-model="inputs.halyk.downPaymentFraction"
         label="Первый взнос от кредита"
-        suffix="доля"
-        :step="0.05"
+        :step="5"
       />
       <NumberField v-model="inputs.halyk.maxTermMonths" label="Макс. срок" suffix="мес" />
     </section>
 
     <section>
       <h3>Otbasy</h3>
-      <NumberField
-        v-model="inputs.otbasy.loanAnnualRate"
-        label="Ставка кредита"
-        suffix="доля"
-        :step="0.005"
-      />
+      <PercentField v-model="inputs.otbasy.loanAnnualRate" label="Ставка кредита" :step="0.5" />
       <NumberField
         v-model="inputs.otbasy.seedFromSale"
         label="Засев из денег от продажи"
@@ -128,19 +121,13 @@ const { inputs, reset } = useInputs()
         :step="500000"
         hint="Без засева порог 50% набирается годами и аренда съедает всё."
       />
-      <NumberField
+      <PercentField
         v-model="inputs.otbasy.minBalanceFraction"
-        label="Порог: доля от цел. кредита"
-        suffix="доля"
-        :step="0.05"
+        label="Порог: % от цел. кредита"
+        :step="5"
       />
       <NumberField v-model="inputs.otbasy.ccTarget" label="Целевой CC" :step="0.5" />
-      <NumberField
-        v-model="inputs.otbasy.govBonusRate"
-        label="Гос. премия"
-        suffix="доля"
-        :step="0.05"
-      />
+      <PercentField v-model="inputs.otbasy.govBonusRate" label="Гос. премия" :step="5" />
       <NumberField v-model="inputs.otbasy.govBonusCap" label="Лимит премии в год" suffix="₸" :step="5000" />
       <NumberField v-model="inputs.otbasy.govBonusMonth" label="Месяц премии" hint="2 = февраль" />
     </section>
@@ -193,6 +180,11 @@ section {
   display: flex;
   flex-direction: column;
   gap: 8px;
+}
+.note {
+  color: var(--text-muted);
+  font-size: 11px;
+  margin: 0;
 }
 .account {
   border-left: 2px solid var(--border);

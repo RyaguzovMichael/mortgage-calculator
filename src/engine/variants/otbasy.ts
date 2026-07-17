@@ -14,7 +14,7 @@ import { buildRow, hasMovedOut, NO_PAYMENT, payRent, payScheduled } from './shar
 // it never prepays — leftover cash compounds in savings until it can close the
 // loan in one hit. Both choices are the same arbitrage.
 export function simulateOtbasy(inputs: Inputs): VariantResult {
-  const wallet = createWallet(inputs)
+  const wallet = createWallet(inputs, { useOtbasy: true })
   const rows: MonthRow[] = []
 
   const target = targetLoan(inputs)

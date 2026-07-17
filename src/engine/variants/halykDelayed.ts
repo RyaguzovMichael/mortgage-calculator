@@ -14,7 +14,7 @@ import { buildRow, hasMovedOut, NO_PAYMENT, payRent, payScheduled } from './shar
 // bank's 20% minimum: at 24% every tenge left on deposit costs more in loan
 // interest than it can earn.
 export function simulateHalykDelayed(inputs: Inputs, savingMonths: number): VariantResult {
-  const wallet = createWallet(inputs)
+  const wallet = createWallet(inputs, { useOtbasy: false })
   const rows: MonthRow[] = []
 
   let loan: Loan | null = null

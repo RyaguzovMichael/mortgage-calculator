@@ -43,5 +43,8 @@ export interface VariantTotals {
   // variants because each ends holding the same apartment with no debt, so the
   // price cancels out and only the cash flows differ.
   readonly totalLoss: number
-  readonly netWorthAtHorizon: number
+  // Net worth on the last month of the comparison window, not of the horizon:
+  // simulateAll cuts every variant back to the month the slowest one clears its
+  // debt, because past that point there is nothing left to compare.
+  readonly netWorthAtEnd: number
 }

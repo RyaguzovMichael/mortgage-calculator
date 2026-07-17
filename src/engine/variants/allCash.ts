@@ -9,7 +9,7 @@ import { buildRow, hasMovedOut, NO_PAYMENT, payRent } from './shared'
 // outright. No bank, no interest paid — rent is the entire cost, set against
 // whatever the pile earns while it grows.
 export function simulateAllCash(inputs: Inputs): VariantResult {
-  const wallet = createWallet(inputs)
+  const wallet = createWallet(inputs, { useOtbasy: false })
   const rows: MonthRow[] = []
 
   let owned = false

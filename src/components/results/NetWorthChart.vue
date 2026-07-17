@@ -15,11 +15,20 @@ const plot = {
   height: HEIGHT - PAD.top - PAD.bottom,
 }
 
+interface Point {
+  readonly x: number
+  readonly y: number
+}
+
 interface Series {
   readonly id: VariantId
-  readonly points: readonly { readonly x: number; readonly y: number }[]
+  readonly points: readonly Point[]
   readonly path: string
-  readonly last: { readonly x: number; readonly y: number }
+  readonly last: Point
+  // The two events worth seeing on the line itself: null when the variant never
+  // got that far inside the window.
+  readonly purchase: Point | null
+  readonly debtFree: Point | null
 }
 
 const monthCount = computed(() => report.value.variants[0]?.rows.length ?? 0)
@@ -51,6 +60,8 @@ const series = computed<Series[]>(() =>
       points,
       path: points.map((point, index) => `${index === 0 ? 'M' : 'L'}${point.x} ${point.y}`).join(' '),
       last: points[points.length - 1] ?? { x: PAD.left, y: PAD.top },
+      purchase: variant.purchaseMonth === null ? null : (points[variant.purchaseMonth] ?? null),
+      debtFree: variant.debtFreeMonth === null ? null : (points[variant.debtFreeMonth] ?? null),
     }
   }),
 )
@@ -117,13 +128,36 @@ const tooltip = computed(() => {
   <section class="card">
     <header>
       <h2>Чистые активы во времени</h2>
-      <p class="sub">Квартира + вклады − долг. Непрерывны в месяцы продажи и покупки.</p>
+      <p class="sub">
+        Квартира + вклады − долг. Непрерывны в месяцы продажи и покупки. График
+        обрывается на {{ report.comparisonMonths }}-м месяце — там последний вариант гасит долг, и
+        сравнивать дальше нечего.
+      </p>
     </header>
 
     <ul class="legend">
       <li v-for="variant in report.variants" :key="variant.id">
         <span class="swatch" :style="{ background: VARIANT_COLORS[variant.id] }" />
         {{ VARIANT_LABELS[variant.id] }}
+      </li>
+      <li class="marks">
+        <svg width="11" height="11" viewBox="0 0 11 11" aria-hidden="true">
+          <circle cx="5.5" cy="5.5" r="4" fill="var(--text-secondary)" />
+        </svg>
+        покупка
+      </li>
+      <li class="marks">
+        <svg width="11" height="11" viewBox="0 0 11 11" aria-hidden="true">
+          <circle
+            cx="5.5"
+            cy="5.5"
+            r="4"
+            fill="var(--surface-1)"
+            stroke="var(--text-secondary)"
+            stroke-width="2"
+          />
+        </svg>
+        долг закрыт
       </li>
     </ul>
 
@@ -188,6 +222,32 @@ const tooltip = computed(() => {
           stroke-linejoin="round"
           stroke-linecap="round"
         />
+
+        <!-- Debt-free first so the purchase dot stays visible when a variant does
+             both in one month (all-cash always does) — it then reads as a dot in
+             a halo, which is what happened. -->
+        <g class="events">
+          <template v-for="entry in series" :key="entry.id">
+            <circle
+              v-if="entry.debtFree"
+              :cx="entry.debtFree.x"
+              :cy="entry.debtFree.y"
+              r="4.5"
+              fill="var(--surface-1)"
+              :stroke="VARIANT_COLORS[entry.id]"
+              stroke-width="2"
+            />
+            <circle
+              v-if="entry.purchase"
+              :cx="entry.purchase.x"
+              :cy="entry.purchase.y"
+              r="4"
+              :fill="VARIANT_COLORS[entry.id]"
+              stroke="var(--surface-1)"
+              stroke-width="2"
+            />
+          </template>
+        </g>
 
         <g v-if="hovered !== null">
           <circle
@@ -260,6 +320,14 @@ h2 {
   align-items: center;
   gap: 6px;
 }
+/* The event marks carry shape, not identity, so they sit in muted ink and are
+   pushed away from the series keys. */
+.marks {
+  color: var(--text-muted);
+}
+.legend li.marks:first-of-type {
+  margin-left: 4px;
+}
 .swatch {
   width: 9px;
   height: 9px;
@@ -269,10 +337,15 @@ h2 {
 .plot {
   position: relative;
 }
-svg {
+/* Scoped to the plot: a bare `svg` rule would stretch the legend's tiny mark
+   swatches to the full width of the card. */
+.plot svg {
   width: 100%;
   height: auto;
   display: block;
+}
+.legend svg {
+  flex: none;
 }
 .grid line {
   stroke: var(--border);

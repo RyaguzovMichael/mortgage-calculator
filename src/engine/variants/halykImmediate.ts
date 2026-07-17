@@ -14,7 +14,7 @@ import { buildRow, hasMovedOut, NO_PAYMENT, payRent, payScheduled } from './shar
 // contribution yet the purchase waits, and rent runs while it waits, because the
 // old flat is already sold.
 export function simulateHalykImmediate(inputs: Inputs): VariantResult {
-  const wallet = createWallet(inputs)
+  const wallet = createWallet(inputs, { useOtbasy: false })
   const rows: MonthRow[] = []
 
   const target = targetLoan(inputs)

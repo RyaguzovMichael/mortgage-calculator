@@ -12,7 +12,7 @@ export function summarize(rows: readonly MonthRow[]): VariantTotals {
     depositInterestEarned,
     govBonusReceived,
     totalLoss: rentPaid + loanInterestPaid - depositInterestEarned - govBonusReceived,
-    netWorthAtHorizon: rows[rows.length - 1]?.netWorth ?? 0,
+    netWorthAtEnd: rows[rows.length - 1]?.netWorth ?? 0,
   }
 }
 

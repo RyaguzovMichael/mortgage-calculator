@@ -12,7 +12,7 @@ const lossIsValid = computed(() => inputs.apartment.annualGrowthRate === 0)
 
 const ranked = computed(() =>
   [...report.value.variants].sort(
-    (left, right) => right.totals.netWorthAtHorizon - left.totals.netWorthAtHorizon,
+    (left, right) => right.totals.netWorthAtEnd - left.totals.netWorthAtEnd,
   ),
 )
 
@@ -26,7 +26,8 @@ function months(value: number | null): string {
     <header>
       <h2>Сравнение вариантов</h2>
       <p class="sub">
-        Целевой кредит {{ money(report.targetLoan) }} ₸ · горизонт {{ inputs.horizonMonths }} мес
+        Целевой кредит {{ money(report.targetLoan) }} ₸ · сравнение по
+        {{ report.comparisonMonths }} мес (до месяца, когда последний вариант закрывает долг)
       </p>
     </header>
 
@@ -58,7 +59,7 @@ function months(value: number | null): string {
             <td>{{ money(variant.totals.depositInterestEarned) }}</td>
             <td>{{ money(variant.totals.govBonusReceived) }}</td>
             <td :class="{ dim: !lossIsValid }">{{ money(variant.totals.totalLoss) }}</td>
-            <td class="primary">{{ money(variant.totals.netWorthAtHorizon) }}</td>
+            <td class="primary">{{ money(variant.totals.netWorthAtEnd) }}</td>
           </tr>
         </tbody>
       </table>

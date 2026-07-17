@@ -114,6 +114,42 @@ describe('deposit rate', () => {
   })
 })
 
+describe('the Otbasy account in variants that never borrow from Otbasy', () => {
+  const otbasySavings = DEFAULT_INPUTS.deposits.accounts.find(
+    (account) => account.kind === 'otbasy',
+  )!.balance
+
+  it.each([
+    ['halyk-immediate', simulateHalykImmediate(DEFAULT_INPUTS)],
+    ['halyk-delayed', simulateHalykDelayed(DEFAULT_INPUTS, 11)],
+    ['all-cash', simulateAllCash(DEFAULT_INPUTS)],
+  ] as const)('%s closes it — 2%% is dead money without the loan', (_id, result) => {
+    for (const row of result.rows) {
+      expect(row.otbasyBalance).toBe(0)
+      expect(row.govBonus).toBe(0)
+    }
+  })
+
+  it('moves the balance to savings rather than losing it', () => {
+    const result = simulateHalykImmediate(DEFAULT_INPUTS)
+    const withoutOtbasyAccount = simulateHalykImmediate({
+      ...DEFAULT_INPUTS,
+      deposits: {
+        ...DEFAULT_INPUTS.deposits,
+        accounts: DEFAULT_INPUTS.deposits.accounts.filter((account) => account.kind !== 'otbasy'),
+      },
+    })
+    expect(result.rows[0]!.savingsBalance).toBeCloseTo(
+      withoutOtbasyAccount.rows[0]!.savingsBalance + otbasySavings,
+      2,
+    )
+  })
+
+  it('leaves the Otbasy variant itself untouched', () => {
+    expect(simulateOtbasy(DEFAULT_INPUTS).rows[0]!.otbasyBalance).toBeGreaterThan(0)
+  })
+})
+
 describe('Otbasy seeding', () => {
   // Without a seed the 50% gate is fed only by what's left after rent, and the
   // wait swallows years of rent — this is the case that makes seeding mandatory.
