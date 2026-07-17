@@ -17,6 +17,31 @@ export interface VariantResult {
 
 export type VariantId = 'halyk-immediate' | 'halyk-delayed' | 'otbasy' | 'all-cash'
 
+// A way of buying the apartment, expressed as four decisions. The four built-in
+// variants are just four of these; a user builds their own from the same choices.
+// runPlan turns one into a VariantResult.
+export interface PurchasePlan {
+  readonly id: string
+  readonly name: string
+  // Which loan, if any. Everything else the variant used to decide for itself —
+  // whether to use the Otbasy account, where rent-era surplus goes — follows from
+  // this, so it is not asked twice.
+  readonly loan: 'halyk' | 'otbasy' | 'none'
+  //   asap         — the first month a purchase is allowed
+  //   after-months — wait a fixed number of months first
+  //   otbasy-gates — wait for the 50%-balance and CC gates
+  readonly buyWhen: 'asap' | 'after-months' | 'otbasy-gates'
+  // Months to save before buying, for after-months. null chains to the Otbasy
+  // variant's purchase month (set by simulateAll), so the two compare on one window.
+  readonly saveMonths: number | null
+  //   max — borrow the most the contract allows (least down payment)
+  //   min — put every tenge down, borrow the remainder
+  readonly borrow: 'max' | 'min'
+  //   monthly — pour the free cash into the loan every month (early repayment)
+  //   lump    — pay only the scheduled amount, save the rest, close in one hit
+  readonly repay: 'monthly' | 'lump'
+}
+
 // pre-sale: living in the flat you will sell. free-housing: living rent-free
 // with no flat to sell. Both precede ownership; renting is the paying-rent case.
 export type Phase = 'pre-sale' | 'free-housing' | 'renting' | 'owned-with-loan' | 'owned'
