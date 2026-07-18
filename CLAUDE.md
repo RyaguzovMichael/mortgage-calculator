@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-A single-page Vue 3 + TypeScript app that compares ways of buying an apartment in Kazakhstan (Halyk mortgage, Otbasy state housing loan, or saving up and paying cash), month by month, and reports which leaves you best off. UI text and most comments are in Russian. There is no backend — everything runs client-side and inputs persist to `localStorage`.
+A single-page Vue 3 + TypeScript app that compares ways of buying an apartment in Kazakhstan (Halyk mortgage, Otbasy state housing loan, or saving up and paying cash), month by month, and reports which leaves you best off. Most comments are in Russian; UI text is translated (Russian/English) via `vue-i18n` — see `src/i18n/`. There is no backend — everything runs client-side and inputs persist to `localStorage`.
 
 ## MODEL.md is the source of truth
 
@@ -32,11 +32,13 @@ Strict one-directional layering. Inner layers never import outward.
   - `types/inputs.ts` holds `Inputs` and the derived-quantity functions (`targetLoan`, `apartmentPriceAt`, `rentDueAt`, …). This is where model formulas live as functions.
   - `variants/months.ts` is a generator yielding one already-accrued `MonthContext` per month; `variants/shared.ts` holds the row-building and payment helpers `runPlan` uses.
 
-**`src/infrastructure/`** — the boundary to persisted and shipped data. `data/deposits.yml` and `data/plans.yml` are parsed here (via `@modyfi/vite-plugin-yaml`, which turns them into modules at build time). `inputsStorage.ts` owns `DEFAULT_INPUTS`, the `STORAGE_KEY`, and load/save.
+**`src/infrastructure/`** — the boundary to persisted and shipped data. `data/deposits.yml` and `data/plans.yml` are parsed here (via `@modyfi/vite-plugin-yaml`, which turns them into modules at build time). `inputsStorage.ts` owns `DEFAULT_INPUTS`, the `STORAGE_KEY`, and load/save. `localePersistence.ts` and `themePersistence.ts` are the same shape, scaled down for a single stored string each.
 
-**`src/app/`** — `useInputs.ts` is a module-level reactive `Inputs` tree plus a `computed` report; a plain composable, not a store (one page, one model). `format.ts` renders numbers and product descriptions.
+**`src/app/`** — `useInputs.ts` is a module-level reactive `Inputs` tree plus a `computed` report; a plain composable, not a store (one page, one model). `useFormat.ts` renders numbers (locale-invariant) and translatable text (deposit/plan descriptions, phase labels) via `useI18n()` — the label `Record`s it returns are `computed`, not plain objects, so a locale switch doesn't leave them frozen at whatever language was active on mount. `useTheme.ts` and `useLocale.ts` are the reactive+persistence pair for the navbar's theme and language toggles.
 
-**`src/components/` + `src/views/`** — Vue SFCs. `CalculatorView.vue` is the whole page: inputs panel on the left, summary + chart/schedule on the right. Inputs are split into tab components under `components/inputs/`.
+**`src/i18n/`** — `vue-i18n` setup (`legacy: false`, Composition API mode) and `locales/{ru,en}.json`, namespaced by component. A new UI string needs a key in both files.
+
+**`src/components/` + `src/views/`** — Vue SFCs. `CalculatorView.vue` is the whole page: inputs panel on the left, summary + chart/schedule on the right. Inputs are split into tab components under `components/inputs/`. `NavBar.vue` (mounted once, in `App.vue`, above `RouterView`) holds the brand, the placeholder nav button, and the locale/theme switchers.
 
 ### Invariants worth knowing before editing
 

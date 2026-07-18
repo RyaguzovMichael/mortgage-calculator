@@ -1,6 +1,8 @@
 <script setup lang="ts">
-import { describeProduct } from '@/app/format'
+import { useFormat } from '@/app/useFormat'
 import type { DepositProduct } from '@/engine/types/inputs'
+
+const { describeProduct } = useFormat()
 
 // Selection is an id, not a (rate, payout) pair matched by float equality. Two
 // deposits with the same numbers used to be the same deposit; now they are two.

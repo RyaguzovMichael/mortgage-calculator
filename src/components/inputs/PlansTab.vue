@@ -1,28 +1,26 @@
 <script setup lang="ts">
+import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useInputs, MAX_SHOWN } from '@/app/useInputs'
-import {
-  BORROW_LABELS,
-  BUY_WHEN_LABELS,
-  describePlan,
-  HOUSING_LABELS,
-  LOAN_LABELS,
-  REPAY_LABELS,
-} from '@/app/format'
+import { useFormat } from '@/app/useFormat'
 import { BUILT_IN_PLANS } from '@/infrastructure/planCatalogue'
 import type { PurchasePlan } from '@/engine/types/plan'
 
 const { inputs, addPlan, removePlan, isShown, canShow, toggleShown } = useInputs()
+const { t } = useI18n()
+const { BORROW_LABELS, BUY_WHEN_LABELS, describePlan, HOUSING_LABELS, LOAN_LABELS, REPAY_LABELS } =
+  useFormat()
 
-const LOAN_OPTIONS = entries(LOAN_LABELS)
-const BORROW_OPTIONS = entries(BORROW_LABELS)
-const REPAY_OPTIONS = entries(REPAY_LABELS)
-const HOUSING_OPTIONS = entries(HOUSING_LABELS)
+const LOAN_OPTIONS = computed(() => entries(LOAN_LABELS.value))
+const BORROW_OPTIONS = computed(() => entries(BORROW_LABELS.value))
+const REPAY_OPTIONS = computed(() => entries(REPAY_LABELS.value))
+const HOUSING_OPTIONS = computed(() => entries(HOUSING_LABELS.value))
 
 // otbasy-gates is offered only for an Otbasy loan — waiting for the Otbasy balance
 // and CC gates makes no sense without the Otbasy account. That is the one
 // impossible combination, and the dropdown simply never shows it.
 function buyWhenOptions(plan: PurchasePlan) {
-  return entries(BUY_WHEN_LABELS).filter(
+  return entries(BUY_WHEN_LABELS.value).filter(
     (option) => option.value !== 'otbasy-gates' || plan.loan === 'otbasy',
   )
 }
@@ -56,20 +54,15 @@ function entries<T extends string>(labels: Record<T, string>) {
 }
 
 function showTitle(id: string): string {
-  if (isShown(id)) return 'Убрать с графика'
-  return canShow(id)
-    ? 'Показать на графике'
-    : `На графике максимум ${MAX_SHOWN} — снимите другой план`
+  if (isShown(id)) return t('plansTab.showRemove')
+  return canShow(id) ? t('plansTab.showAdd') : t('plansTab.showMax', { max: MAX_SHOWN })
 }
 </script>
 
 <template>
   <section class="field-group">
-    <h3>Встроенные планы</h3>
-    <p class="note">
-      Из файла <code>data/plans.yml</code>. Их нельзя изменить или удалить. Отметьте, какие
-      показывать на графике и в сводке.
-    </p>
+    <h3>{{ t('plansTab.builtInTitle') }}</h3>
+    <p class="note">{{ t('plansTab.builtInNote') }}</p>
     <div v-for="plan in BUILT_IN_PLANS" :key="plan.id" class="built-in">
       <label class="show">
         <input
@@ -87,13 +80,10 @@ function showTitle(id: string): string {
 
   <section class="field-group">
     <header class="section-head">
-      <h3>Свои планы</h3>
-      <button type="button" @click="addPlan">+ Добавить</button>
+      <h3>{{ t('plansTab.ownTitle') }}</h3>
+      <button type="button" @click="addPlan">{{ t('plansTab.addButton') }}</button>
     </header>
-    <p v-if="inputs.plans.custom.length === 0" class="note">
-      Пока ничего. Соберите свой план из четырёх решений — например, «Halyk, но с 50% взноса» — и
-      сравните его с встроенными.
-    </p>
+    <p v-if="inputs.plans.custom.length === 0" class="note">{{ t('plansTab.ownEmpty') }}</p>
 
     <div v-for="plan in inputs.plans.custom" :key="plan.id" class="own">
       <div class="own-head">
@@ -106,12 +96,18 @@ function showTitle(id: string): string {
             @change="toggleShown(plan.id)"
           />
         </label>
-        <input v-model="plan.name" type="text" :aria-label="`Название плана ${plan.id}`" />
-        <button type="button" title="Удалить план" @click="removePlan(plan.id)">Удалить</button>
+        <input
+          v-model="plan.name"
+          type="text"
+          :aria-label="t('plansTab.nameAriaLabel', { id: plan.id })"
+        />
+        <button type="button" :title="t('plansTab.removeTitle')" @click="removePlan(plan.id)">
+          {{ t('plansTab.removeButton') }}
+        </button>
       </div>
 
       <label class="select-field">
-        <span>Кредит</span>
+        <span>{{ t('plansTab.loanLabel') }}</span>
         <select
           :value="plan.loan"
           @change="
@@ -125,7 +121,7 @@ function showTitle(id: string): string {
       </label>
 
       <label class="select-field">
-        <span>Когда покупать</span>
+        <span>{{ t('plansTab.buyWhenLabel') }}</span>
         <select v-model="plan.buyWhen">
           <option v-for="option in buyWhenOptions(plan)" :key="option.value" :value="option.value">
             {{ option.label }}
@@ -134,7 +130,7 @@ function showTitle(id: string): string {
       </label>
 
       <label v-if="plan.buyWhen === 'after-months'" class="select-field">
-        <span>Копить месяцев</span>
+        <span>{{ t('plansTab.saveMonthsLabel') }}</span>
         <input
           type="number"
           min="0"
@@ -142,12 +138,12 @@ function showTitle(id: string): string {
           :value="plan.saveMonths ?? ''"
           @input="setSaveMonths(plan, $event)"
         />
-        <span class="hint">Пусто = ждать ровно столько, сколько ждёт Otbasy.</span>
+        <span class="hint">{{ t('plansTab.saveMonthsHint') }}</span>
       </label>
 
       <template v-if="plan.loan !== 'none'">
         <label class="select-field">
-          <span>Сколько занимать</span>
+          <span>{{ t('plansTab.borrowLabel') }}</span>
           <select v-model="plan.borrow">
             <option v-for="option in BORROW_OPTIONS" :key="option.value" :value="option.value">
               {{ option.label }}
@@ -156,7 +152,7 @@ function showTitle(id: string): string {
         </label>
 
         <label class="select-field">
-          <span>Как гасить</span>
+          <span>{{ t('plansTab.repayLabel') }}</span>
           <select v-model="plan.repay">
             <option v-for="option in REPAY_OPTIONS" :key="option.value" :value="option.value">
               {{ option.label }}
@@ -166,7 +162,7 @@ function showTitle(id: string): string {
       </template>
 
       <label class="select-field">
-        <span>Жильё сейчас</span>
+        <span>{{ t('plansTab.housingLabel') }}</span>
         <select v-model="plan.housing.situation">
           <option v-for="option in HOUSING_OPTIONS" :key="option.value" :value="option.value">
             {{ option.label }}
@@ -176,11 +172,11 @@ function showTitle(id: string): string {
 
       <template v-if="plan.housing.situation === 'selling'">
         <label class="select-field">
-          <span>Сумма продажи</span>
+          <span>{{ t('plansTab.saleProceedsLabel') }}</span>
           <input v-model.number="plan.housing.saleProceeds" type="number" min="0" step="500000" />
         </label>
         <label class="select-field">
-          <span>Месяц продажи</span>
+          <span>{{ t('plansTab.saleMonthLabel') }}</span>
           <input v-model.number="plan.housing.saleMonthOffset" type="number" min="0" step="1" />
         </label>
       </template>

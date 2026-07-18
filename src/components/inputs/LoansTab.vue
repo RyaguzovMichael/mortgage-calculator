@@ -1,47 +1,76 @@
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
 import { useInputs } from '@/app/useInputs'
 import NumberField from './NumberField.vue'
 import PercentField from './PercentField.vue'
 
 const { inputs } = useInputs()
+const { t } = useI18n()
 </script>
 
 <template>
   <section class="field-group">
-    <h3>Halyk</h3>
-    <PercentField v-model="inputs.halyk.annualRate" label="Ставка" :step="0.5" />
+    <h3>{{ t('loansTab.halykTitle') }}</h3>
+    <PercentField
+      v-model="inputs.halyk.annualRate"
+      :label="t('loansTab.halykRateLabel')"
+      :step="0.5"
+    />
     <PercentField
       v-model="inputs.halyk.downPaymentFraction"
-      label="Первый взнос от кредита"
+      :label="t('loansTab.halykDownPaymentLabel')"
       :step="5"
     />
-    <NumberField v-model="inputs.halyk.maxTermMonths" label="Макс. срок" suffix="мес" />
+    <NumberField
+      v-model="inputs.halyk.maxTermMonths"
+      :label="t('loansTab.halykMaxTermLabel')"
+      :suffix="t('common.monthsSuffix')"
+    />
   </section>
 
   <section class="field-group">
-    <h3>Otbasy</h3>
-    <PercentField v-model="inputs.otbasy.loanAnnualRate" label="Ставка кредита" :step="0.5" />
-    <PercentField v-model="inputs.otbasy.depositAnnualRate" label="Ставка депозита" />
+    <h3>{{ t('loansTab.otbasyTitle') }}</h3>
+    <PercentField
+      v-model="inputs.otbasy.loanAnnualRate"
+      :label="t('loansTab.otbasyLoanRateLabel')"
+      :step="0.5"
+    />
+    <PercentField
+      v-model="inputs.otbasy.depositAnnualRate"
+      :label="t('loansTab.otbasyDepositRateLabel')"
+    />
     <NumberField
       v-model="inputs.otbasy.seedFromSale"
-      label="Засев из денег от продажи"
+      :label="t('loansTab.otbasySeedLabel')"
       suffix="₸"
       :step="500000"
-      hint="Без засева порог 50% набирается годами и аренда съедает всё."
+      :hint="t('loansTab.otbasySeedHint')"
     />
     <PercentField
       v-model="inputs.otbasy.minBalanceFraction"
-      label="Порог: % от цел. кредита"
+      :label="t('loansTab.otbasyMinBalanceLabel')"
       :step="5"
     />
-    <NumberField v-model="inputs.otbasy.ccTarget" label="Целевой CC" :step="0.5" />
-    <PercentField v-model="inputs.otbasy.govBonusRate" label="Гос. премия" :step="5" />
+    <NumberField
+      v-model="inputs.otbasy.ccTarget"
+      :label="t('loansTab.otbasyCcTargetLabel')"
+      :step="0.5"
+    />
+    <PercentField
+      v-model="inputs.otbasy.govBonusRate"
+      :label="t('loansTab.otbasyGovBonusRateLabel')"
+      :step="5"
+    />
     <NumberField
       v-model="inputs.otbasy.govBonusCap"
-      label="Лимит премии в год"
+      :label="t('loansTab.otbasyGovBonusCapLabel')"
       suffix="₸"
       :step="5000"
     />
-    <NumberField v-model="inputs.otbasy.govBonusMonth" label="Месяц премии" hint="2 = февраль" />
+    <NumberField
+      v-model="inputs.otbasy.govBonusMonth"
+      :label="t('loansTab.otbasyGovBonusMonthLabel')"
+      :hint="t('loansTab.otbasyGovBonusMonthHint')"
+    />
   </section>
 </template>

@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useInputs } from '@/app/useInputs'
 import TabBar from '../TabBar.vue'
 import { tabButtonId, tabPanelId } from '../tabIds'
@@ -10,19 +11,14 @@ import PlansTab from './PlansTab.vue'
 import LoansTab from './LoansTab.vue'
 
 const { reset } = useInputs()
+const { t } = useI18n()
 
 // Grouped by what the number is *about*, not by which engine type holds it: the
 // deposit rate for the sale money lives with the sale, because that is the
 // decision it belongs to.
-const TABS = [
-  { id: 'apartment', label: 'Квартира' },
-  { id: 'money', label: 'Деньги' },
-  { id: 'deposits', label: 'Вклады' },
-  { id: 'plans', label: 'Планы' },
-  { id: 'loans', label: 'Ипотеки' },
-] as const
-
-type TabId = (typeof TABS)[number]['id']
+const TAB_IDS = ['apartment', 'money', 'deposits', 'plans', 'loans'] as const
+type TabId = (typeof TAB_IDS)[number]
+const TABS = computed(() => TAB_IDS.map((id) => ({ id, label: t(`inputsPanel.tabs.${id}`) })))
 
 const active = ref<TabId>('apartment')
 </script>
@@ -30,8 +26,8 @@ const active = ref<TabId>('apartment')
 <template>
   <aside class="panel card">
     <header>
-      <h2>Исходные данные</h2>
-      <button type="button" @click="reset">Сбросить</button>
+      <h2>{{ t('inputsPanel.title') }}</h2>
+      <button type="button" @click="reset">{{ t('inputsPanel.reset') }}</button>
     </header>
 
     <TabBar v-model="active" :tabs="TABS" base="inputs" />

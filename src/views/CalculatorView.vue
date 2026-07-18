@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import InputsPanel from '@/components/inputs/InputsPanel.vue'
 import SummaryTable from '@/components/results/SummaryTable.vue'
 import RunControls from '@/components/results/RunControls.vue'
@@ -8,14 +9,15 @@ import ScheduleTable from '@/components/results/ScheduleTable.vue'
 import TabBar from '@/components/TabBar.vue'
 import { tabButtonId, tabPanelId } from '@/components/tabIds'
 
+const { t } = useI18n()
+
 // The summary stays put above these: it is the answer, and the chart and the
 // schedule are two ways of auditing it.
-const VIEWS = [
-  { id: 'chart', label: 'График' },
-  { id: 'schedule', label: 'Таблица' },
-] as const
-
-type ViewId = (typeof VIEWS)[number]['id']
+type ViewId = 'chart' | 'schedule'
+const VIEWS = computed(() => [
+  { id: 'chart' as const, label: t('calculatorView.viewsChart') },
+  { id: 'schedule' as const, label: t('calculatorView.viewsSchedule') },
+])
 
 const view = ref<ViewId>('chart')
 </script>
@@ -56,7 +58,7 @@ const view = ref<ViewId>('chart')
   grid-template-columns: 430px minmax(0, 1fr);
   gap: 14px;
   padding: 14px;
-  height: 100dvh;
+  height: 100%;
   overflow: hidden;
 }
 .panel-scroll {

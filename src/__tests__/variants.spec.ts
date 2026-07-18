@@ -210,7 +210,10 @@ describe('deposit rate', () => {
 })
 
 describe('apartment price', () => {
-  const flat: Inputs = { ...DEFAULT_INPUTS, apartment: { ...DEFAULT_INPUTS.apartment, annualGrowthRate: 0 } }
+  const flat: Inputs = {
+    ...DEFAULT_INPUTS,
+    apartment: { ...DEFAULT_INPUTS.apartment, annualGrowthRate: 0 },
+  }
   const growing: Inputs = {
     ...DEFAULT_INPUTS,
     apartment: { ...DEFAULT_INPUTS.apartment, annualGrowthRate: 0.12 },
@@ -264,7 +267,10 @@ describe('apartment price', () => {
 })
 
 describe('the flat being sold', () => {
-  const flat: Inputs = { ...DEFAULT_INPUTS, apartment: { ...DEFAULT_INPUTS.apartment, annualGrowthRate: 0 } }
+  const flat: Inputs = {
+    ...DEFAULT_INPUTS,
+    apartment: { ...DEFAULT_INPUTS.apartment, annualGrowthRate: 0 },
+  }
   const growing: Inputs = {
     ...DEFAULT_INPUTS,
     apartment: { ...DEFAULT_INPUTS.apartment, annualGrowthRate: 0.12 },

@@ -1,10 +1,13 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useInputs } from '@/app/useInputs'
-import { colorForIndex, money, monthLabel, PHASE_LABELS } from '@/app/format'
+import { colorForIndex, money, monthLabel, useFormat } from '@/app/useFormat'
 import type { MonthRow, VariantId } from '@/engine/types/plan'
 
 const { report } = useInputs()
+const { t } = useI18n()
+const { PHASE_LABELS } = useFormat()
 const active = ref<VariantId>('halyk')
 
 const variant = computed(
@@ -20,22 +23,64 @@ interface Column {
   readonly primary?: boolean
 }
 
-const NUMERIC_COLUMNS: readonly Column[] = [
-  { key: 'apartmentPrice', label: 'Цена кв.', value: (row) => row.apartmentPrice },
+const NUMERIC_COLUMNS = computed<readonly Column[]>(() => [
+  {
+    key: 'apartmentPrice',
+    label: t('scheduleTable.columns.apartmentPrice'),
+    value: (row) => row.apartmentPrice,
+  },
   // "Свободно", not "Доход": the column two along is already deposit income.
-  { key: 'freeCash', label: 'Свободно', value: (row) => row.freeCash },
-  { key: 'rentPaid', label: 'Аренда', value: (row) => row.rentPaid },
-  { key: 'loanPayment', label: 'Платёж', value: (row) => row.loanPayment },
-  { key: 'loanInterest', label: 'Проценты', value: (row) => row.loanInterest },
-  { key: 'loanPrincipal', label: 'Тело', value: (row) => row.loanPrincipal },
-  { key: 'loanBalance', label: 'Долг', value: (row) => row.loanBalance },
-  { key: 'savingsBalance', label: 'Вклады', value: (row) => row.savingsBalance },
-  { key: 'otbasyBalance', label: 'Отбасы', value: (row) => row.otbasyBalance },
-  { key: 'otbasyCc', label: 'CC', value: (row) => row.otbasyCc, format: (v) => v.toFixed(2) },
-  { key: 'depositInterestEarned', label: 'Доход', value: (row) => row.depositInterestEarned },
-  { key: 'govBonus', label: 'Премия', value: (row) => row.govBonus },
-  { key: 'netWorth', label: 'Чистые активы', value: (row) => row.netWorth, primary: true },
-]
+  { key: 'freeCash', label: t('scheduleTable.columns.freeCash'), value: (row) => row.freeCash },
+  { key: 'rentPaid', label: t('scheduleTable.columns.rentPaid'), value: (row) => row.rentPaid },
+  {
+    key: 'loanPayment',
+    label: t('scheduleTable.columns.loanPayment'),
+    value: (row) => row.loanPayment,
+  },
+  {
+    key: 'loanInterest',
+    label: t('scheduleTable.columns.loanInterest'),
+    value: (row) => row.loanInterest,
+  },
+  {
+    key: 'loanPrincipal',
+    label: t('scheduleTable.columns.loanPrincipal'),
+    value: (row) => row.loanPrincipal,
+  },
+  {
+    key: 'loanBalance',
+    label: t('scheduleTable.columns.loanBalance'),
+    value: (row) => row.loanBalance,
+  },
+  {
+    key: 'savingsBalance',
+    label: t('scheduleTable.columns.savingsBalance'),
+    value: (row) => row.savingsBalance,
+  },
+  {
+    key: 'otbasyBalance',
+    label: t('scheduleTable.columns.otbasyBalance'),
+    value: (row) => row.otbasyBalance,
+  },
+  {
+    key: 'otbasyCc',
+    label: t('scheduleTable.columns.otbasyCc'),
+    value: (row) => row.otbasyCc,
+    format: (v) => v.toFixed(2),
+  },
+  {
+    key: 'depositInterestEarned',
+    label: t('scheduleTable.columns.depositInterestEarned'),
+    value: (row) => row.depositInterestEarned,
+  },
+  { key: 'govBonus', label: t('scheduleTable.columns.govBonus'), value: (row) => row.govBonus },
+  {
+    key: 'netWorth',
+    label: t('scheduleTable.columns.netWorth'),
+    value: (row) => row.netWorth,
+    primary: true,
+  },
+])
 
 // A column that is zero all the way down says nothing about this variant — the
 // Otbasy account and its bonus in every variant that never opens one, the loan
@@ -45,7 +90,7 @@ const NUMERIC_COLUMNS: readonly Column[] = [
 // Driven by the data rather than by variant id: the engine already decides which
 // variant touches what, and the table has no business restating that.
 const columns = computed(() =>
-  NUMERIC_COLUMNS.filter((column) =>
+  NUMERIC_COLUMNS.value.filter((column) =>
     // Half a tenge: rounding leaves cent-sized dust in columns that are morally
     // empty, and it would still print as "0".
     variant.value?.rows.some((row) => Math.abs(column.value(row)) >= 0.005),
@@ -61,7 +106,7 @@ function cell(column: Column, row: MonthRow): string {
 <template>
   <section class="card">
     <header>
-      <h2>Помесячно</h2>
+      <h2>{{ t('scheduleTable.title') }}</h2>
       <div class="tabs" role="tablist">
         <button
           v-for="(entry, index) in report.variants"
@@ -82,9 +127,9 @@ function cell(column: Column, row: MonthRow): string {
       <table class="data-table">
         <thead>
           <tr>
-            <th>Мес</th>
-            <th class="left">Дата</th>
-            <th class="left">Фаза</th>
+            <th>{{ t('scheduleTable.columns.month') }}</th>
+            <th class="left">{{ t('scheduleTable.columns.date') }}</th>
+            <th class="left">{{ t('scheduleTable.columns.phase') }}</th>
             <th v-for="column in columns" :key="column.key" :class="{ primary: column.primary }">
               {{ column.label }}
             </th>
@@ -106,10 +151,7 @@ function cell(column: Column, row: MonthRow): string {
         </tbody>
       </table>
     </div>
-    <p class="note">
-      Подсвечена строка покупки. Доход показан в месяц выплаты процентов, а не начисления. Колонки,
-      пустые для этого варианта, скрыты.
-    </p>
+    <p class="note">{{ t('scheduleTable.note') }}</p>
   </section>
 </template>
 

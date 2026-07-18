@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useInputs } from '@/app/useInputs'
-import { colorForIndex, millions, money, monthLabel } from '@/app/format'
+import { colorForIndex, millions, money, monthLabel } from '@/app/useFormat'
 import type { VariantId } from '@/engine/types/plan'
 
 const { report } = useInputs()
+const { t } = useI18n()
 
 // Colour and label are looked up by id off the shown variants: colour by their
 // order (the palette's fixed slots), the name straight off the plan. The chart's
@@ -203,12 +205,8 @@ const tooltip = computed(() => {
 <template>
   <section class="card">
     <header>
-      <h2>Чистые активы во времени</h2>
-      <p class="sub">
-        Квартира + вклады − долг. Непрерывны в месяцы продажи и покупки. График обрывается на
-        {{ report.comparisonMonths }}-м месяце — там последний вариант гасит долг, и сравнивать
-        дальше нечего.
-      </p>
+      <h2>{{ t('netWorthChart.title') }}</h2>
+      <p class="sub">{{ t('netWorthChart.subtitle', { month: report.comparisonMonths }) }}</p>
     </header>
 
     <ul class="legend">
@@ -220,7 +218,7 @@ const tooltip = computed(() => {
         <svg width="11" height="11" viewBox="0 0 11 11" aria-hidden="true">
           <circle cx="5.5" cy="5.5" r="4" fill="var(--text-secondary)" />
         </svg>
-        покупка
+        {{ t('netWorthChart.legendPurchase') }}
       </li>
       <li class="marks">
         <svg width="11" height="11" viewBox="0 0 11 11" aria-hidden="true">
@@ -233,13 +231,11 @@ const tooltip = computed(() => {
             stroke-width="2"
           />
         </svg>
-        долг закрыт
+        {{ t('netWorthChart.legendDebtFree') }}
       </li>
     </ul>
 
-    <p v-if="report.variants.length === 0" class="empty">
-      Ни один план не выбран. Отметьте планы над графиком или во вкладке «Планы».
-    </p>
+    <p v-if="report.variants.length === 0" class="empty">{{ t('netWorthChart.empty') }}</p>
 
     <div v-else ref="plotElement" class="plot">
       <svg
@@ -247,7 +243,7 @@ const tooltip = computed(() => {
         :viewBox="`0 0 ${width} ${height}`"
         preserveAspectRatio="xMidYMid meet"
         role="img"
-        aria-label="Чистые активы по вариантам во времени"
+        :aria-label="t('netWorthChart.ariaLabel')"
         @mousemove="onMove"
         @mouseleave="hovered = null"
       >
@@ -294,7 +290,7 @@ const tooltip = computed(() => {
 
         <path class="price-line" :d="pricePath" fill="none" />
         <text v-if="priceLabel" class="price-label" :x="priceLabel.x" :y="priceLabel.y">
-          цена квартиры
+          {{ t('netWorthChart.priceLabel') }}
         </text>
 
         <path
@@ -367,7 +363,7 @@ const tooltip = computed(() => {
           <span class="value">{{ money(entry.row!.netWorth) }}</span>
         </p>
         <p class="row price">
-          <span class="name">цена квартиры</span>
+          <span class="name">{{ t('netWorthChart.priceLabel') }}</span>
           <span class="value">{{ money(tooltip.apartmentPrice) }}</span>
         </p>
       </div>

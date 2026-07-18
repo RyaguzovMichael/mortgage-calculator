@@ -1,0 +1,187 @@
+{
+  "common": { "monthsSuffix": "mo" },
+  "nav": {
+    "brand": "Mortgage vs. Rent",
+    "home": "Main",
+    "theme": { "system": "System", "light": "Light", "dark": "Dark" },
+    "locale": { "ru": "RU", "en": "EN" }
+  },
+  "inputsPanel": {
+    "title": "Inputs",
+    "reset": "Reset",
+    "tabs": {
+      "apartment": "Apartment",
+      "money": "Money",
+      "deposits": "Deposits",
+      "plans": "Plans",
+      "loans": "Mortgages"
+    }
+  },
+  "apartmentTab": {
+    "title": "Apartment",
+    "priceLabel": "Price",
+    "note": "Where you live before buying and what you're selling is now a per-plan decision, not a global setting — set it in the “Plans” tab, separately for each plan."
+  },
+  "moneyTab": {
+    "cashflowTitle": "Cash flow",
+    "freeCashLabel": "Free cash per month",
+    "indexationLabel": "Income indexation per year",
+    "indexationHint": "Free cash flow steps up once a year, in June (the first is June 2027). Separate from the housing market: salary follows salaries, not apartment prices.",
+    "rentLabel": "Rent per month",
+    "rentHint": "Paid only while the apartment is sold and a new one is not yet bought. Indexed at the apartment growth rate — it is the price of the same market, and has no rate of its own.",
+    "startOffsetLabel": "Cash flow starts at month",
+    "depositTitle": "Deposit",
+    "depositLabel": "Where all the money goes",
+    "depositHint": "One deposit for everything: today's savings, sale proceeds, and monthly contributions. In the Otbasy plan, savings go to the Otbasy account instead. Add your own deposit in the “Deposits” tab.",
+    "existingTitle": "Savings today — {amount} ₸",
+    "existingNote": "In month 0 everything merges into one deposit — the one chosen above for the Halyk and all-cash plans, the Otbasy account for the Otbasy plan. So only the total matters, not which bank holds it today. Only Otbasy stands apart: it has its own rate and its own CC.",
+    "savingsLabel": "Free savings",
+    "savingsHint": "Everything not on the Otbasy account, as one sum.",
+    "otbasyToggle": "I have an Otbasy deposit",
+    "otbasyBalanceLabel": "Otbasy balance",
+    "otbasyAccruedLabel": "Of which accrued interest",
+    "otbasyAccruedHint": "How much the bank has credited so far. CC is computed from exactly this, so starting from zero would push the CC ≥ 5 threshold further out than it really is. Not added to the money — it is already inside the balance.",
+    "otbasyMonthsLabel": "Already saving for",
+    "otbasyMonthsHint": "Has no effect yet — recorded for later, against Otbasy's minimum saving term."
+  },
+  "depositsTab": {
+    "builtInTitle": "Built-in deposits",
+    "builtInNote": "From data/deposits.yml. They cannot be changed or removed here — edit the file, and the edit reaches everyone.",
+    "ownTitle": "Your deposits",
+    "addButton": "+ Add",
+    "ownEmpty": "Nothing yet. Add a deposit if you have a bank offer not listed above — and pick it as the main one in the “Money” tab.",
+    "nameAriaLabel": "Deposit name {id}",
+    "removeButton": "Remove",
+    "removeTitleEnabled": "Remove deposit",
+    "removeTitleDisabled": "Cannot remove: all the money currently goes to it",
+    "rateLabel": "Rate",
+    "payoutLabel": "Paid out every",
+    "payoutHint": "1 = withdraw any time, lose nothing. More — interest is forfeited on early withdrawal."
+  },
+  "loansTab": {
+    "halykTitle": "Halyk",
+    "halykRateLabel": "Rate",
+    "halykDownPaymentLabel": "Down payment, % of loan",
+    "halykMaxTermLabel": "Max term",
+    "otbasyTitle": "Otbasy",
+    "otbasyLoanRateLabel": "Loan rate",
+    "otbasyDepositRateLabel": "Deposit rate",
+    "otbasySeedLabel": "Seeded from sale proceeds",
+    "otbasySeedHint": "Without seeding, the 50% threshold takes years to reach and rent eats it all.",
+    "otbasyMinBalanceLabel": "Threshold: % of target loan",
+    "otbasyCcTargetLabel": "Target CC",
+    "otbasyGovBonusRateLabel": "State bonus",
+    "otbasyGovBonusCapLabel": "Annual bonus cap",
+    "otbasyGovBonusMonthLabel": "Bonus month",
+    "otbasyGovBonusMonthHint": "2 = February"
+  },
+  "plansTab": {
+    "builtInTitle": "Built-in plans",
+    "builtInNote": "From data/plans.yml. They cannot be changed or removed. Check which ones to show on the chart and in the summary.",
+    "ownTitle": "Your plans",
+    "addButton": "+ Add",
+    "ownEmpty": "Nothing yet. Build your own plan out of four decisions — e.g. “Halyk, but with a 50% down payment” — and compare it against the built-ins.",
+    "nameAriaLabel": "Plan name {id}",
+    "removeTitle": "Remove plan",
+    "removeButton": "Remove",
+    "loanLabel": "Loan",
+    "buyWhenLabel": "When to buy",
+    "saveMonthsLabel": "Months to save",
+    "saveMonthsHint": "Empty = wait exactly as long as Otbasy does.",
+    "borrowLabel": "How much to borrow",
+    "repayLabel": "How to repay",
+    "housingLabel": "Current housing",
+    "saleProceedsLabel": "Sale proceeds",
+    "saleMonthLabel": "Sale month",
+    "showRemove": "Remove from chart",
+    "showAdd": "Show on chart",
+    "showMax": "Chart shows at most {max} — unpick another plan first"
+  },
+  "runControls": {
+    "startLabel": "Start",
+    "growthLabel": "Price growth per year",
+    "growthHint": "Year over year: 12% = a year from now the price is 12% higher. Steps once every six months. The same rate indexes rent and the price of your apartment being sold. Use a long-run average, not a peak year: the threshold where conclusions flip is ≈9%, and in the 8–10% range the answer is decided by model details, not the market.",
+    "horizonLabel": "Calculation horizon",
+    "horizonAriaLabel": "Calculation horizon, years",
+    "horizonHint": "A ceiling only: the calculation still cuts off once the last plan clears its debt. Worth raising if someone doesn't finish paying it off in time.",
+    "yearsWord": ["year", "years"]
+  },
+  "summaryTable": {
+    "title": "Comparing the options",
+    "subtitle": "Target loan {loan} ₸ · compared over {months} months (up to the month the last option clears its debt)",
+    "columns": {
+      "variant": "Option",
+      "purchaseMonth": "Purchase",
+      "debtFreeMonth": "Debt-free",
+      "purchasePrice": "Purchase price",
+      "rentPaid": "Rent",
+      "loanInterestPaid": "Loan interest",
+      "depositInterestEarned": "Deposit income",
+      "govBonusReceived": "State bonus",
+      "netWorthAtEnd": "Net worth"
+    },
+    "dropped": "Not counted: {list}. This plan waits exactly as long as Otbasy, and Otbasy never reaches a purchase within the horizon — so there is nothing to wait for. Set a saving window manually or raise the horizon."
+  },
+  "scheduleTable": {
+    "title": "Month by month",
+    "columns": {
+      "month": "Mo",
+      "date": "Date",
+      "phase": "Phase",
+      "apartmentPrice": "Apt. price",
+      "freeCash": "Free cash",
+      "rentPaid": "Rent",
+      "loanPayment": "Payment",
+      "loanInterest": "Interest",
+      "loanPrincipal": "Principal",
+      "loanBalance": "Debt",
+      "savingsBalance": "Deposits",
+      "otbasyBalance": "Otbasy",
+      "otbasyCc": "CC",
+      "depositInterestEarned": "Income",
+      "govBonus": "Bonus",
+      "netWorth": "Net worth"
+    },
+    "note": "The purchase row is highlighted. Income is shown in the month interest is paid out, not accrued. Columns that are empty for this option are hidden."
+  },
+  "netWorthChart": {
+    "title": "Net worth over time",
+    "subtitle": "Apartment + deposits − debt. Continuous across the sale and purchase months. The chart cuts off at month {month} — that's where the last option clears its debt, and there is nothing further to compare.",
+    "legendPurchase": "purchase",
+    "legendDebtFree": "debt-free",
+    "empty": "No plan is selected. Check plans above the chart or in the “Plans” tab.",
+    "ariaLabel": "Net worth by option over time",
+    "priceLabel": "apartment price"
+  },
+  "calculatorView": {
+    "viewsChart": "Chart",
+    "viewsSchedule": "Table"
+  },
+  "format": {
+    "payoutMonthly": "paid out every month, withdraw and lose nothing",
+    "payoutPeriodic": "paid out every {months} {word}",
+    "monthsForms": ["month", "months"],
+    "loanLabels": { "halyk": "Halyk", "otbasy": "Otbasy", "none": "No mortgage" },
+    "buyWhenLabels": {
+      "asap": "as soon as affordable",
+      "afterMonths": "after N months",
+      "otbasyGates": "on Otbasy's gates"
+    },
+    "borrowLabels": { "max": "maximum (smaller down payment)", "min": "minimum (all upfront)" },
+    "repayLabels": { "monthly": "repay every month", "lump": "save up and clear at once" },
+    "housingLabels": {
+      "selling": "selling my apartment",
+      "free": "living for free",
+      "renting": "renting from month 0"
+    },
+    "phaseLabels": {
+      "preSale": "before sale",
+      "freeHousing": "living for free",
+      "renting": "renting",
+      "ownedWithLoan": "own, mortgaged",
+      "owned": "own"
+    },
+    "describePlanAfterMonths": "after {n} {word}",
+    "describePlanOtbasyWait": "wait like Otbasy"
+  }
+}

@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useInputs } from '@/app/useInputs'
-import { colorForIndex, money } from '@/app/format'
+import { colorForIndex, money } from '@/app/useFormat'
 import type { VariantId, VariantResult } from '@/engine/types/plan'
 
 const { inputs, report } = useInputs()
+const { t } = useI18n()
 
 // Rows sort every which way, so colour cannot come from row order — it is keyed
 // on id and fixed by the variant's position in the report (its slot among the
@@ -40,63 +42,63 @@ interface Column {
   readonly cell: (variant: VariantResult) => string
 }
 
-const COLUMNS: readonly Column[] = [
+const COLUMNS = computed<readonly Column[]>(() => [
   {
     key: 'variant',
-    label: 'Вариант',
+    label: t('summaryTable.columns.variant'),
     left: true,
     sort: (variant) => variant.name,
     cell: (variant) => variant.name,
   },
   {
     key: 'purchaseMonth',
-    label: 'Покупка',
+    label: t('summaryTable.columns.purchaseMonth'),
     sort: (variant) => variant.purchaseMonth,
     cell: (variant) => months(variant.purchaseMonth),
   },
   {
     key: 'debtFreeMonth',
-    label: 'Без долга',
+    label: t('summaryTable.columns.debtFreeMonth'),
     sort: (variant) => variant.debtFreeMonth,
     cell: (variant) => months(variant.debtFreeMonth),
   },
   {
     key: 'purchasePrice',
-    label: 'Цена покупки',
+    label: t('summaryTable.columns.purchasePrice'),
     sort: (variant) => variant.purchasePrice,
     cell: (variant) => maybeMoney(variant.purchasePrice),
   },
   {
     key: 'rentPaid',
-    label: 'Аренда',
+    label: t('summaryTable.columns.rentPaid'),
     sort: (variant) => variant.totals.rentPaid,
     cell: (variant) => money(variant.totals.rentPaid),
   },
   {
     key: 'loanInterestPaid',
-    label: '% кредита',
+    label: t('summaryTable.columns.loanInterestPaid'),
     sort: (variant) => variant.totals.loanInterestPaid,
     cell: (variant) => money(variant.totals.loanInterestPaid),
   },
   {
     key: 'depositInterestEarned',
-    label: 'Доход с вкладов',
+    label: t('summaryTable.columns.depositInterestEarned'),
     sort: (variant) => variant.totals.depositInterestEarned,
     cell: (variant) => money(variant.totals.depositInterestEarned),
   },
   {
     key: 'govBonusReceived',
-    label: 'Гос. премия',
+    label: t('summaryTable.columns.govBonusReceived'),
     sort: (variant) => variant.totals.govBonusReceived,
     cell: (variant) => money(variant.totals.govBonusReceived),
   },
   {
     key: 'netWorthAtEnd',
-    label: 'Чистые активы',
+    label: t('summaryTable.columns.netWorthAtEnd'),
     sort: (variant) => variant.totals.netWorthAtEnd,
     cell: (variant) => money(variant.totals.netWorthAtEnd),
   },
-]
+])
 
 const sortKey = ref('netWorthAtEnd')
 const descending = ref(true)
@@ -112,7 +114,7 @@ function sortBy(column: Column): void {
 }
 
 const ranked = computed(() => {
-  const column = COLUMNS.find((entry) => entry.key === sortKey.value) ?? COLUMNS[0]!
+  const column = COLUMNS.value.find((entry) => entry.key === sortKey.value) ?? COLUMNS.value[0]!
   return [...report.value.variants].sort((left, right) =>
     compare(column.sort(left), column.sort(right)),
   )
@@ -144,10 +146,14 @@ function classesFor(column: Column, variant: VariantResult): Record<string, bool
 <template>
   <section class="card">
     <header>
-      <h2>Сравнение вариантов</h2>
+      <h2>{{ t('summaryTable.title') }}</h2>
       <p class="sub">
-        Целевой кредит {{ money(report.targetLoan) }} ₸ · сравнение по
-        {{ report.comparisonMonths }} мес (до месяца, когда последний вариант закрывает долг)
+        {{
+          t('summaryTable.subtitle', {
+            loan: money(report.targetLoan),
+            months: report.comparisonMonths,
+          })
+        }}
       </p>
     </header>
 
@@ -195,9 +201,7 @@ function classesFor(column: Column, variant: VariantResult): Record<string, bool
     </div>
 
     <p v-if="droppedShown.length > 0" class="warning">
-      Не считается: {{ droppedShown.join(', ') }}. План ждёт ровно столько же, сколько Otbasy, а
-      Otbasy не выходит на покупку в пределах горизонта — ждать не за чем. Задайте окно накопления
-      вручную или поднимите горизонт.
+      {{ t('summaryTable.dropped', { list: droppedShown.join(', ') }) }}
     </p>
   </section>
 </template>

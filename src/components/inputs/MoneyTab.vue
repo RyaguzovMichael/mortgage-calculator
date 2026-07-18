@@ -1,13 +1,15 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useInputs } from '@/app/useInputs'
-import { money } from '@/app/format'
+import { money } from '@/app/useFormat'
 import { startingMoney } from '@/engine/types/inputs'
 import NumberField from './NumberField.vue'
 import PercentField from './PercentField.vue'
 import ProductPicker from './ProductPicker.vue'
 
 const { inputs } = useInputs()
+const { t } = useI18n()
 
 // The one figure the model takes from the accounts, shown so the sum is visible
 // without adding the fields up by hand.
@@ -16,77 +18,78 @@ const existingTotal = computed(() => startingMoney(inputs))
 
 <template>
   <section class="field-group">
-    <h3>Денежный поток</h3>
+    <h3>{{ t('moneyTab.cashflowTitle') }}</h3>
     <NumberField
       v-model="inputs.cashflow.monthlyFreeCash"
-      label="Свободно в месяц"
+      :label="t('moneyTab.freeCashLabel')"
       suffix="₸"
       :step="50000"
     />
     <PercentField
       v-model="inputs.cashflow.annualIndexationRate"
-      label="Индексация дохода в год"
+      :label="t('moneyTab.indexationLabel')"
       :step="1"
-      hint="Свободный поток растёт одной ступенькой раз в год, в июне (первая — июнь 2027). Отдельно от рынка жилья: зарплата идёт за зарплатами, а не за ценами квартир."
+      :hint="t('moneyTab.indexationHint')"
     />
     <NumberField
       v-model="inputs.cashflow.monthlyRent"
-      label="Аренда в месяц"
+      :label="t('moneyTab.rentLabel')"
       suffix="₸"
       :step="50000"
-      hint="Платится только пока квартира продана, а новая не куплена. Индексируется по ставке роста цены квартиры — это цена того же рынка, своего параметра у неё нет."
+      :hint="t('moneyTab.rentHint')"
     />
     <NumberField
       v-model="inputs.cashflow.startMonthOffset"
-      label="Поток начинается с месяца"
-      suffix="мес"
+      :label="t('moneyTab.startOffsetLabel')"
+      :suffix="t('common.monthsSuffix')"
     />
   </section>
 
   <section class="field-group">
-    <h3>Вклад</h3>
+    <h3>{{ t('moneyTab.depositTitle') }}</h3>
     <ProductPicker
       v-model="inputs.deposits.savingsProductId"
       :products="inputs.deposits.products"
-      label="Куда идут все деньги"
-      hint="Один вклад на всё: сегодняшние накопления, деньги от продажи и ежемесячные взносы. В варианте Otbasy накопления вместо этого уходят на счёт Отбасы. Свой вклад добавляется во вкладке «Вклады»."
+      :label="t('moneyTab.depositLabel')"
+      :hint="t('moneyTab.depositHint')"
     />
   </section>
 
   <section class="field-group">
-    <h3>Накопления сегодня — {{ money(existingTotal) }} ₸</h3>
-    <p class="note">
-      В месяц 0 всё сливается в один вклад — в вариантах Halyk и «без ипотеки» в выбранный выше, в
-      варианте Otbasy на счёт Отбасы. Поэтому важна только сумма, а не то, в каком банке она лежит
-      сегодня. Отдельно от неё стоит только Отбасы: у него свои проценты и свой CC.
-    </p>
+    <h3>{{ t('moneyTab.existingTitle', { amount: money(existingTotal) }) }}</h3>
+    <p class="note">{{ t('moneyTab.existingNote') }}</p>
     <NumberField
       v-model="inputs.deposits.savingsBalance"
-      label="Свободные накопления"
+      :label="t('moneyTab.savingsLabel')"
       suffix="₸"
       :step="10000"
-      hint="Всё, что не на счету Отбасы, одной суммой."
+      :hint="t('moneyTab.savingsHint')"
     />
 
     <label class="toggle">
       <input v-model="inputs.otbasy.hasDeposit" type="checkbox" />
-      <span>У меня есть депозит Отбасы</span>
+      <span>{{ t('moneyTab.otbasyToggle') }}</span>
     </label>
 
     <template v-if="inputs.otbasy.hasDeposit">
-      <NumberField v-model="inputs.otbasy.balance" label="Баланс Отбасы" suffix="₸" :step="10000" />
+      <NumberField
+        v-model="inputs.otbasy.balance"
+        :label="t('moneyTab.otbasyBalanceLabel')"
+        suffix="₸"
+        :step="10000"
+      />
       <NumberField
         v-model="inputs.otbasy.accruedInterest"
-        label="Из них накопленные проценты"
+        :label="t('moneyTab.otbasyAccruedLabel')"
         suffix="₸"
         :step="1000"
-        hint="Сколько банк начислил за всё время. Именно из этого считается CC, поэтому старт с нуля отодвигал бы порог CC ≥ 5 дальше, чем он есть на самом деле. Не прибавляется к деньгам — они уже внутри баланса."
+        :hint="t('moneyTab.otbasyAccruedHint')"
       />
       <NumberField
         v-model="inputs.otbasy.monthsOpen"
-        label="Уже коплю"
-        suffix="мес"
-        hint="Пока ни на что не влияет — записывается на будущее, под минимальный срок накопления Отбасы."
+        :label="t('moneyTab.otbasyMonthsLabel')"
+        :suffix="t('common.monthsSuffix')"
+        :hint="t('moneyTab.otbasyMonthsHint')"
       />
     </template>
   </section>

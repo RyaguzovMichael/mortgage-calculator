@@ -1,12 +1,15 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useInputs } from '@/app/useInputs'
-import { productTerms } from '@/app/format'
+import { useFormat } from '@/app/useFormat'
 import { isBuiltInProduct } from '@/infrastructure/depositCatalogue'
 import NumberField from './NumberField.vue'
 import PercentField from './PercentField.vue'
 
 const { inputs, addProduct, removeProduct, canRemoveProduct } = useInputs()
+const { t } = useI18n()
+const { productTerms } = useFormat()
 
 // Split by where the deposit comes from, not by a stored flag: the file decides.
 const builtInProducts = computed(() =>
@@ -17,11 +20,8 @@ const ownProducts = computed(() => inputs.deposits.products.filter((p) => !isBui
 
 <template>
   <section class="field-group">
-    <h3>Встроенные вклады</h3>
-    <p class="note">
-      Из файла <code>data/deposits.yml</code>. Их нельзя изменить или удалить — правятся в файле, и
-      правка доезжает до всех.
-    </p>
+    <h3>{{ t('depositsTab.builtInTitle') }}</h3>
+    <p class="note">{{ t('depositsTab.builtInNote') }}</p>
     <div v-for="product in builtInProducts" :key="product.id" class="built-in">
       <span class="item-name">{{ product.name }}</span>
       <span class="item-terms">{{ productTerms(product) }}</span>
@@ -30,35 +30,36 @@ const ownProducts = computed(() => inputs.deposits.products.filter((p) => !isBui
 
   <section class="field-group">
     <header class="section-head">
-      <h3>Свои вклады</h3>
-      <button type="button" @click="addProduct">+ Добавить</button>
+      <h3>{{ t('depositsTab.ownTitle') }}</h3>
+      <button type="button" @click="addProduct">{{ t('depositsTab.addButton') }}</button>
     </header>
-    <p v-if="ownProducts.length === 0" class="note">
-      Пока ничего. Добавьте вклад, если у вас есть предложение банка, которого нет выше — и выберите
-      его основным во вкладке «Деньги».
-    </p>
+    <p v-if="ownProducts.length === 0" class="note">{{ t('depositsTab.ownEmpty') }}</p>
     <div v-for="product in ownProducts" :key="product.id" class="own">
       <div class="own-head">
-        <input v-model="product.name" type="text" :aria-label="`Название вклада ${product.id}`" />
+        <input
+          v-model="product.name"
+          type="text"
+          :aria-label="t('depositsTab.nameAriaLabel', { id: product.id })"
+        />
         <button
           type="button"
           :disabled="!canRemoveProduct(product.id)"
           :title="
             canRemoveProduct(product.id)
-              ? 'Удалить вклад'
-              : 'Нельзя удалить: сейчас на него идут все деньги'
+              ? t('depositsTab.removeTitleEnabled')
+              : t('depositsTab.removeTitleDisabled')
           "
           @click="removeProduct(product.id)"
         >
-          Удалить
+          {{ t('depositsTab.removeButton') }}
         </button>
       </div>
-      <PercentField v-model="product.annualRate" label="Ставка" />
+      <PercentField v-model="product.annualRate" :label="t('depositsTab.rateLabel')" />
       <NumberField
         v-model="product.payoutPeriodMonths"
-        label="Выплата раз в"
-        suffix="мес"
-        hint="1 = снятие в любой момент без потерь. Больше — проценты сгорают при снятии до выплаты."
+        :label="t('depositsTab.payoutLabel')"
+        :suffix="t('common.monthsSuffix')"
+        :hint="t('depositsTab.payoutHint')"
       />
       <p class="note">{{ productTerms(product) }}</p>
     </div>

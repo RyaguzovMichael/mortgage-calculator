@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useInputs } from '@/app/useInputs'
 
 const { inputs } = useInputs()
+const { t, tm, locale } = useI18n()
 
 const growthPercent = computed<number>({
   get: () => Math.round(inputs.apartment.annualGrowthRate * 1e6) / 1e4,
@@ -35,7 +37,8 @@ function closeGrowthHint(): void {
 const MAX_YEARS = 40
 
 const startValue = computed<string>({
-  get: () => `${String(inputs.start.year).padStart(4, '0')}-${String(inputs.start.month).padStart(2, '0')}`,
+  get: () =>
+    `${String(inputs.start.year).padStart(4, '0')}-${String(inputs.start.month).padStart(2, '0')}`,
   set: (value) => {
     const match = /^(\d+)-(\d{1,2})$/.exec(value)
     if (!match) return
@@ -57,26 +60,31 @@ function onHorizonInput(event: Event): void {
   horizonYears.value = Number((event.target as HTMLInputElement).value)
 }
 
-// Russian plural forms for "год": 1 год, 2-4 года, 0/5-20 лет, and the same
-// pattern repeating above 20 (21 год, 22 года, 25 лет).
+// Russian needs three plural forms for "год" (1 год, 2-4 года, 0/5-20 лет, and
+// the same pattern repeating above 20); English only needs two. The words
+// themselves come from the locale's own messages.
 const yearsWord = computed<string>(() => {
+  const forms = tm('runControls.yearsWord') as unknown as string[]
   const n = horizonYears.value
-  const mod10 = n % 10
-  const mod100 = n % 100
-  if (mod10 === 1 && mod100 !== 11) return 'год'
-  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) return 'года'
-  return 'лет'
+  if (locale.value === 'ru') {
+    const mod10 = n % 10
+    const mod100 = n % 100
+    if (mod10 === 1 && mod100 !== 11) return forms[0]!
+    if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) return forms[1]!
+    return forms[2]!
+  }
+  return n === 1 ? forms[0]! : forms[1]!
 })
 </script>
 
 <template>
   <div class="run-controls">
     <label class="start-field">
-      <span class="label">Старт</span>
+      <span class="label">{{ t('runControls.startLabel') }}</span>
       <input v-model="startValue" type="month" />
     </label>
     <label class="growth-field">
-      <span class="label">Рост цены в год</span>
+      <span class="label">{{ t('runControls.growthLabel') }}</span>
       <span class="control">
         <input
           class="growth-input"
@@ -89,16 +97,13 @@ const yearsWord = computed<string>(() => {
         />
         <span class="suffix">%</span>
         <span v-if="growthHintOpen" class="hint-tip" role="tooltip">
-          Год к году: 12% = через год цена выше на 12%. Меняется ступенькой раз в полгода. Этой
-          же ставкой индексируются аренда и цена вашей продаваемой квартиры. Подставляйте
-          долгосрочное среднее, а не пиковый год: порог переворота выводов ≈ 9%, и в диапазоне
-          8–10% ответ определяется деталями модели, а не рынком.
+          {{ t('runControls.growthHint') }}
         </span>
       </span>
     </label>
     <label class="horizon-field">
       <span class="label">
-        Горизонт расчёта
+        {{ t('runControls.horizonLabel') }}
         <span class="value">{{ horizonYears }} {{ yearsWord }}</span>
       </span>
       <input
@@ -109,7 +114,7 @@ const yearsWord = computed<string>(() => {
         step="1"
         :value="horizonYears"
         list="horizon-ticks"
-        aria-label="Горизонт расчёта, лет"
+        :aria-label="t('runControls.horizonAriaLabel')"
         @input="onHorizonInput"
       />
       <datalist id="horizon-ticks">
@@ -119,10 +124,7 @@ const yearsWord = computed<string>(() => {
         <option value="30"></option>
         <option value="40"></option>
       </datalist>
-      <span class="hint">
-        Только потолок: расчёт всё равно обрывается, когда последний план гасит долг. Поднимать
-        имеет смысл, если кто-то не успевает расплатиться.
-      </span>
+      <span class="hint">{{ t('runControls.horizonHint') }}</span>
     </label>
   </div>
 </template>
