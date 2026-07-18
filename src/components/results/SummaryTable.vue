@@ -134,8 +134,7 @@ function compare(left: number | string | null, right: number | string | null): n
     // Before the direction is applied, so "never" stays at the bottom either way.
     return left === right ? 0 : left === null ? 1 : -1
   }
-  const order =
-    typeof left === 'string' ? left.localeCompare(String(right)) : left - Number(right)
+  const order = typeof left === 'string' ? left.localeCompare(String(right)) : left - Number(right)
   return descending.value ? -order : order
 }
 
@@ -191,12 +190,12 @@ function classesFor(column: Column, variant: VariantResult): Record<string, bool
           </tr>
         </thead>
         <tbody>
-          <tr v-for="variant in ranked" :key="variant.id" :class="{ best: variant.id === report.bestVariant }">
-            <td
-              v-for="column in COLUMNS"
-              :key="column.key"
-              :class="classesFor(column, variant)"
-            >
+          <tr
+            v-for="variant in ranked"
+            :key="variant.id"
+            :class="{ best: variant.id === report.bestVariant }"
+          >
+            <td v-for="column in COLUMNS" :key="column.key" :class="classesFor(column, variant)">
               <span
                 v-if="column.key === 'variant'"
                 class="swatch"

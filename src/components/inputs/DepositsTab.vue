@@ -9,7 +9,9 @@ import PercentField from './PercentField.vue'
 const { inputs, addProduct, removeProduct, canRemoveProduct } = useInputs()
 
 // Split by where the deposit comes from, not by a stored flag: the file decides.
-const builtInProducts = computed(() => inputs.deposits.products.filter((p) => isBuiltInProduct(p.id)))
+const builtInProducts = computed(() =>
+  inputs.deposits.products.filter((p) => isBuiltInProduct(p.id)),
+)
 const ownProducts = computed(() => inputs.deposits.products.filter((p) => !isBuiltInProduct(p.id)))
 </script>
 
@@ -17,8 +19,8 @@ const ownProducts = computed(() => inputs.deposits.products.filter((p) => !isBui
   <section class="field-group">
     <h3>Встроенные вклады</h3>
     <p class="note">
-      Из файла <code>data/deposits.yml</code>. Их нельзя изменить или удалить — правятся в файле,
-      и правка доезжает до всех.
+      Из файла <code>data/deposits.yml</code>. Их нельзя изменить или удалить — правятся в файле, и
+      правка доезжает до всех.
     </p>
     <div v-for="product in builtInProducts" :key="product.id" class="built-in">
       <span class="item-name">{{ product.name }}</span>
@@ -32,8 +34,8 @@ const ownProducts = computed(() => inputs.deposits.products.filter((p) => !isBui
       <button type="button" @click="addProduct">+ Добавить</button>
     </header>
     <p v-if="ownProducts.length === 0" class="note">
-      Пока ничего. Добавьте вклад, если у вас есть предложение банка, которого нет выше — и
-      выберите его основным во вкладке «Деньги».
+      Пока ничего. Добавьте вклад, если у вас есть предложение банка, которого нет выше — и выберите
+      его основным во вкладке «Деньги».
     </p>
     <div v-for="product in ownProducts" :key="product.id" class="own">
       <div class="own-head">

@@ -6,6 +6,7 @@ import {
   rentAt,
   rentDueAt,
   saleProceedsAt,
+  type HousingInputs,
   type Inputs,
 } from '../types/inputs'
 import type { MonthRow, Phase } from '../types/plan'
@@ -19,8 +20,8 @@ export function purchasePriceAt(inputs: Inputs, purchaseMonth: number | null): n
 
 // The earliest month this variant may buy. Selling waits for the sale; the others
 // can buy from month 0.
-export function canBuyAt(inputs: Inputs, monthIndex: number): boolean {
-  return monthIndex >= purchaseAllowedFrom(inputs)
+export function canBuyAt(housing: HousingInputs, monthIndex: number): boolean {
+  return monthIndex >= purchaseAllowedFrom(housing)
 }
 
 export function payRent(
@@ -61,16 +62,22 @@ export function payScheduled(
   return { payment, budget: budget - spentFromBudget }
 }
 
-export function phaseOf(inputs: Inputs, month: MonthContext, owned: boolean, loan: Loan | null): Phase {
+export function phaseOf(
+  housing: HousingInputs,
+  month: MonthContext,
+  owned: boolean,
+  loan: Loan | null,
+): Phase {
   if (owned) return loan !== null && loan.balance > 0 ? 'owned-with-loan' : 'owned'
-  if (rentDueAt(inputs, month.index)) return 'renting'
+  if (rentDueAt(housing, month.index)) return 'renting'
   // Not renting and not owning: either living in the flat you'll sell (selling,
   // before the sale) or living rent-free (free).
-  return inputs.housing.situation === 'selling' ? 'pre-sale' : 'free-housing'
+  return housing.situation === 'selling' ? 'pre-sale' : 'free-housing'
 }
 
 export function buildRow(args: {
   inputs: Inputs
+  housing: HousingInputs
   month: MonthContext
   wallet: Wallet
   owned: boolean
@@ -78,11 +85,11 @@ export function buildRow(args: {
   rentPaid: number
   payment: LoanPayment
 }): MonthRow {
-  const { inputs, month, wallet, owned, loan, rentPaid, payment } = args
+  const { inputs, housing, month, wallet, owned, loan, rentPaid, payment } = args
   return {
     index: month.index,
     yearMonth: month.yearMonth,
-    phase: phaseOf(inputs, month, owned, loan),
+    phase: phaseOf(housing, month, owned, loan),
     apartmentPrice: apartmentPriceAt(inputs, month.index),
     freeCash: month.freeCash,
     rentPaid,
@@ -95,7 +102,7 @@ export function buildRow(args: {
     otbasyCc: wallet.otbasyCc,
     depositInterestEarned: month.interestEarned,
     govBonus: month.govBonus,
-    netWorth: netWorth(inputs, month, wallet, owned, loan),
+    netWorth: netWorth(inputs, housing, month, wallet, owned, loan),
   }
 }
 
@@ -105,13 +112,14 @@ export function buildRow(args: {
 // variant that is not selling has no old flat to carry.
 function netWorth(
   inputs: Inputs,
+  housing: HousingInputs,
   month: MonthContext,
   wallet: Wallet,
   owned: boolean,
   loan: Loan | null,
 ): number {
-  const beforeSale = inputs.housing.situation === 'selling' && !rentDueAt(inputs, month.index)
-  const oldApartment = beforeSale ? saleProceedsAt(inputs, month.index) : 0
+  const beforeSale = housing.situation === 'selling' && !rentDueAt(housing, month.index)
+  const oldApartment = beforeSale ? saleProceedsAt(inputs, housing, month.index) : 0
   const newApartment = owned ? apartmentPriceAt(inputs, month.index) : 0
   return (
     oldApartment +

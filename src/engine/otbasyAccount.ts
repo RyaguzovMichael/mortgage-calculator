@@ -39,6 +39,9 @@ export function createOtbasyAccount(
     get balance() {
       return deposit.balance
     },
+    get withdrawable() {
+      return deposit.withdrawable
+    },
     get pendingInterest() {
       return deposit.pendingInterest
     },

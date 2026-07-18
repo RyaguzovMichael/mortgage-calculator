@@ -8,15 +8,15 @@ export interface Inputs {
   readonly start: YearMonth
   readonly horizonMonths: number
   readonly apartment: ApartmentInputs
-  readonly housing: HousingInputs
   readonly cashflow: CashflowInputs
   readonly deposits: DepositInputs
   readonly halyk: HalykInputs
   readonly otbasy: OtbasyInputs
   readonly plans: PlansInputs
-  // null chains the delayed-Halyk savings window to Otbasy's purchase month, so
-  // the two variants are compared over the same window.
-  readonly halykDelayedSavingMonths: number | null
+  // A hand-set override for any plan whose buyWhen is after-months with
+  // saveMonths left null — otherwise that combination chains to Otbasy's
+  // purchase month, so the two are compared over the same window.
+  readonly delayedSavingMonths: number | null
 }
 
 // The user's own plans plus which plans go on the board. Built-in plan
@@ -39,7 +39,8 @@ export interface ApartmentInputs {
 
 // Where you live until you buy, and it decides two things: whether you get sale
 // proceeds, and whether you pay rent meanwhile. One list, not two toggles, so an
-// impossible combination cannot be expressed.
+// impossible combination cannot be expressed. Lives on the plan (types/plan.ts),
+// not on Inputs — different plans can sell, keep, or rent differently.
 //   selling  — sell your flat; proceeds land, and you rent from the sale month
 //   free     — no flat to sell, but you live somewhere rent-free until you buy
 //   renting  — no flat to sell, and you rent from month 0
@@ -135,27 +136,27 @@ export interface OtbasyInputs {
 }
 
 // Today's value of the flat you will sell — zero unless you are selling.
-export function proceedsToday(inputs: Inputs): number {
-  return inputs.housing.situation === 'selling' ? inputs.housing.saleProceeds : 0
+export function proceedsToday(housing: HousingInputs): number {
+  return housing.situation === 'selling' ? housing.saleProceeds : 0
 }
 
 // The month the sale lands, or null when there is no sale.
-export function saleMonth(inputs: Inputs): number | null {
-  return inputs.housing.situation === 'selling' ? inputs.housing.saleMonthOffset : null
+export function saleMonth(housing: HousingInputs): number | null {
+  return housing.situation === 'selling' ? housing.saleMonthOffset : null
 }
 
 // The earliest month a purchase can happen. Selling waits for the sale — you need
 // the proceeds and you have to move — while the others can buy from month 0.
-export function purchaseAllowedFrom(inputs: Inputs): number {
-  return inputs.housing.situation === 'selling' ? inputs.housing.saleMonthOffset : 0
+export function purchaseAllowedFrom(housing: HousingInputs): number {
+  return housing.situation === 'selling' ? housing.saleMonthOffset : 0
 }
 
 // Is rent due this month, before you own? Selling rents from the sale; renting
 // rents throughout; free never rents.
-export function rentDueAt(inputs: Inputs, monthIndex: number): boolean {
-  switch (inputs.housing.situation) {
+export function rentDueAt(housing: HousingInputs, monthIndex: number): boolean {
+  switch (housing.situation) {
     case 'selling':
-      return monthIndex >= inputs.housing.saleMonthOffset
+      return monthIndex >= housing.saleMonthOffset
     case 'renting':
       return true
     case 'free':
@@ -166,8 +167,8 @@ export function rentDueAt(inputs: Inputs, monthIndex: number): boolean {
 // The loan size declared when signing the Otbasy contract. Frozen at that
 // number: the 50%-balance and CC tests measure against it, not against the
 // shrinking live gap between price and savings.
-export function targetLoan(inputs: Inputs): number {
-  return Math.max(0, inputs.apartment.price - proceedsToday(inputs))
+export function targetLoan(inputs: Inputs, housing: HousingInputs): number {
+  return Math.max(0, inputs.apartment.price - proceedsToday(housing))
 }
 
 // These three are the real-world rates, so they use annualGrowthFactor rather
@@ -183,8 +184,8 @@ export function apartmentPriceAt(inputs: Inputs, monthIndex: number): number {
 // The flat being sold is in the same market as the one being bought, so it
 // appreciates at the same rate right up to the month it is sold. Zero when there
 // is nothing to sell.
-export function saleProceedsAt(inputs: Inputs, monthIndex: number): number {
-  return proceedsToday(inputs) * annualGrowthFactor(inputs.apartment.annualGrowthRate, monthIndex)
+export function saleProceedsAt(inputs: Inputs, housing: HousingInputs, monthIndex: number): number {
+  return proceedsToday(housing) * annualGrowthFactor(inputs.apartment.annualGrowthRate, monthIndex)
 }
 
 export function rentAt(inputs: Inputs, monthIndex: number): number {
@@ -209,7 +210,7 @@ const RAISE_MONTH = 6
 // A June in the starting month itself is not a raise: today's income already
 // reflects it. The first raise is therefore always the *next* June.
 function raisesBy(start: YearMonth, monthIndex: number): number {
-  const monthsToFirstRaise = ((RAISE_MONTH - start.month + 12) % 12) || 12
+  const monthsToFirstRaise = (RAISE_MONTH - start.month + 12) % 12 || 12
   if (monthIndex < monthsToFirstRaise) return 0
   return Math.floor((monthIndex - monthsToFirstRaise) / 12) + 1
 }

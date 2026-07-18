@@ -1,3 +1,4 @@
+import type { HousingInputs } from './inputs'
 import type { YearMonth } from './yearMonth'
 
 // What a single variant produced: the month-by-month story plus its rolled-up
@@ -16,6 +17,9 @@ export interface VariantResult {
   // waiting, and it is the whole reason growth cannot be ignored.
   readonly purchasePrice: number | null
   readonly totals: VariantTotals
+  // apartment.price − this plan's own proceeds — housing is now a plan decision,
+  // so the target loan is no longer one number shared by every variant.
+  readonly targetLoan: number
 }
 
 // Once a user can build their own plans, an id is just its slug — the four
@@ -47,6 +51,10 @@ export interface PurchasePlan {
   //   monthly — pour the free cash into the loan every month (early repayment)
   //   lump    — pay only the scheduled amount, save the rest, close in one hit
   readonly repay: 'monthly' | 'lump'
+  // Where you live until you buy, and what (if anything) you sell to get there.
+  // A plan decision, not a global setting: two plans can differ on whether to
+  // sell the old flat, and when.
+  readonly housing: HousingInputs
 }
 
 // pre-sale: living in the flat you will sell. free-housing: living rent-free

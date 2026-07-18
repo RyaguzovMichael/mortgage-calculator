@@ -4,30 +4,30 @@
 # Эти планы нельзя изменить или удалить из интерфейса. Свои планы создаются во
 # вкладке «Планы» и лежат в localStorage рядом с остальными исходными данными.
 #
-# Каждый план — четыре решения:
+# Каждый план — пять решений:
 #   loan     halyk | otbasy | none   — какой кредит (none = без ипотеки)
 #   buyWhen  asap | after-months | otbasy-gates — когда покупать
 #   saveMonths  число месяцев для after-months; null = «ждать как Otbasy»
 #   borrow   max | min   — занять максимум (меньший взнос) или минимум (всё вниз)
 #   repay    monthly | lump — гасить каждый месяц или копить и закрыть одним платежом
+#   housing  где вы живёте до покупки и что продаёте — свой план для каждого:
+#     situation        selling | free | renting
+#     saleProceeds     сумма продажи сегодня (читается только при selling)
+#     saleMonthOffset  месяц продажи (читается только при selling)
 #
 # borrow/repay не читаются при loan: none — заполнены для формы. Подробнее — MODEL.md.
 
-- id: halyk-immediate
-  name: Halyk сразу
+- id: halyk
+  name: Halyk
   loan: halyk
   buyWhen: asap
   saveMonths: null
   borrow: max
   repay: monthly
-
-- id: halyk-delayed
-  name: Halyk отложенно
-  loan: halyk
-  buyWhen: after-months
-  saveMonths: null
-  borrow: min
-  repay: monthly
+  housing:
+    situation: selling
+    saleProceeds: 35000000
+    saleMonthOffset: 3
 
 - id: otbasy
   name: Otbasy
@@ -36,6 +36,10 @@
   saveMonths: null
   borrow: max
   repay: lump
+  housing:
+    situation: selling
+    saleProceeds: 35000000
+    saleMonthOffset: 3
 
 - id: all-cash
   name: Без ипотеки
@@ -44,3 +48,7 @@
   saveMonths: null
   borrow: max
   repay: monthly
+  housing:
+    situation: selling
+    saleProceeds: 35000000
+    saleMonthOffset: 3

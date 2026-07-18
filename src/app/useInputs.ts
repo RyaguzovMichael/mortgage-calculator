@@ -18,7 +18,10 @@ const report = computed<SimulationReport>(() => simulateAll(toPlain(inputs), BUI
 
 // Built-in definitions come from the file; the user's own are appended. This is the
 // list the plans tab shows, each row read-only or editable by whether it is built in.
-const allPlans = computed<readonly PurchasePlan[]>(() => [...BUILT_IN_PLANS, ...inputs.plans.custom])
+const allPlans = computed<readonly PurchasePlan[]>(() => [
+  ...BUILT_IN_PLANS,
+  ...inputs.plans.custom,
+])
 
 watch(inputs, (value) => saveInputs(toPlain(value)), { deep: true })
 
@@ -84,7 +87,7 @@ function highestOwnId(products: readonly DepositProduct[]): number {
 // Plans get their own id counter for the same reason deposits do.
 let nextPlanId = 0
 
-// A new plan mirrors "Halyk сразу" — a sensible, complete starting point the user
+// A new plan mirrors "Halyk" — a sensible, complete starting point the user
 // then edits. It is not shown by default: adding a plan must not shove someone
 // else off the eight-slot board on its own.
 function addPlan(): PurchasePlan {
@@ -97,6 +100,7 @@ function addPlan(): PurchasePlan {
     saveMonths: null,
     borrow: 'max',
     repay: 'monthly',
+    housing: { situation: 'selling', saleProceeds: 35_000_000, saleMonthOffset: 3 },
   }
   inputs.plans.custom.push(plan)
   return plan

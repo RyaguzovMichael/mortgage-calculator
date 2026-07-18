@@ -1,3 +1,4 @@
+import type { HousingInputs } from '@/engine/types/inputs'
 import type { PurchasePlan } from '@/engine/types/plan'
 import plansFile from '../../data/plans.yml'
 
@@ -5,6 +6,7 @@ const LOANS = ['halyk', 'otbasy', 'none'] as const
 const BUY_WHENS = ['asap', 'after-months', 'otbasy-gates'] as const
 const BORROWS = ['max', 'min'] as const
 const REPAYS = ['monthly', 'lump'] as const
+const HOUSING_SITUATIONS = ['selling', 'free', 'renting'] as const
 
 // The built-in purchase plans, from data/plans.yml. Like the deposits, they are
 // deliberately NOT persisted: only the user's own plans and their board-visibility
@@ -55,7 +57,27 @@ function parsePlan(entry: unknown, index: number): PurchasePlan {
     saveMonths: nullableMonths(candidate.saveMonths, `${at}: saveMonths`),
     borrow: oneOf(candidate.borrow, BORROWS, `${at}: borrow`),
     repay: oneOf(candidate.repay, REPAYS, `${at}: repay`),
+    housing: parseHousing(candidate.housing, `${at}: housing`),
   }
+}
+
+function parseHousing(value: unknown, at: string): HousingInputs {
+  if (typeof value !== 'object' || value === null) {
+    throw new Error(`${at}: ожидался объект`)
+  }
+  const candidate = value as Record<string, unknown>
+  return {
+    situation: oneOf(candidate.situation, HOUSING_SITUATIONS, `${at}: situation`),
+    saleProceeds: nonNegativeNumber(candidate.saleProceeds, `${at}: saleProceeds`),
+    saleMonthOffset: nonNegativeNumber(candidate.saleMonthOffset, `${at}: saleMonthOffset`),
+  }
+}
+
+function nonNegativeNumber(value: unknown, at: string): number {
+  if (typeof value !== 'number' || !Number.isFinite(value) || value < 0) {
+    throw new Error(`${at}: ожидалось число >= 0, получено ${JSON.stringify(value)}`)
+  }
+  return value
 }
 
 function text(value: unknown, at: string): string {
@@ -65,9 +87,15 @@ function text(value: unknown, at: string): string {
   return value
 }
 
-function oneOf<const T extends readonly string[]>(value: unknown, allowed: T, at: string): T[number] {
+function oneOf<const T extends readonly string[]>(
+  value: unknown,
+  allowed: T,
+  at: string,
+): T[number] {
   if (typeof value !== 'string' || !allowed.includes(value)) {
-    throw new Error(`${at}: ожидалось одно из [${allowed.join(', ')}], получено ${JSON.stringify(value)}`)
+    throw new Error(
+      `${at}: ожидалось одно из [${allowed.join(', ')}], получено ${JSON.stringify(value)}`,
+    )
   }
   return value as T[number]
 }
@@ -77,7 +105,9 @@ function oneOf<const T extends readonly string[]>(value: unknown, allowed: T, at
 function nullableMonths(value: unknown, at: string): number | null {
   if (value === null || value === undefined) return null
   if (typeof value !== 'number' || !Number.isInteger(value) || value < 0) {
-    throw new Error(`${at}: ожидалось null или целое число месяцев >= 0, получено ${JSON.stringify(value)}`)
+    throw new Error(
+      `${at}: ожидалось null или целое число месяцев >= 0, получено ${JSON.stringify(value)}`,
+    )
   }
   return value
 }

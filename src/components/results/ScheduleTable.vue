@@ -5,10 +5,11 @@ import { colorForIndex, money, monthLabel, PHASE_LABELS } from '@/app/format'
 import type { MonthRow, VariantId } from '@/engine/types/plan'
 
 const { report } = useInputs()
-const active = ref<VariantId>('halyk-immediate')
+const active = ref<VariantId>('halyk')
 
 const variant = computed(
-  () => report.value.variants.find((entry) => entry.id === active.value) ?? report.value.variants[0],
+  () =>
+    report.value.variants.find((entry) => entry.id === active.value) ?? report.value.variants[0],
 )
 
 interface Column {
@@ -84,11 +85,7 @@ function cell(column: Column, row: MonthRow): string {
             <th>Мес</th>
             <th class="left">Дата</th>
             <th class="left">Фаза</th>
-            <th
-              v-for="column in columns"
-              :key="column.key"
-              :class="{ primary: column.primary }"
-            >
+            <th v-for="column in columns" :key="column.key" :class="{ primary: column.primary }">
               {{ column.label }}
             </th>
           </tr>
@@ -102,11 +99,7 @@ function cell(column: Column, row: MonthRow): string {
             <td>{{ row.index }}</td>
             <td class="left">{{ monthLabel(row.yearMonth) }}</td>
             <td class="left phase">{{ PHASE_LABELS[row.phase] }}</td>
-            <td
-              v-for="column in columns"
-              :key="column.key"
-              :class="{ primary: column.primary }"
-            >
+            <td v-for="column in columns" :key="column.key" :class="{ primary: column.primary }">
               {{ cell(column, row) }}
             </td>
           </tr>

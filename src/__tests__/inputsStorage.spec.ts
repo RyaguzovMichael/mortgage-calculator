@@ -48,7 +48,7 @@ describe('inputsStorage', () => {
   })
 
   it('returns null on unparseable data', () => {
-    localStorage.setItem(STORAGE_KEY,'{ not json')
+    localStorage.setItem(STORAGE_KEY, '{ not json')
     expect(loadInputs()).toBeNull()
   })
 
@@ -163,12 +163,13 @@ describe('the plan catalogue in storage', () => {
     saveMonths: 12,
     borrow: 'min',
     repay: 'monthly',
+    housing: { situation: 'selling', saleProceeds: 35_000_000, saleMonthOffset: 3 },
   } as const
 
   function withOwnPlan(): Inputs {
     return {
       ...DEFAULT_INPUTS,
-      plans: { custom: [{ ...mine }], shown: ['halyk-immediate', 'plan-1'] },
+      plans: { custom: [{ ...mine }], shown: ['halyk', 'plan-1'] },
     }
   }
 
@@ -176,7 +177,7 @@ describe('the plan catalogue in storage', () => {
     saveInputs(withOwnPlan())
     const loaded = loadInputs()!
     expect(loaded.plans.custom).toEqual([mine])
-    expect(loaded.plans.shown).toEqual(['halyk-immediate', 'plan-1'])
+    expect(loaded.plans.shown).toEqual(['halyk', 'plan-1'])
   })
 
   // Built-in plan definitions live in data/plans.yml, never in the blob — only the

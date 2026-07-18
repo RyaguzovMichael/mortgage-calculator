@@ -1,4 +1,4 @@
-import type { DepositProduct } from '@/engine/types/inputs'
+import type { DepositProduct, HousingSituation } from '@/engine/types/inputs'
 import type { Phase, PurchasePlan } from '@/engine/types/plan'
 import { formatYearMonth, type YearMonth } from '@/engine/types/yearMonth'
 
@@ -80,6 +80,11 @@ export const REPAY_LABELS: Record<PurchasePlan['repay'], string> = {
   monthly: 'гасить каждый месяц',
   lump: 'копить и закрыть разом',
 }
+export const HOUSING_LABELS: Record<HousingSituation, string> = {
+  selling: 'продаю квартиру',
+  free: 'живу бесплатно',
+  renting: 'снимаю с месяца 0',
+}
 
 // A one-line summary of what a plan does, for the read-only built-in rows. borrow
 // and repay are left off a cash plan — they do not apply without a loan.
@@ -92,6 +97,7 @@ export function describePlan(plan: PurchasePlan): string {
         : BUY_WHEN_LABELS[plan.buyWhen]
   const parts = [LOAN_LABELS[plan.loan], when]
   if (plan.loan !== 'none') parts.push(BORROW_LABELS[plan.borrow], REPAY_LABELS[plan.repay])
+  parts.push(HOUSING_LABELS[plan.housing.situation])
   return parts.join(' · ')
 }
 

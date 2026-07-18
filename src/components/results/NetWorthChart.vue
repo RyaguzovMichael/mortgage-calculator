@@ -112,7 +112,9 @@ const series = computed<Series[]>(() =>
     return {
       id: variant.id,
       points,
-      path: points.map((point, index) => `${index === 0 ? 'M' : 'L'}${point.x} ${point.y}`).join(' '),
+      path: points
+        .map((point, index) => `${index === 0 ? 'M' : 'L'}${point.x} ${point.y}`)
+        .join(' '),
       last: points[points.length - 1] ?? { x: PAD.left, y: PAD.top },
       purchase: variant.purchaseMonth === null ? null : (points[variant.purchaseMonth] ?? null),
       debtFree: variant.debtFreeMonth === null ? null : (points[variant.debtFreeMonth] ?? null),
@@ -203,9 +205,9 @@ const tooltip = computed(() => {
     <header>
       <h2>Чистые активы во времени</h2>
       <p class="sub">
-        Квартира + вклады − долг. Непрерывны в месяцы продажи и покупки. График
-        обрывается на {{ report.comparisonMonths }}-м месяце — там последний вариант гасит долг, и
-        сравнивать дальше нечего.
+        Квартира + вклады − долг. Непрерывны в месяцы продажи и покупки. График обрывается на
+        {{ report.comparisonMonths }}-м месяце — там последний вариант гасит долг, и сравнивать
+        дальше нечего.
       </p>
     </header>
 

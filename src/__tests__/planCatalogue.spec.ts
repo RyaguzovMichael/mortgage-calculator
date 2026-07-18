@@ -1,9 +1,7 @@
 import { describe, it, expect } from 'vitest'
-import {
-  BUILT_IN_PLANS,
-  isBuiltInPlan,
-  parsePurchasePlans,
-} from '@/infrastructure/planCatalogue'
+import { BUILT_IN_PLANS, isBuiltInPlan, parsePurchasePlans } from '@/infrastructure/planCatalogue'
+
+const HOUSING = { situation: 'selling', saleProceeds: 35_000_000, saleMonthOffset: 3 }
 
 function plan(overrides: Record<string, unknown> = {}): Record<string, unknown> {
   return {
@@ -14,6 +12,7 @@ function plan(overrides: Record<string, unknown> = {}): Record<string, unknown> 
     saveMonths: null,
     borrow: 'max',
     repay: 'monthly',
+    housing: HOUSING,
     ...overrides,
   }
 }
@@ -22,15 +21,10 @@ function plan(overrides: Record<string, unknown> = {}): Record<string, unknown> 
 // build time, there would be nothing here to assert on.
 describe('BUILT_IN_PLANS', () => {
   it('comes from data/plans.yml', () => {
-    expect(BUILT_IN_PLANS.map((entry) => entry.id)).toEqual([
-      'halyk-immediate',
-      'halyk-delayed',
-      'otbasy',
-      'all-cash',
-    ])
+    expect(BUILT_IN_PLANS.map((entry) => entry.id)).toEqual(['halyk', 'otbasy', 'all-cash'])
   })
 
-  it('carries the four decisions of each plan', () => {
+  it('carries the five decisions of each plan', () => {
     expect(BUILT_IN_PLANS.find((entry) => entry.id === 'otbasy')).toEqual({
       id: 'otbasy',
       name: 'Otbasy',
@@ -39,13 +33,14 @@ describe('BUILT_IN_PLANS', () => {
       saveMonths: null,
       borrow: 'max',
       repay: 'lump',
+      housing: { situation: 'selling', saleProceeds: 35_000_000, saleMonthOffset: 3 },
     })
   })
 })
 
 describe('isBuiltInPlan', () => {
   it('knows the plans from the file', () => {
-    expect(isBuiltInPlan('halyk-immediate')).toBe(true)
+    expect(isBuiltInPlan('halyk')).toBe(true)
   })
 
   it('does not claim anything else', () => {
@@ -59,14 +54,22 @@ describe('parsePurchasePlans', () => {
   it('accepts a well-formed list', () => {
     expect(parsePurchasePlans([plan()])).toEqual([
       {
-        id: 'x', name: 'X', loan: 'halyk', buyWhen: 'asap',
-        saveMonths: null, borrow: 'max', repay: 'monthly',
+        id: 'x',
+        name: 'X',
+        loan: 'halyk',
+        buyWhen: 'asap',
+        saveMonths: null,
+        borrow: 'max',
+        repay: 'monthly',
+        housing: HOUSING,
       },
     ])
   })
 
   it('accepts a whole-number saveMonths', () => {
-    expect(parsePurchasePlans([plan({ buyWhen: 'after-months', saveMonths: 12 })])[0]!.saveMonths).toBe(12)
+    expect(
+      parsePurchasePlans([plan({ buyWhen: 'after-months', saveMonths: 12 })])[0]!.saveMonths,
+    ).toBe(12)
   })
 
   // Each case asserts *why* it threw. A bare toThrow() would go green on a typo in
@@ -84,6 +87,17 @@ describe('parsePurchasePlans', () => {
     ['a fractional saveMonths', [plan({ saveMonths: 1.5 })], /saveMonths/],
     ['a negative saveMonths', [plan({ saveMonths: -1 })], /saveMonths/],
     ['a saveMonths written as a string', [plan({ saveMonths: '12' })], /saveMonths/],
+    ['a missing housing', [plan({ housing: undefined })], /housing/],
+    [
+      'an unknown housing situation',
+      [plan({ housing: { ...HOUSING, situation: 'owned' } })],
+      /situation/,
+    ],
+    [
+      'a negative saleProceeds',
+      [plan({ housing: { ...HOUSING, saleProceeds: -1 } })],
+      /saleProceeds/,
+    ],
     ['a duplicate id', [plan({ id: 'same' }), plan({ id: 'same' })], /больше одного раза/],
   ])('rejects %s', (_case, raw, reason) => {
     expect(() => parsePurchasePlans(raw)).toThrow(reason)

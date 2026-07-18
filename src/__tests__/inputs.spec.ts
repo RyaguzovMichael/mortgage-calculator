@@ -4,12 +4,22 @@ import {
   freeCashAt,
   rentAt,
   saleProceedsAt,
+  type HousingInputs,
   type Inputs,
 } from '@/engine/types/inputs'
 import { DEFAULT_INPUTS } from '@/infrastructure/inputsStorage'
 
 // The model starts in July 2026, so the Junes are months 11, 23, 35...
 const JULY_START = DEFAULT_INPUTS
+
+// Housing is a plan decision now, not part of Inputs — these tests exercise
+// housing-independent formulas plus saleProceedsAt, which just needs some
+// selling housing to work against.
+const HOUSING: HousingInputs = {
+  situation: 'selling',
+  saleProceeds: 35_000_000,
+  saleMonthOffset: 3,
+}
 
 function indexed(annualIndexationRate: number): Inputs {
   return { ...JULY_START, cashflow: { ...JULY_START.cashflow, annualIndexationRate } }
@@ -41,12 +51,12 @@ describe('apartmentPriceAt', () => {
 describe('saleProceedsAt', () => {
   it('appreciates with the market until the sale — same market, same rate', () => {
     const inputs = { ...JULY_START, apartment: { ...JULY_START.apartment, annualGrowthRate: 0.12 } }
-    expect(saleProceedsAt(inputs, 12)).toBeCloseTo(inputs.housing.saleProceeds * 1.12, 2)
-    expect(saleProceedsAt(inputs, 0)).toBe(inputs.housing.saleProceeds)
+    expect(saleProceedsAt(inputs, HOUSING, 12)).toBeCloseTo(HOUSING.saleProceeds * 1.12, 2)
+    expect(saleProceedsAt(inputs, HOUSING, 0)).toBe(HOUSING.saleProceeds)
   })
 
   it('is the value today when the market is flat', () => {
-    expect(saleProceedsAt(JULY_START, 36)).toBe(JULY_START.housing.saleProceeds)
+    expect(saleProceedsAt(JULY_START, HOUSING, 36)).toBe(HOUSING.saleProceeds)
   })
 })
 

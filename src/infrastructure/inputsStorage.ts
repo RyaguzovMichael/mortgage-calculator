@@ -1,4 +1,4 @@
-import type { Inputs } from '@/engine/types/inputs'
+import type { HousingInputs, Inputs } from '@/engine/types/inputs'
 import { BUILT_IN_PRODUCTS, isBuiltInProduct } from './depositCatalogue'
 
 // Bump when the Inputs shape changes — a stored blob from an older shape would
@@ -6,7 +6,16 @@ import { BUILT_IN_PRODUCTS, isBuiltInProduct } from './depositCatalogue'
 //
 // Exported so the specs cannot drift from it: they used to hard-code the key as a
 // string, and two of them went on passing for the wrong reason after a bump.
-export const STORAGE_KEY = 'mortgage:inputs:v8'
+export const STORAGE_KEY = 'mortgage:inputs:v10'
+
+// housing used to be a single global Inputs field; it is now a plan decision
+// (PurchasePlan.housing), so a custom plan saved before the v9 bump has none.
+// This is what a plan created under the old global default would have carried.
+const DEFAULT_PLAN_HOUSING: HousingInputs = {
+  situation: 'selling',
+  saleProceeds: 35_000_000,
+  saleMonthOffset: 3,
+}
 
 // Real starting position as of 2026-07. See MODEL.md for provenance of every number.
 export const DEFAULT_INPUTS: Inputs = {
@@ -15,11 +24,6 @@ export const DEFAULT_INPUTS: Inputs = {
   apartment: {
     price: 45_000_000,
     annualGrowthRate: 0,
-  },
-  housing: {
-    situation: 'selling',
-    saleProceeds: 35_000_000,
-    saleMonthOffset: 3,
   },
   cashflow: {
     monthlyFreeCash: 500_000,
@@ -64,11 +68,9 @@ export const DEFAULT_INPUTS: Inputs = {
     // No built-in definitions here — they come from data/plans.yml. Only the
     // user's own plans (none to start) and the board choice live in storage.
     custom: [],
-    // Halyk отложенно is off the board by default: it is a niche comparison and
-    // starts hidden so the first view is the three that matter. The others are on.
-    shown: ['halyk-immediate', 'otbasy', 'all-cash'],
+    shown: ['halyk', 'otbasy', 'all-cash'],
   },
-  halykDelayedSavingMonths: null,
+  delayedSavingMonths: null,
 }
 
 export function loadInputs(): Inputs | null {
@@ -83,7 +85,7 @@ export function loadInputs(): Inputs | null {
   // Only a plain object can be repaired; an array or a primitive is not this shape
   // at all and there is nothing to salvage.
   if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) return null
-  return withCatalogue(repair(DEFAULT_INPUTS, parsed) as Inputs)
+  return withCatalogue(withPlanHousing(repair(DEFAULT_INPUTS, parsed) as Inputs))
 }
 
 export function saveInputs(inputs: Inputs): void {
@@ -103,6 +105,34 @@ function withoutBuiltIns(inputs: Inputs): Inputs {
       products: inputs.deposits.products.filter((product) => !isBuiltInProduct(product.id)),
     },
   }
+}
+
+// repair() takes the custom-plans array wholesale (see its comment below), so a
+// plan saved before housing became a plan field — or otherwise missing/malformed
+// housing — would reach the engine without one. Give it the old global default
+// rather than let simulateAll crash on plan.housing.situation.
+function withPlanHousing(inputs: Inputs): Inputs {
+  return {
+    ...inputs,
+    plans: {
+      ...inputs.plans,
+      custom: inputs.plans.custom.map((plan) =>
+        isHousing(plan.housing) ? plan : { ...plan, housing: DEFAULT_PLAN_HOUSING },
+      ),
+    },
+  }
+}
+
+function isHousing(value: unknown): value is HousingInputs {
+  if (typeof value !== 'object' || value === null) return false
+  const candidate = value as Record<string, unknown>
+  return (
+    (candidate.situation === 'selling' ||
+      candidate.situation === 'free' ||
+      candidate.situation === 'renting') &&
+    typeof candidate.saleProceeds === 'number' &&
+    typeof candidate.saleMonthOffset === 'number'
+  )
 }
 
 function withCatalogue(inputs: Inputs): Inputs {
@@ -136,7 +166,7 @@ function repair(defaults: unknown, stored: unknown): unknown {
   }
   if (typeof defaults === 'boolean') return typeof stored === 'boolean' ? stored : defaults
   if (typeof defaults === 'string') return typeof stored === 'string' ? stored : defaults
-  // A null default marks a nullable number (halykDelayedSavingMonths): keep a real
+  // A null default marks a nullable number (delayedSavingMonths): keep a real
   // number, otherwise null.
   if (defaults === null) {
     return typeof stored === 'number' && Number.isFinite(stored) ? stored : null

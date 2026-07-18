@@ -45,7 +45,11 @@ describe('Halyk amortization (prototype: 20 months, 1,738,894.27 interest)', () 
 
 describe('Otbasy accumulation (prototype: 11 months, balance 6,380,717.66, CC 5.92)', () => {
   it('reaches both gates from 648,509.26 on 500k/month', () => {
-    const account = createOtbasyAccount({ balance: 648_509.26, accruedInterest: 0 }, OTBASY, 10_000_000)
+    const account = createOtbasyAccount(
+      { balance: 648_509.26, accruedInterest: 0 },
+      OTBASY,
+      10_000_000,
+    )
     const start = { year: 2026, month: 8 }
     let months = 0
     while (months < 600) {

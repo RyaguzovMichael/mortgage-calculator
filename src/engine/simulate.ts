@@ -1,6 +1,6 @@
 import { runPlan } from './runPlan'
 import { summarize } from './summary'
-import { targetLoan, type Inputs } from './types/inputs'
+import type { Inputs } from './types/inputs'
 import type { PurchasePlan, VariantId, VariantResult } from './types/plan'
 
 // The Vue layer's only entry point into the engine.
@@ -8,6 +8,9 @@ export interface SimulationReport {
   // Only the plans the user put on the board — every plan is computed, but the
   // report carries the shown ones, cut to the common comparison window.
   readonly variants: readonly VariantResult[]
+  // Housing is now a plan decision, so there is no one target loan for the whole
+  // report — this is the best shown plan's own figure (or the first shown plan's,
+  // when there is no best), for the one place the UI still shows a single number.
   readonly targetLoan: number
   // null when the board is empty (every plan hidden): there is no best of nothing.
   readonly bestVariant: VariantId | null
@@ -29,7 +32,10 @@ const DROP = Symbol('drop')
 // The built-in plans come from data/plans.yml (parsed in infrastructure); the
 // engine cannot import that file without reaching across its own boundary, so they
 // are handed in. The user's own plans it reads straight off inputs.
-export function simulateAll(inputs: Inputs, builtInPlans: readonly PurchasePlan[]): SimulationReport {
+export function simulateAll(
+  inputs: Inputs,
+  builtInPlans: readonly PurchasePlan[],
+): SimulationReport {
   const catalogue = [...builtInPlans, ...inputs.plans.custom]
 
   // Delayed plans wait exactly as long as the Otbasy plan does, so its purchase
@@ -57,14 +63,24 @@ export function simulateAll(inputs: Inputs, builtInPlans: readonly PurchasePlan[
   const shown = runnable.filter((variant) => inputs.plans.shown.includes(variant.id))
   const comparisonMonths = comparisonWindow(shown, inputs.horizonMonths)
   const variants = shown.map((variant) => endAt(variant, comparisonMonths))
+  const bestVariant = variants.length > 0 ? bestOf(variants) : null
 
   return {
     variants,
-    targetLoan: targetLoan(inputs),
-    bestVariant: variants.length > 0 ? bestOf(variants) : null,
+    targetLoan: reportTargetLoan(variants, bestVariant),
+    bestVariant,
     comparisonMonths,
     droppedShown,
   }
+}
+
+function reportTargetLoan(
+  variants: readonly VariantResult[],
+  bestVariant: VariantId | null,
+): number {
+  const first = variants[0]
+  if (!first) return 0
+  return (variants.find((variant) => variant.id === bestVariant) ?? first).targetLoan
 }
 
 // A number resolves the window; null leaves runPlan's own default (irrelevant to
@@ -76,7 +92,7 @@ function resolveSaveMonths(
 ): number | null | typeof DROP {
   if (plan.buyWhen !== 'after-months' || plan.saveMonths !== null) return plan.saveMonths
   // An explicit hand-set window wins over the chain; otherwise chase Otbasy.
-  const chained = inputs.halykDelayedSavingMonths ?? otbasyPurchase
+  const chained = inputs.delayedSavingMonths ?? otbasyPurchase
   return chained === null ? DROP : chained
 }
 

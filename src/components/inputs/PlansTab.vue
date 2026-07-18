@@ -4,6 +4,7 @@ import {
   BORROW_LABELS,
   BUY_WHEN_LABELS,
   describePlan,
+  HOUSING_LABELS,
   LOAN_LABELS,
   REPAY_LABELS,
 } from '@/app/format'
@@ -15,6 +16,7 @@ const { inputs, addPlan, removePlan, isShown, canShow, toggleShown } = useInputs
 const LOAN_OPTIONS = entries(LOAN_LABELS)
 const BORROW_OPTIONS = entries(BORROW_LABELS)
 const REPAY_OPTIONS = entries(REPAY_LABELS)
+const HOUSING_OPTIONS = entries(HOUSING_LABELS)
 
 // otbasy-gates is offered only for an Otbasy loan — waiting for the Otbasy balance
 // and CC gates makes no sense without the Otbasy account. That is the one
@@ -42,7 +44,11 @@ function setSaveMonths(plan: PurchasePlan, event: Event): void {
   const raw = (event.target as HTMLInputElement).value
   const parsed = Number(raw)
   ;(plan as { saveMonths: number | null }).saveMonths =
-    raw.trim() === '' ? null : Number.isFinite(parsed) ? Math.max(0, Math.trunc(parsed)) : plan.saveMonths
+    raw.trim() === ''
+      ? null
+      : Number.isFinite(parsed)
+        ? Math.max(0, Math.trunc(parsed))
+        : plan.saveMonths
 }
 
 function entries<T extends string>(labels: Record<T, string>) {
@@ -51,7 +57,9 @@ function entries<T extends string>(labels: Record<T, string>) {
 
 function showTitle(id: string): string {
   if (isShown(id)) return 'Убрать с графика'
-  return canShow(id) ? 'Показать на графике' : `На графике максимум ${MAX_SHOWN} — снимите другой план`
+  return canShow(id)
+    ? 'Показать на графике'
+    : `На графике максимум ${MAX_SHOWN} — снимите другой план`
 }
 </script>
 
@@ -59,8 +67,8 @@ function showTitle(id: string): string {
   <section class="field-group">
     <h3>Встроенные планы</h3>
     <p class="note">
-      Из файла <code>data/plans.yml</code>. Их нельзя изменить или удалить. Отметьте, какие показывать
-      на графике и в сводке.
+      Из файла <code>data/plans.yml</code>. Их нельзя изменить или удалить. Отметьте, какие
+      показывать на графике и в сводке.
     </p>
     <div v-for="plan in BUILT_IN_PLANS" :key="plan.id" class="built-in">
       <label class="show">
@@ -104,7 +112,12 @@ function showTitle(id: string): string {
 
       <label class="select-field">
         <span>Кредит</span>
-        <select :value="plan.loan" @change="setLoan(plan, ($event.target as HTMLSelectElement).value as PurchasePlan['loan'])">
+        <select
+          :value="plan.loan"
+          @change="
+            setLoan(plan, ($event.target as HTMLSelectElement).value as PurchasePlan['loan'])
+          "
+        >
           <option v-for="option in LOAN_OPTIONS" :key="option.value" :value="option.value">
             {{ option.label }}
           </option>
@@ -149,6 +162,26 @@ function showTitle(id: string): string {
               {{ option.label }}
             </option>
           </select>
+        </label>
+      </template>
+
+      <label class="select-field">
+        <span>Жильё сейчас</span>
+        <select v-model="plan.housing.situation">
+          <option v-for="option in HOUSING_OPTIONS" :key="option.value" :value="option.value">
+            {{ option.label }}
+          </option>
+        </select>
+      </label>
+
+      <template v-if="plan.housing.situation === 'selling'">
+        <label class="select-field">
+          <span>Сумма продажи</span>
+          <input v-model.number="plan.housing.saleProceeds" type="number" min="0" step="500000" />
+        </label>
+        <label class="select-field">
+          <span>Месяц продажи</span>
+          <input v-model.number="plan.housing.saleMonthOffset" type="number" min="0" step="1" />
         </label>
       </template>
 

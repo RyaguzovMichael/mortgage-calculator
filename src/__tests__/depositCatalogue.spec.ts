@@ -54,11 +54,7 @@ describe('parseDepositProducts', () => {
     ['a rate written as a string', [product({ annualRate: '0.184' })], /annualRate/],
     ['a payout period of zero', [product({ payoutPeriodMonths: 0 })], /payoutPeriodMonths/],
     ['a fractional payout period', [product({ payoutPeriodMonths: 1.5 })], /payoutPeriodMonths/],
-    [
-      'a duplicate id',
-      [product({ id: 'same' }), product({ id: 'same' })],
-      /больше одного раза/,
-    ],
+    ['a duplicate id', [product({ id: 'same' }), product({ id: 'same' })], /больше одного раза/],
   ])('rejects %s', (_case, raw, reason) => {
     expect(() => parseDepositProducts(raw)).toThrow(reason)
   })

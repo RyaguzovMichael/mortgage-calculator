@@ -5,6 +5,7 @@ import {
   savingsProduct,
   startingMoney,
   targetLoan,
+  type HousingInputs,
   type Inputs,
 } from './types/inputs'
 import type { YearMonth } from './types/yearMonth'
@@ -20,6 +21,13 @@ import type { YearMonth } from './types/yearMonth'
 export interface Wallet {
   readonly savingsBalance: number
   readonly otbasyBalance: number
+  // What takeSavings/takeOtbasy can actually hand back right now — excludes
+  // this term's not-yet-paid-out interest. Any check for "is there enough cash
+  // for X" (a down payment, closing a loan) must use these, not the *Balance
+  // getters, which count money that is only real if you are willing to forfeit
+  // it to get at it.
+  readonly savingsWithdrawable: number
+  readonly otbasyWithdrawable: number
   readonly otbasyCc: number
 
   accrue(yearMonth: YearMonth): Accrual
@@ -45,7 +53,11 @@ export interface WalletOptions {
   readonly useOtbasy: boolean
 }
 
-export function createWallet(inputs: Inputs, options: WalletOptions = { useOtbasy: true }): Wallet {
+export function createWallet(
+  inputs: Inputs,
+  housing: HousingInputs,
+  options: WalletOptions = { useOtbasy: true },
+): Wallet {
   const product = savingsProduct(inputs)
   const money = startingMoney(inputs)
 
@@ -62,7 +74,7 @@ export function createWallet(inputs: Inputs, options: WalletOptions = { useOtbas
       ? { balance: money, accruedInterest: otbasyAccruedInterest(inputs) }
       : { balance: 0, accruedInterest: 0 },
     inputs.otbasy,
-    targetLoan(inputs),
+    targetLoan(inputs, housing),
   )
 
   return {
@@ -71,6 +83,12 @@ export function createWallet(inputs: Inputs, options: WalletOptions = { useOtbas
     },
     get otbasyBalance() {
       return otbasy.balance
+    },
+    get savingsWithdrawable() {
+      return savings.withdrawable
+    },
+    get otbasyWithdrawable() {
+      return otbasy.withdrawable
     },
     get otbasyCc() {
       return otbasy.cc

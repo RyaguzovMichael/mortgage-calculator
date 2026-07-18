@@ -36,7 +36,12 @@ const { inputs } = useInputs()
     />
     <NumberField v-model="inputs.otbasy.ccTarget" label="Целевой CC" :step="0.5" />
     <PercentField v-model="inputs.otbasy.govBonusRate" label="Гос. премия" :step="5" />
-    <NumberField v-model="inputs.otbasy.govBonusCap" label="Лимит премии в год" suffix="₸" :step="5000" />
+    <NumberField
+      v-model="inputs.otbasy.govBonusCap"
+      label="Лимит премии в год"
+      suffix="₸"
+      :step="5000"
+    />
     <NumberField v-model="inputs.otbasy.govBonusMonth" label="Месяц премии" hint="2 = февраль" />
   </section>
 </template>

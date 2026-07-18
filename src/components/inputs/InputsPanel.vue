@@ -8,7 +8,6 @@ import MoneyTab from './MoneyTab.vue'
 import DepositsTab from './DepositsTab.vue'
 import PlansTab from './PlansTab.vue'
 import LoansTab from './LoansTab.vue'
-import RunTab from './RunTab.vue'
 
 const { reset } = useInputs()
 
@@ -21,7 +20,6 @@ const TABS = [
   { id: 'deposits', label: 'Вклады' },
   { id: 'plans', label: 'Планы' },
   { id: 'loans', label: 'Ипотеки' },
-  { id: 'run', label: 'Расчёт' },
 ] as const
 
 type TabId = (typeof TABS)[number]['id']
@@ -89,16 +87,6 @@ const active = ref<TabId>('apartment')
       :aria-labelledby="tabButtonId('inputs', 'loans')"
     >
       <LoansTab />
-    </div>
-
-    <div
-      v-show="active === 'run'"
-      class="tabpanel"
-      role="tabpanel"
-      :id="tabPanelId('inputs', 'run')"
-      :aria-labelledby="tabButtonId('inputs', 'run')"
-    >
-      <RunTab />
     </div>
   </aside>
 </template>

@@ -2,7 +2,7 @@
 import { ref } from 'vue'
 import InputsPanel from '@/components/inputs/InputsPanel.vue'
 import SummaryTable from '@/components/results/SummaryTable.vue'
-import PlanVisibility from '@/components/results/PlanVisibility.vue'
+import RunControls from '@/components/results/RunControls.vue'
 import NetWorthChart from '@/components/results/NetWorthChart.vue'
 import ScheduleTable from '@/components/results/ScheduleTable.vue'
 import TabBar from '@/components/TabBar.vue'
@@ -26,8 +26,10 @@ const view = ref<ViewId>('chart')
       <InputsPanel />
     </div>
     <main>
+      <div class="controls card">
+        <RunControls />
+      </div>
       <SummaryTable />
-      <PlanVisibility />
       <div class="views">
         <TabBar v-model="view" :tabs="VIEWS" base="views" />
         <!-- One panel, whose id/labelledby track the active tab: only the shown
@@ -73,6 +75,13 @@ main {
   /* Only bites on a very short viewport, where the chart hits its floor: better
      that this column scrolls than that the page does. */
   overflow-y: auto;
+}
+/* Sits between the answer (the summary) and the two ways of auditing it: which
+   plans are on the board, plus when the clock starts and how far it runs. */
+.controls {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 .views {
   display: flex;

@@ -12,11 +12,37 @@ function report(inputs: Inputs) {
 }
 
 const builtIn = (id: string): PurchasePlan => BUILT_IN_PLANS.find((plan) => plan.id === id)!
-function simulateHalykDelayed(inputs: Inputs, savingMonths: number): VariantResult {
-  return runPlan(inputs, { ...builtIn('halyk-delayed'), saveMonths: savingMonths })
+
+// "Halyk отложенно" is no longer a built-in — the after-months/min-down/chained
+// shape it used to demonstrate (and the window-chaining machinery it exercised)
+// is still a legitimate custom plan, so these tests build one by hand.
+function delayedPlan(saveMonths: number | null = null): PurchasePlan {
+  return {
+    id: 'halyk-delayed-test',
+    name: 'Halyk отложенно (test)',
+    loan: 'halyk',
+    buyWhen: 'after-months',
+    saveMonths,
+    borrow: 'min',
+    repay: 'monthly',
+    housing: builtIn('halyk').housing,
+  }
 }
 
-// Show every built-in, so tests that assert on the full field see all four.
+function simulateHalykDelayed(inputs: Inputs, savingMonths: number): VariantResult {
+  return runPlan(inputs, delayedPlan(savingMonths))
+}
+
+// Puts the delayed custom plan on the board alongside every built-in.
+function withDelayed(inputs: Inputs, saveMonths: number | null = null): Inputs {
+  const plan = delayedPlan(saveMonths)
+  return {
+    ...inputs,
+    plans: { custom: [plan], shown: [...BUILT_IN_PLANS.map((p) => p.id), plan.id] },
+  }
+}
+
+// Show every built-in, so tests that assert on the full field see all three.
 function showingAll(inputs: Inputs): Inputs {
   return { ...inputs, plans: { ...inputs.plans, shown: BUILT_IN_PLANS.map((plan) => plan.id) } }
 }
@@ -26,9 +52,9 @@ describe('simulateAll', () => {
     expect(report(DEFAULT_INPUTS).targetLoan).toBe(10_000_000)
   })
 
-  it('shows only the plans on the board — Halyk отложенно is off by default', () => {
+  it('shows only the plans on the board by default', () => {
     expect(report(DEFAULT_INPUTS).variants.map((variant) => variant.id)).toEqual([
-      'halyk-immediate',
+      'halyk',
       'otbasy',
       'all-cash',
     ])
@@ -36,8 +62,7 @@ describe('simulateAll', () => {
 
   it('shows every built-in when the board asks for them', () => {
     expect(report(showingAll(DEFAULT_INPUTS)).variants.map((variant) => variant.id)).toEqual([
-      'halyk-immediate',
-      'halyk-delayed',
+      'halyk',
       'otbasy',
       'all-cash',
     ])
@@ -45,8 +70,14 @@ describe('simulateAll', () => {
 
   it('runs a custom plan added to the catalogue and board', () => {
     const mine: PurchasePlan = {
-      id: 'mine', name: 'Мой', loan: 'halyk', buyWhen: 'asap',
-      saveMonths: null, borrow: 'min', repay: 'monthly',
+      id: 'mine',
+      name: 'Мой',
+      loan: 'halyk',
+      buyWhen: 'asap',
+      saveMonths: null,
+      borrow: 'min',
+      repay: 'monthly',
+      housing: { situation: 'selling', saleProceeds: 35_000_000, saleMonthOffset: 3 },
     }
     const inputs: Inputs = {
       ...DEFAULT_INPUTS,
@@ -58,31 +89,27 @@ describe('simulateAll', () => {
   describe('delayed Halyk without an Otbasy purchase', () => {
     // Otbasy buys on month 7 by default, so a six-month horizon denies it. Show
     // the delayed plan so its dropping is observable.
-    const tooShort = showingAll({ ...DEFAULT_INPUTS, horizonMonths: 6 })
+    const tooShort = withDelayed({ ...DEFAULT_INPUTS, horizonMonths: 6 })
 
     it('is dropped: there is no window to chain to', () => {
       const r = report(tooShort)
       expect(r.variants.find((variant) => variant.id === 'otbasy')!.purchaseMonth).toBeNull()
-      expect(r.variants.map((variant) => variant.id)).toEqual([
-        'halyk-immediate',
-        'otbasy',
-        'all-cash',
-      ])
+      expect(r.variants.map((variant) => variant.id)).toEqual(['halyk', 'otbasy', 'all-cash'])
     })
 
     // A shown plan that got dropped is named, so the board can say why it is gone
     // rather than letting it vanish.
     it('names the dropped shown plan', () => {
-      expect(report(tooShort).droppedShown).toContain('Halyk отложенно')
+      expect(report(tooShort).droppedShown).toContain('Halyk отложенно (test)')
     })
 
     it('is kept when the window is set by hand, which needs no Otbasy', () => {
-      const explicit = { ...tooShort, halykDelayedSavingMonths: 3 }
+      const explicit = { ...tooShort, delayedSavingMonths: 3 }
       expect(report(explicit).variants.map((variant) => variant.id)).toEqual([
-        'halyk-immediate',
-        'halyk-delayed',
+        'halyk',
         'otbasy',
         'all-cash',
+        'halyk-delayed-test',
       ])
     })
   })
@@ -105,7 +132,10 @@ describe('simulateAll', () => {
   // bestVariant is chosen over the shown plans only: a hidden plan cannot win a
   // comparison the user did not ask for.
   it('ranks over the shown plans, not the hidden ones', () => {
-    const onlyCash: Inputs = { ...DEFAULT_INPUTS, plans: { ...DEFAULT_INPUTS.plans, shown: ['all-cash'] } }
+    const onlyCash: Inputs = {
+      ...DEFAULT_INPUTS,
+      plans: { ...DEFAULT_INPUTS.plans, shown: ['all-cash'] },
+    }
     expect(report(onlyCash).bestVariant).toBe('all-cash')
   })
 
@@ -170,16 +200,20 @@ describe('simulateAll', () => {
   }
 
   it('chains the delayed-Halyk window to Otbasy purchase month by default', () => {
-    const r = report(showingAll(DEFAULT_INPUTS))
+    const r = report(withDelayed(DEFAULT_INPUTS))
     const otbasy = r.variants.find((variant) => variant.id === 'otbasy')!
-    const delayed = r.variants.find((variant) => variant.id === 'halyk-delayed')!
-    expectSameRun(delayed, simulateHalykDelayed(DEFAULT_INPUTS, otbasy.purchaseMonth!), r.comparisonMonths)
+    const delayed = r.variants.find((variant) => variant.id === 'halyk-delayed-test')!
+    expectSameRun(
+      delayed,
+      simulateHalykDelayed(DEFAULT_INPUTS, otbasy.purchaseMonth!),
+      r.comparisonMonths,
+    )
   })
 
   it('honours an explicit savings window over the chain', () => {
-    const inputs = showingAll({ ...DEFAULT_INPUTS, halykDelayedSavingMonths: 24 })
+    const inputs = { ...withDelayed(DEFAULT_INPUTS), delayedSavingMonths: 24 }
     const r = report(inputs)
-    const delayed = r.variants.find((variant) => variant.id === 'halyk-delayed')!
+    const delayed = r.variants.find((variant) => variant.id === 'halyk-delayed-test')!
     expectSameRun(delayed, simulateHalykDelayed(inputs, 24), r.comparisonMonths)
   })
 })

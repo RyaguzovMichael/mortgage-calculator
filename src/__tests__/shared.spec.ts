@@ -3,7 +3,13 @@ import { createLoan } from '@/engine/loan'
 import { createWallet } from '@/engine/wallet'
 import { payScheduled } from '@/engine/variants/shared'
 import { DEFAULT_INPUTS } from '@/infrastructure/inputsStorage'
-import type { Inputs } from '@/engine/types/inputs'
+import type { HousingInputs, Inputs } from '@/engine/types/inputs'
+
+const HOUSING: HousingInputs = {
+  situation: 'selling',
+  saleProceeds: 35_000_000,
+  saleMonthOffset: 3,
+}
 
 // An empty wallet we can seed to a known balance, so the sums are exact.
 function emptyWallet() {
@@ -12,7 +18,7 @@ function emptyWallet() {
     deposits: { ...DEFAULT_INPUTS.deposits, savingsBalance: 0 },
     otbasy: { ...DEFAULT_INPUTS.otbasy, hasDeposit: false },
   }
-  return createWallet(inputs, { useOtbasy: false })
+  return createWallet(inputs, HOUSING, { useOtbasy: false })
 }
 
 describe('payScheduled', () => {

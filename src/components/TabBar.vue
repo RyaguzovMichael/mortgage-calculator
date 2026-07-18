@@ -8,7 +8,10 @@ import { tabButtonId, tabPanelId } from './tabIds'
 // `base` namespaces the tab/panel ids so several tab bars on one page do not
 // collide. The component holding the panels must give each panel role="tabpanel",
 // id=tabPanelId(base, id) and aria-labelledby=tabButtonId(base, id).
-const props = defineProps<{ tabs: readonly { readonly id: T; readonly label: string }[]; base: string }>()
+const props = defineProps<{
+  tabs: readonly { readonly id: T; readonly label: string }[]
+  base: string
+}>()
 
 const active = defineModel<T>({ required: true })
 
@@ -22,7 +25,8 @@ function onKeydown(event: KeyboardEvent): void {
   const current = ids.indexOf(active.value)
   let next = current
   if (event.key === 'ArrowRight' || event.key === 'ArrowDown') next = (current + 1) % ids.length
-  else if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') next = (current - 1 + ids.length) % ids.length
+  else if (event.key === 'ArrowLeft' || event.key === 'ArrowUp')
+    next = (current - 1 + ids.length) % ids.length
   else if (event.key === 'Home') next = 0
   else if (event.key === 'End') next = ids.length - 1
   else return
