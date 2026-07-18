@@ -20,6 +20,11 @@ export const router = createRouter({
       component: () => import('@/views/ConditionsView.vue'),
     },
     {
+      path: '/plans',
+      name: 'plans',
+      component: () => import('@/views/PlansView.vue'),
+    },
+    {
       path: '/database',
       name: 'database',
       component: () => import('@/views/DatabaseView.vue'),

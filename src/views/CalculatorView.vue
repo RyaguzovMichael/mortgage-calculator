@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import InputsPanel from '@/components/inputs/InputsPanel.vue'
+import SelectionSummary from '@/components/results/SelectionSummary.vue'
 import SummaryTable from '@/components/results/SummaryTable.vue'
 import RunControls from '@/components/results/RunControls.vue'
 import NetWorthChart from '@/components/results/NetWorthChart.vue'
@@ -25,7 +25,7 @@ const view = ref<ViewId>('chart')
 <template>
   <div class="layout">
     <div class="panel-scroll">
-      <InputsPanel />
+      <SelectionSummary />
     </div>
     <main>
       <div class="controls card">

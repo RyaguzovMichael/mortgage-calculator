@@ -20,6 +20,7 @@
     "brand": "Ипотека vs. Аренда",
     "home": "Главная",
     "conditions": "Исходные условия",
+    "plans": "Планы",
     "database": "База данных",
     "theme": { "system": "Системная", "light": "Светлая", "dark": "Тёмная" },
     "locale": { "ru": "RU", "en": "EN" }
@@ -32,14 +33,20 @@
     "readme": "README",
     "copyright": "© {year} Ryaguzov Michael"
   },
-  "inputsPanel": {
-    "title": "Планы"
-  },
   "conditionsView": {
     "title": "Исходные условия",
     "reset": "Начать заново",
     "apartmentTitle": "Квартира",
     "moneyTitle": "Деньги и накопления"
+  },
+  "plansView": {
+    "title": "Планы"
+  },
+  "selectionSummary": {
+    "conditionsTitle": "Исходные условия",
+    "variantsTitle": "Выбранные варианты",
+    "edit": "Изменить →",
+    "noVariants": "На графике пока ничего не показано — выберите планы на странице «Планы»."
   },
   "databaseView": {
     "title": "База данных",

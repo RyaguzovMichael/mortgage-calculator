@@ -20,6 +20,7 @@
     "brand": "Mortgage vs. Rent",
     "home": "Main",
     "conditions": "Start conditions",
+    "plans": "Plans",
     "database": "Database",
     "theme": { "system": "System", "light": "Light", "dark": "Dark" },
     "locale": { "ru": "RU", "en": "EN" }
@@ -32,14 +33,20 @@
     "readme": "README",
     "copyright": "© {year} Ryaguzov Michael"
   },
-  "inputsPanel": {
-    "title": "Plans"
-  },
   "conditionsView": {
     "title": "Start conditions",
     "reset": "Start over",
     "apartmentTitle": "Apartment",
     "moneyTitle": "Money & savings"
+  },
+  "plansView": {
+    "title": "Plans"
+  },
+  "selectionSummary": {
+    "conditionsTitle": "Start conditions",
+    "variantsTitle": "Chosen variants",
+    "edit": "Edit →",
+    "noVariants": "Nothing is shown on the chart yet — pick plans on the “Plans” page."
   },
   "databaseView": {
     "title": "Database",

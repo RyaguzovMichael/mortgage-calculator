@@ -11,7 +11,9 @@ import type { PurchasePlan, VariantResult } from '@/engine/types/plan'
 // price and month are the global existing-apartment start condition. A shim that
 // varies any of the three takes an override and applies each to the right place.
 const builtIn = (id: string): PurchasePlan => BUILT_IN_PLANS.find((plan) => plan.id === id)!
-type HousingOverride = Partial<Pick<HousingInputs, 'situation' | 'saleProceeds' | 'saleMonthOffset'>>
+type HousingOverride = Partial<
+  Pick<HousingInputs, 'situation' | 'saleProceeds' | 'saleMonthOffset'>
+>
 const withDeposit = (plan: PurchasePlan, savingsProductId: string): PurchasePlan => ({
   ...plan,
   savingsProductId,
@@ -38,7 +40,11 @@ function applyHousing(
   }
 }
 
-const runHousing = (inputs: Inputs, plan: PurchasePlan, housing?: HousingOverride): VariantResult => {
+const runHousing = (
+  inputs: Inputs,
+  plan: PurchasePlan,
+  housing?: HousingOverride,
+): VariantResult => {
   const applied = housing ? applyHousing(inputs, plan, housing) : { inputs, plan }
   return runPlan(applied.inputs, applied.plan)
 }

@@ -15,7 +15,16 @@ const router = useRouter()
 
 // One id per screen; the wizard walks them in order. The body for each id is a
 // v-if branch below, so field state survives Back/Next (it lives in `inputs`).
-const STEPS = ['apartment', 'existing', 'salary', 'share', 'growth', 'savings', 'otbasy', 'rent'] as const
+const STEPS = [
+  'apartment',
+  'existing',
+  'salary',
+  'share',
+  'growth',
+  'savings',
+  'otbasy',
+  'rent',
+] as const
 type Step = (typeof STEPS)[number]
 
 const index = ref(0)
@@ -43,7 +52,9 @@ function finish(): void {
 <template>
   <main class="layout">
     <section class="wizard card">
-      <p class="progress">{{ t('startCondition.progress', { current: index + 1, total: STEPS.length }) }}</p>
+      <p class="progress">
+        {{ t('startCondition.progress', { current: index + 1, total: STEPS.length }) }}
+      </p>
 
       <h1>{{ t(`startCondition.${step}.title`) }}</h1>
       <p class="instruction">{{ t(`startCondition.${step}.instruction`) }}</p>
@@ -96,7 +107,10 @@ function finish(): void {
             :step="1"
             :hint="t('moneyTab.indexationHint')"
           />
-          <MonthSelect v-model="inputs.cashflow.raiseMonth" :label="t('moneyTab.raiseMonthLabel')" />
+          <MonthSelect
+            v-model="inputs.cashflow.raiseMonth"
+            :label="t('moneyTab.raiseMonthLabel')"
+          />
         </template>
 
         <NumberField

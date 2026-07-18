@@ -30,6 +30,9 @@ function themeLabel(value: ThemeOverride): string {
         <RouterLink to="/conditions" class="nav-link" active-class="on" exact-active-class="on">{{
           t('nav.conditions')
         }}</RouterLink>
+        <RouterLink to="/plans" class="nav-link" active-class="on" exact-active-class="on">{{
+          t('nav.plans')
+        }}</RouterLink>
         <RouterLink to="/database" class="nav-link" active-class="on" exact-active-class="on">{{
           t('nav.database')
         }}</RouterLink>

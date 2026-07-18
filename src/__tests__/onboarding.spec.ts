@@ -1,9 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest'
-import {
-  isOnboarded,
-  markOnboarded,
-  clearOnboarded,
-} from '@/infrastructure/onboardingPersistence'
+import { isOnboarded, markOnboarded, clearOnboarded } from '@/infrastructure/onboardingPersistence'
 import { BLANK_START_INPUTS, DEFAULT_INPUTS } from '@/infrastructure/inputsStorage'
 
 // localStorage is not provided by this test environment, so back it with memory.
@@ -64,7 +60,9 @@ describe('BLANK_START_INPUTS', () => {
   it('keeps the programme parameters from the defaults', () => {
     // Catalogues, price growth, horizon, start month, Otbasy rates — the shipped
     // parameters a fresh user should not have to re-enter — stay put.
-    expect(BLANK_START_INPUTS.apartment.annualGrowthRate).toBe(DEFAULT_INPUTS.apartment.annualGrowthRate)
+    expect(BLANK_START_INPUTS.apartment.annualGrowthRate).toBe(
+      DEFAULT_INPUTS.apartment.annualGrowthRate,
+    )
     expect(BLANK_START_INPUTS.horizonMonths).toBe(DEFAULT_INPUTS.horizonMonths)
     expect(BLANK_START_INPUTS.start).toEqual(DEFAULT_INPUTS.start)
     expect(BLANK_START_INPUTS.deposits.products).toEqual(DEFAULT_INPUTS.deposits.products)
