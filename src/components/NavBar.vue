@@ -24,7 +24,15 @@ function themeLabel(value: ThemeOverride): string {
     <div class="left">
       <span class="brand">{{ t('nav.brand') }}</span>
       <nav class="nav-links">
-        <button type="button" class="nav-link on">{{ t('nav.home') }}</button>
+        <RouterLink to="/" class="nav-link" active-class="on" exact-active-class="on">{{
+          t('nav.home')
+        }}</RouterLink>
+        <RouterLink to="/conditions" class="nav-link" active-class="on" exact-active-class="on">{{
+          t('nav.conditions')
+        }}</RouterLink>
+        <RouterLink to="/database" class="nav-link" active-class="on" exact-active-class="on">{{
+          t('nav.database')
+        }}</RouterLink>
       </nav>
     </div>
     <div class="right">

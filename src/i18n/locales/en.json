@@ -1,8 +1,26 @@
 {
-  "common": { "monthsSuffix": "mo" },
+  "common": {
+    "monthsSuffix": "mo",
+    "monthNames": [
+      "January",
+      "February",
+      "March",
+      "April",
+      "May",
+      "June",
+      "July",
+      "August",
+      "September",
+      "October",
+      "November",
+      "December"
+    ]
+  },
   "nav": {
     "brand": "Mortgage vs. Rent",
     "home": "Main",
+    "conditions": "Start conditions",
+    "database": "Database",
     "theme": { "system": "System", "light": "Light", "dark": "Dark" },
     "locale": { "ru": "RU", "en": "EN" }
   },
@@ -15,34 +33,80 @@
     "copyright": "© {year} Ryaguzov Michael"
   },
   "inputsPanel": {
-    "title": "Inputs",
-    "reset": "Reset",
-    "tabs": {
-      "apartment": "Apartment",
-      "money": "Money",
-      "deposits": "Deposits",
-      "plans": "Plans",
-      "loans": "Mortgages"
+    "title": "Plans"
+  },
+  "conditionsView": {
+    "title": "Start conditions",
+    "reset": "Start over",
+    "apartmentTitle": "Apartment",
+    "moneyTitle": "Money & savings"
+  },
+  "databaseView": {
+    "title": "Database",
+    "depositsTitle": "Deposits",
+    "loansTitle": "Mortgages"
+  },
+  "startCondition": {
+    "progress": "Step {current} of {total}",
+    "back": "Back",
+    "next": "Next",
+    "finish": "Start calculating",
+    "apartment": {
+      "title": "The apartment you want",
+      "instruction": "How much does the apartment you're aiming to buy cost today? Its price grows over time on its own — you set the growth rate later."
+    },
+    "existing": {
+      "title": "An apartment you own now",
+      "instruction": "Do you already own a flat you'd sell to help pay for the new one? If so, tell us what it's worth today. Leave it off if you're starting from nothing."
+    },
+    "salary": {
+      "title": "Your monthly salary",
+      "instruction": "Your take-home income per month, before deciding how much of it goes to the flat. It builds up from month 0."
+    },
+    "share": {
+      "title": "How much goes to the mortgage",
+      "instruction": "What share of that salary are you willing to put toward rent, the loan, and saving? The rest stays your ordinary spending."
+    },
+    "growth": {
+      "title": "Salary growth",
+      "instruction": "How fast your salary grows each year, and which month the raise lands in. Leave the rate at 0 if you'd rather plan on today's income."
+    },
+    "savings": {
+      "title": "Money you've saved",
+      "instruction": "Everything you've already put aside outside an Otbasy deposit, as one sum — the head start you begin with."
+    },
+    "otbasy": {
+      "title": "Otbasy deposit",
+      "instruction": "Do you have an Otbasy state-housing deposit? If so, its balance and accrued interest decide when the Otbasy loan becomes available."
+    },
+    "rent": {
+      "title": "Rent you'd pay",
+      "instruction": "If a plan has you renting between selling and buying, this is the monthly rent. It's ignored by plans where you never rent."
     }
   },
   "apartmentTab": {
-    "title": "Apartment",
+    "title": "Apartment to buy",
     "priceLabel": "Price",
-    "note": "Where you live before buying and what you're selling is now a per-plan decision, not a global setting — set it in the “Plans” tab, separately for each plan."
+    "note": "Where you live before buying — sell, rent, or live rent-free — is a per-plan decision, set in the “Plans” tab separately for each plan.",
+    "existingTitle": "Apartment you own now",
+    "existingNote": "A start condition shared by every plan: the flat you'd sell to help fund the purchase. It appreciates at the same growth rate as the one you're buying. Turn it off and the plans that sell it go unavailable; the renting and rent-free plans become available instead.",
+    "ownedToggle": "I own an apartment now",
+    "existingPriceLabel": "Its price today",
+    "existingPriceHint": "What it's worth now. Grows with the market up to the month a plan sells it. When it sells is a per-plan decision, set in the “Plans” tab."
   },
   "moneyTab": {
     "cashflowTitle": "Cash flow",
-    "freeCashLabel": "Free cash per month",
+    "salaryLabel": "Salary per month",
+    "mortgageShareLabel": "Share toward the mortgage",
+    "mortgageAmountLabel": "Amount toward the mortgage",
+    "mortgageShareHint": "The part of your salary that goes to rent, loan, and saving. Enter it as a percent or an exact amount — the two stay in sync. The rest is your ordinary spending and stays out of the model.",
     "indexationLabel": "Income indexation per year",
-    "indexationHint": "Free cash flow steps up once a year, in June (the first is June 2027). Separate from the housing market: salary follows salaries, not apartment prices.",
+    "indexationHint": "Salary steps up once a year, in the raise month below. Separate from the housing market: salary follows salaries, not apartment prices.",
+    "raiseMonthLabel": "Raise month",
     "rentLabel": "Rent per month",
     "rentHint": "Paid only while the apartment is sold and a new one is not yet bought. Indexed at the apartment growth rate — it is the price of the same market, and has no rate of its own.",
-    "startOffsetLabel": "Cash flow starts at month",
-    "depositTitle": "Deposit",
-    "depositLabel": "Where all the money goes",
-    "depositHint": "One deposit for everything: today's savings, sale proceeds, and monthly contributions. In the Otbasy plan, savings go to the Otbasy account instead. Add your own deposit in the “Deposits” tab.",
     "existingTitle": "Savings today — {amount} ₸",
-    "existingNote": "In month 0 everything merges into one deposit — the one chosen above for the Halyk and all-cash plans, the Otbasy account for the Otbasy plan. So only the total matters, not which bank holds it today. Only Otbasy stands apart: it has its own rate and its own CC.",
+    "existingNote": "In month 0 everything merges into one deposit — the one each plan picks in the “Plans” tab, or the Otbasy account for the Otbasy plan. So only the total matters, not which bank holds it today. Only Otbasy stands apart: it has its own rate and its own CC.",
     "savingsLabel": "Free savings",
     "savingsHint": "Everything not on the Otbasy account, as one sum.",
     "otbasyToggle": "I have an Otbasy deposit",
@@ -57,31 +121,29 @@
     "builtInNote": "From data/deposits.yml. They cannot be changed or removed here — edit the file, and the edit reaches everyone.",
     "ownTitle": "Your deposits",
     "addButton": "+ Add",
-    "ownEmpty": "Nothing yet. Add a deposit if you have a bank offer not listed above — and pick it as the main one in the “Money” tab.",
+    "ownEmpty": "Nothing yet. Add a deposit if you have a bank offer not listed above — and pick it on a plan in the “Plans” tab.",
     "nameAriaLabel": "Deposit name {id}",
     "removeButton": "Remove",
     "removeTitleEnabled": "Remove deposit",
-    "removeTitleDisabled": "Cannot remove: all the money currently goes to it",
+    "removeTitleDisabled": "Cannot remove: a plan stores its money in it",
     "rateLabel": "Rate",
     "payoutLabel": "Paid out every",
     "payoutHint": "1 = withdraw any time, lose nothing. More — interest is forfeited on early withdrawal."
   },
   "loansTab": {
-    "halykTitle": "Halyk",
-    "halykRateLabel": "Rate",
-    "halykDownPaymentLabel": "Down payment, % of loan",
-    "halykMaxTermLabel": "Max term",
-    "otbasyTitle": "Otbasy",
-    "otbasyLoanRateLabel": "Loan rate",
-    "otbasyDepositRateLabel": "Deposit rate",
-    "otbasySeedLabel": "Seeded from sale proceeds",
-    "otbasySeedHint": "Without seeding, the 50% threshold takes years to reach and rent eats it all.",
-    "otbasyMinBalanceLabel": "Threshold: % of target loan",
-    "otbasyCcTargetLabel": "Target CC",
-    "otbasyGovBonusRateLabel": "State bonus",
-    "otbasyGovBonusCapLabel": "Annual bonus cap",
-    "otbasyGovBonusMonthLabel": "Bonus month",
-    "otbasyGovBonusMonthHint": "2 = February"
+    "builtInTitle": "Built-in credits",
+    "builtInNote": "From data/loans.yml. They cannot be changed or removed here — edit the file, and the edit reaches everyone.",
+    "ownTitle": "Your credits",
+    "addButton": "+ Add",
+    "ownEmpty": "Nothing yet. Add a credit if you have a bank offer not listed above — and pick it in the “Plans” tab.",
+    "nameAriaLabel": "Credit name {id}",
+    "removeButton": "Remove",
+    "removeTitleEnabled": "Remove credit",
+    "removeTitleDisabled": "Cannot remove: this credit is picked on a plan",
+    "rateLabel": "Rate",
+    "downPaymentLabel": "Down payment",
+    "maxTermLabel": "Max term",
+    "termsLine": "{rate}, {down} down payment, up to {term} {suffix}"
   },
   "plansTab": {
     "builtInTitle": "Built-in plans",
@@ -99,11 +161,15 @@
     "borrowLabel": "How much to borrow",
     "repayLabel": "How to repay",
     "housingLabel": "Current housing",
-    "saleProceedsLabel": "Sale proceeds",
-    "saleMonthLabel": "Sale month",
+    "saleMonthLabel": "Sells at month",
+    "saleMonthHint": "The month the apartment you own now sells. You rent from here until you buy.",
+    "depositLabel": "Deposit for savings",
+    "depositHint": "Where this plan stores money: today's savings, sale proceeds, and monthly contributions. Add your own in the “Deposits” tab.",
     "showRemove": "Remove from chart",
     "showAdd": "Show on chart",
-    "showMax": "Chart shows at most {max} — unpick another plan first"
+    "showMax": "Chart shows at most {max} — unpick another plan first",
+    "showNeedsApartment": "Needs an apartment you own now — turn it on in “Start conditions”",
+    "showNeedsNoApartment": "For when you own no apartment — turn ownership off in “Start conditions”"
   },
   "runControls": {
     "startLabel": "Start",
@@ -176,7 +242,11 @@
       "otbasyGates": "on Otbasy's gates"
     },
     "borrowLabels": { "max": "maximum (smaller down payment)", "min": "minimum (all upfront)" },
-    "repayLabels": { "monthly": "repay every month", "lump": "save up and clear at once", "never": "never repay early" },
+    "repayLabels": {
+      "monthly": "repay every month",
+      "lump": "save up and clear at once",
+      "never": "never repay early"
+    },
     "housingLabels": {
       "selling": "selling my apartment",
       "free": "living for free",

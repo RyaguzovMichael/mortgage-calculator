@@ -1,8 +1,9 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import type { DepositProduct, HousingSituation } from '@/engine/types/inputs'
+import type { DepositProduct, HousingSituation, LoanProduct } from '@/engine/types/inputs'
 import type { Phase, PurchasePlan } from '@/engine/types/plan'
 import { formatYearMonth, type YearMonth } from '@/engine/types/yearMonth'
+import type { LoanMeta } from '@/infrastructure/loanCatalogue'
 
 const TENGE = new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 })
 const COMPACT = new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 1 })
@@ -69,14 +70,38 @@ export function useFormat() {
     return `${percent(product.annualRate)}, ${payoutPhrase(product.payoutPeriodMonths)}`
   }
 
+  // The loan's prose blurb in the active locale, from data/loans.yml. Reads
+  // `locale` directly rather than going through t(), since the text is data, not
+  // a message key.
+  function describeLoan(loan: LoanMeta): string {
+    return locale.value === 'ru' ? loan.description.ru : loan.description.en
+  }
+
+  // The terms alone, for a LoanProduct row — built-in Halyk or a custom credit.
+  // Parallel to productTerms() for deposits.
+  function loanProductTerms(product: LoanProduct): string {
+    return t('loansTab.termsLine', {
+      rate: percent(product.annualRate),
+      down: percent(product.downPaymentFraction),
+      term: product.maxTermMonths,
+      suffix: t('common.monthsSuffix'),
+    })
+  }
+
+  // Otbasy is the one fixed sentinel; 'none' is cash; anything else is a
+  // LoanProduct id, built-in or custom — looked up by name rather than kept in a
+  // fixed map, since the set of ids is open-ended once a user can add credits.
+  // Falls back to the raw id rather than throwing: formatting must not crash on a
+  // stale reference the way the engine's loanProduct() is allowed to.
+  function loanLabel(loanId: string, products: readonly LoanProduct[]): string {
+    if (loanId === 'none') return t('format.loanLabels.none')
+    if (loanId === 'otbasy') return t('format.loanLabels.otbasy')
+    return products.find((product) => product.id === loanId)?.name ?? loanId
+  }
+
   // Computed, not plain objects: a component that captures these once at setup
   // time would freeze them at whatever locale was active on mount, and switching
   // language would leave every dropdown and summary line stuck in the old one.
-  const LOAN_LABELS = computed<Record<PurchasePlan['loan'], string>>(() => ({
-    halyk: t('format.loanLabels.halyk'),
-    otbasy: t('format.loanLabels.otbasy'),
-    none: t('format.loanLabels.none'),
-  }))
   const BUY_WHEN_LABELS = computed<Record<PurchasePlan['buyWhen'], string>>(() => ({
     asap: t('format.buyWhenLabels.asap'),
     'after-months': t('format.buyWhenLabels.afterMonths'),
@@ -105,8 +130,13 @@ export function useFormat() {
   }))
 
   // A one-line summary of what a plan does, for the read-only built-in rows. borrow
-  // and repay are left off a cash plan — they do not apply without a loan.
-  function describePlan(plan: PurchasePlan): string {
+  // and repay are left off a cash plan — they do not apply without a loan. The
+  // deposit is named for every plan but Otbasy, which stores nothing on it.
+  function describePlan(
+    plan: PurchasePlan,
+    loanProducts: readonly LoanProduct[],
+    depositProducts: readonly DepositProduct[],
+  ): string {
     const when =
       plan.buyWhen === 'after-months' && plan.saveMonths !== null
         ? t('format.describePlanAfterMonths', {
@@ -116,19 +146,25 @@ export function useFormat() {
         : plan.buyWhen === 'after-months'
           ? t('format.describePlanOtbasyWait')
           : BUY_WHEN_LABELS.value[plan.buyWhen]
-    const parts = [LOAN_LABELS.value[plan.loan], when]
+    const parts = [loanLabel(plan.loan, loanProducts), when]
     if (plan.loan !== 'none')
       parts.push(BORROW_LABELS.value[plan.borrow], REPAY_LABELS.value[plan.repay])
-    parts.push(HOUSING_LABELS.value[plan.housing.situation])
+    parts.push(HOUSING_LABELS.value[plan.situation])
+    if (plan.loan !== 'otbasy') {
+      const deposit = depositProducts.find((product) => product.id === plan.savingsProductId)
+      if (deposit) parts.push(deposit.name)
+    }
     return parts.join(' · ')
   }
 
   return {
     describeProduct,
     productTerms,
+    describeLoan,
+    loanProductTerms,
+    loanLabel,
     describePlan,
     monthsWord,
-    LOAN_LABELS,
     BUY_WHEN_LABELS,
     BORROW_LABELS,
     REPAY_LABELS,

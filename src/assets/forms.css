@@ -141,6 +141,37 @@
   margin: 0;
 }
 
+/* An own item collapsed to its built-in-row look (OwnItemAccordion.vue): the
+   summary shows name + terms exactly like a read-only .built-in row, and opening
+   it reveals the edit form. */
+.own-summary {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  cursor: pointer;
+  list-style: none;
+}
+.own-summary::-webkit-details-marker {
+  display: none;
+}
+.own-summary::before {
+  content: '▸';
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+  margin-right: 2px;
+  flex-shrink: 0;
+}
+details[open] > .own-summary::before {
+  content: '▾';
+}
+.own-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 8px;
+}
+
 /* A labelled select or bare number input (the plan editor, the deposit rate). */
 .select-field {
   display: flex;

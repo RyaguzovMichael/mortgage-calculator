@@ -19,7 +19,9 @@ function plan(overrides: Partial<PurchasePlan>): PurchasePlan {
     saveMonths: null,
     borrow: 'max',
     repay: 'monthly',
-    housing: { situation: 'selling', saleProceeds: 35_000_000, saleMonthOffset: 3 },
+    situation: 'selling',
+    saleMonthOffset: 3,
+    savingsProductId: 'kaspi-deposit',
     ...overrides,
   }
 }
@@ -121,18 +123,14 @@ describe("purchase readiness uses withdrawable money, not the deposit's display 
   const inputs: Inputs = {
     ...DEFAULT_INPUTS,
     apartment: { price: 10_000_000, annualGrowthRate: 0 },
-    cashflow: { ...DEFAULT_INPUTS.cashflow, monthlyFreeCash: 0, monthlyRent: 0 },
+    cashflow: { ...DEFAULT_INPUTS.cashflow, monthlySalary: 0, monthlyRent: 0 },
     deposits: {
       savingsBalance: 9_800_000,
       products: [{ id: 'hot', name: 'Hot', annualRate: 1.0, payoutPeriodMonths: 6 }],
-      savingsProductId: 'hot',
     },
     otbasy: { ...DEFAULT_INPUTS.otbasy, hasDeposit: false },
   }
-  const cashPlan = plan({
-    loan: 'none',
-    housing: { situation: 'free', saleProceeds: 0, saleMonthOffset: 0 },
-  })
+  const cashPlan = plan({ loan: 'none', situation: 'free', savingsProductId: 'hot' })
 
   it('does not buy the month the balance clears the price, only once vested does', () => {
     const result = runPlan(inputs, cashPlan)
@@ -148,7 +146,8 @@ describe("purchase readiness uses withdrawable money, not the deposit's display 
     const minPlan = plan({
       loan: 'halyk',
       borrow: 'min',
-      housing: { situation: 'free', saleProceeds: 0, saleMonthOffset: 0 },
+      situation: 'free',
+      savingsProductId: 'hot',
     })
     const result = runPlan(inputs, minPlan)
     const buyRow = result.rows[result.purchaseMonth!]!

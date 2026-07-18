@@ -3,9 +3,16 @@ import { describe, it, expect, beforeEach, beforeAll, afterAll, vi } from 'vites
 // tests wrote 'mortgage:inputs:v1' long after the key had been bumped to v3, so
 // loadInputs found nothing, returned null on its `raw === null` early-out, and
 // both passed without ever reaching the catch or the validator they exist for.
-import { DEFAULT_INPUTS, loadInputs, saveInputs, STORAGE_KEY } from '@/infrastructure/inputsStorage'
+import {
+  DEFAULT_INPUTS,
+  DEFAULT_SAVINGS_PRODUCT_ID,
+  loadInputs,
+  saveInputs,
+  STORAGE_KEY,
+} from '@/infrastructure/inputsStorage'
 import { BUILT_IN_PRODUCTS } from '@/infrastructure/depositCatalogue'
-import type { DepositProduct, Inputs } from '@/engine/types/inputs'
+import { BUILT_IN_LOAN_PRODUCT } from '@/infrastructure/loanCatalogue'
+import type { DepositProduct, Inputs, LoanProduct } from '@/engine/types/inputs'
 
 // localStorage is not provided by this test environment, so back it with memory.
 class MemoryStorage {
@@ -132,25 +139,82 @@ describe('the deposit catalogue in storage', () => {
     expect(loadInputs()!.deposits.products).toEqual([...BUILT_IN_PRODUCTS])
   })
 
-  // Rejecting the whole blob would cost the user their price, sale, cashflow and
-  // loan terms over one dangling reference.
-  it('repairs an unresolvable selection without discarding everything else', () => {
+  // The deposit a plan stores money in is now a per-plan field, repaired per plan.
+  // Rejecting the whole blob would cost the user their price, cashflow and loan
+  // terms over one dangling reference.
+  it('repairs a plan’s unresolvable deposit without discarding everything else', () => {
+    const plan = {
+      id: 'plan-1',
+      name: 'Мой',
+      loan: 'halyk',
+      buyWhen: 'asap',
+      saveMonths: null,
+      borrow: 'max',
+      repay: 'monthly',
+      situation: 'selling',
+      saleMonthOffset: 3,
+      savingsProductId: 'deposit-that-went-away',
+    } as const
     saveInputs({
       ...DEFAULT_INPUTS,
       horizonMonths: 42,
-      deposits: { ...DEFAULT_INPUTS.deposits, savingsProductId: 'deposit-that-went-away' },
+      plans: { custom: [{ ...plan }], shown: [] },
     })
     const loaded = loadInputs()!
-    expect(loaded.deposits.savingsProductId).toBe(DEFAULT_INPUTS.deposits.savingsProductId)
+    expect(loaded.plans.custom[0]!.savingsProductId).toBe(DEFAULT_SAVINGS_PRODUCT_ID)
     expect(loaded.horizonMonths).toBe(42)
   })
 
-  it('leaves a resolvable selection alone', () => {
-    saveInputs({
-      ...withOwnDeposit(),
-      deposits: { ...withOwnDeposit().deposits, savingsProductId: 'custom-1' },
-    })
-    expect(loadInputs()!.deposits.savingsProductId).toBe('custom-1')
+  it('leaves a plan’s resolvable deposit alone', () => {
+    const plan = {
+      id: 'plan-1',
+      name: 'Мой',
+      loan: 'halyk',
+      buyWhen: 'asap',
+      saveMonths: null,
+      borrow: 'max',
+      repay: 'monthly',
+      situation: 'selling',
+      saleMonthOffset: 3,
+      savingsProductId: 'custom-1',
+    } as const
+    saveInputs({ ...withOwnDeposit(), plans: { custom: [{ ...plan }], shown: [] } })
+    expect(loadInputs()!.plans.custom[0]!.savingsProductId).toBe('custom-1')
+  })
+})
+
+describe('the loan catalogue in storage', () => {
+  const own: LoanProduct = {
+    id: 'credit-1',
+    name: 'Мой кредит',
+    annualRate: 0.19,
+    downPaymentFraction: 0.15,
+    maxTermMonths: 180,
+  }
+
+  function withOwnLoan(): Inputs {
+    return {
+      ...DEFAULT_INPUTS,
+      loans: { products: [...DEFAULT_INPUTS.loans.products, own] },
+    }
+  }
+
+  it('keeps the user’s own credits', () => {
+    saveInputs(withOwnLoan())
+    expect(loadInputs()!.loans.products).toContainEqual(own)
+  })
+
+  // Halyk belongs to data/loans.yml. A stored copy would mean edits to the file
+  // never reached anyone who had already used the app.
+  it('does not write the built-in Halyk product to storage', () => {
+    saveInputs(withOwnLoan())
+    const stored = JSON.parse(localStorage.getItem(STORAGE_KEY)!) as Inputs
+    expect(stored.loans.products).toEqual([own])
+  })
+
+  it('puts Halyk back from the file on load', () => {
+    saveInputs(withOwnLoan())
+    expect(loadInputs()!.loans.products).toEqual([BUILT_IN_LOAN_PRODUCT, own])
   })
 })
 
@@ -163,7 +227,9 @@ describe('the plan catalogue in storage', () => {
     saveMonths: 12,
     borrow: 'min',
     repay: 'monthly',
-    housing: { situation: 'selling', saleProceeds: 35_000_000, saleMonthOffset: 3 },
+    situation: 'selling',
+    saleMonthOffset: 3,
+    savingsProductId: 'kaspi-deposit',
   } as const
 
   function withOwnPlan(): Inputs {

@@ -6,7 +6,8 @@ import { money } from '@/app/useFormat'
 import { startingMoney } from '@/engine/types/inputs'
 import NumberField from './NumberField.vue'
 import PercentField from './PercentField.vue'
-import ProductPicker from './ProductPicker.vue'
+import MonthSelect from './MonthSelect.vue'
+import MortgageShareField from './MortgageShareField.vue'
 
 const { inputs } = useInputs()
 const { t } = useI18n()
@@ -20,10 +21,17 @@ const existingTotal = computed(() => startingMoney(inputs))
   <section class="field-group">
     <h3>{{ t('moneyTab.cashflowTitle') }}</h3>
     <NumberField
-      v-model="inputs.cashflow.monthlyFreeCash"
-      :label="t('moneyTab.freeCashLabel')"
+      v-model="inputs.cashflow.monthlySalary"
+      :label="t('moneyTab.salaryLabel')"
       suffix="₸"
       :step="50000"
+    />
+    <MortgageShareField
+      v-model="inputs.cashflow.mortgageShare"
+      :salary="inputs.cashflow.monthlySalary"
+      :percent-label="t('moneyTab.mortgageShareLabel')"
+      :amount-label="t('moneyTab.mortgageAmountLabel')"
+      :hint="t('moneyTab.mortgageShareHint')"
     />
     <PercentField
       v-model="inputs.cashflow.annualIndexationRate"
@@ -31,27 +39,13 @@ const existingTotal = computed(() => startingMoney(inputs))
       :step="1"
       :hint="t('moneyTab.indexationHint')"
     />
+    <MonthSelect v-model="inputs.cashflow.raiseMonth" :label="t('moneyTab.raiseMonthLabel')" />
     <NumberField
       v-model="inputs.cashflow.monthlyRent"
       :label="t('moneyTab.rentLabel')"
       suffix="₸"
       :step="50000"
       :hint="t('moneyTab.rentHint')"
-    />
-    <NumberField
-      v-model="inputs.cashflow.startMonthOffset"
-      :label="t('moneyTab.startOffsetLabel')"
-      :suffix="t('common.monthsSuffix')"
-    />
-  </section>
-
-  <section class="field-group">
-    <h3>{{ t('moneyTab.depositTitle') }}</h3>
-    <ProductPicker
-      v-model="inputs.deposits.savingsProductId"
-      :products="inputs.deposits.products"
-      :label="t('moneyTab.depositLabel')"
-      :hint="t('moneyTab.depositHint')"
     />
   </section>
 

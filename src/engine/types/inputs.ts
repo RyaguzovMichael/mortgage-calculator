@@ -8,11 +8,12 @@ export interface Inputs {
   readonly start: YearMonth
   readonly horizonMonths: number
   readonly apartment: ApartmentInputs
+  readonly existingApartment: ExistingApartmentInputs
   readonly cashflow: CashflowInputs
   readonly deposits: DepositInputs
-  readonly halyk: HalykInputs
   readonly otbasy: OtbasyInputs
   readonly plans: PlansInputs
+  readonly loans: LoanInputs
   // A hand-set override for any plan whose buyWhen is after-months with
   // saveMonths left null — otherwise that combination chains to Otbasy's
   // purchase month, so the two are compared over the same window.
@@ -37,32 +38,88 @@ export interface ApartmentInputs {
   readonly annualGrowthRate: number
 }
 
-// Where you live until you buy, and it decides two things: whether you get sale
-// proceeds, and whether you pay rent meanwhile. One list, not two toggles, so an
-// impossible combination cannot be expressed. Lives on the plan (types/plan.ts),
-// not on Inputs — different plans can sell, keep, or rent differently.
-//   selling  — sell your flat; proceeds land, and you rent from the sale month
+// The flat you already own and will sell to help fund the purchase — a global
+// start condition, not a per-plan setting. Distinct from `apartment`, which is
+// the flat you buy. `owned` is the existence toggle: when false, `price` is
+// ignored and no plan that requires an existing apartment (a 'selling' plan) can
+// run. *When* it sells is a plan decision (PurchasePlan.saleMonthOffset) — the
+// existence and today's value are facts about you; the timing is strategy.
+export interface ExistingApartmentInputs {
+  readonly owned: boolean
+  // What the flat is worth *today*. Grows with the target apartment's growth rate
+  // up to the month the plan sells it (saleProceedsAt).
+  readonly price: number
+}
+
+// Where a plan's owner lives until they buy, and whether they pay rent meanwhile.
+// A per-plan decision (types/plan.ts, PurchasePlan.situation), and also this
+// plan's requirement on the existing-apartment start condition — see
+// planNeedsExistingApartment.
+//   selling  — sell the flat you own; proceeds land, and you rent from the sale
+//              month. Requires the existing-apartment start condition.
 //   free     — no flat to sell, but you live somewhere rent-free until you buy
 //   renting  — no flat to sell, and you rent from month 0
 export type HousingSituation = 'selling' | 'free' | 'renting'
 
+// The effective housing a plan runs against: its situation combined with the
+// money the global existing-apartment start condition contributes. Derived, not
+// stored — it reconstitutes the shape the engine's month loop and its helpers
+// (proceedsToday, saleMonth, rentDueAt, …) have always consumed, so those keep
+// their bodies and signatures.
 export interface HousingInputs {
   readonly situation: HousingSituation
-  // Both read only when selling. saleProceeds is what the flat is worth *today*;
-  // it grows with the market up to the sale month (saleProceedsAt).
   readonly saleProceeds: number
   readonly saleMonthOffset: number
 }
 
+// proceeds are non-zero only for a 'selling' plan that actually has an owned flat
+// to sell. The board disables the incompatible pairing (a 'selling' plan with no
+// owned apartment), but gate here too so a stray run cannot invent proceeds from
+// a flat that does not exist. saleMonthOffset comes from the plan — only 'selling'
+// plans read it downstream.
+export function effectiveHousing(
+  inputs: Inputs,
+  situation: HousingSituation,
+  saleMonthOffset: number,
+): HousingInputs {
+  const sells = situation === 'selling' && inputs.existingApartment.owned
+  return {
+    situation,
+    saleProceeds: sells ? inputs.existingApartment.price : 0,
+    saleMonthOffset,
+  }
+}
+
+// A 'selling' plan needs an existing apartment to sell; 'free'/'renting' assume
+// none. This is the plan's requirement on the start condition.
+export function planNeedsExistingApartment(plan: { situation: HousingSituation }): boolean {
+  return plan.situation === 'selling'
+}
+
+// Whether a plan can run against the current start condition: a selling plan
+// needs an owned flat, the others need none. The board shows a mismatch disabled
+// rather than running it against the wrong world.
+export function planMatchesStart(inputs: Inputs, plan: { situation: HousingSituation }): boolean {
+  return planNeedsExistingApartment(plan) === inputs.existingApartment.owned
+}
+
 export interface CashflowInputs {
-  readonly monthlyFreeCash: number
+  // The money directed at housing each month is not entered directly: the user
+  // gives a gross salary and the share of it they are willing to spend, and the
+  // free cash is their product (see freeCashAt). Two numbers because that is how
+  // the user thinks about it — "I earn X, I can put Y% of it toward the flat".
+  readonly monthlySalary: number
+  // Fraction 0–1 of the salary that goes to rent/loan/savings.
+  readonly mortgageShare: number
   readonly monthlyRent: number
-  readonly startMonthOffset: number
-  // Indexation of the income only, applied as one step every June. Rent has no
-  // rate of its own — it rides the apartment growth rate, because it is a price
-  // in the same market. Income is not: it tracks wages, and pinning it to
-  // property growth would be an assumption, not a fact.
+  // Indexation of the income only, applied as one step once a year in raiseMonth.
+  // Rent has no rate of its own — it rides the apartment growth rate, because it
+  // is a price in the same market. Income is not: it tracks wages, and pinning it
+  // to property growth would be an assumption, not a fact.
   readonly annualIndexationRate: number
+  // The calendar month (1–12) the yearly raise lands in. A parameter, not a
+  // constant, because raise schedules differ from person to person.
+  readonly raiseMonth: number
 }
 
 // A deposit you can put money into. `payoutPeriodMonths` is the load-bearing
@@ -91,15 +148,28 @@ export interface DepositInputs {
   // it would be a hidden cast in the very type that documents the engine's
   // contract. The engine only ever reads this.
   products: DepositProduct[]
-  // Which deposit the money goes into, by id. Used to be a loose (rate, payout)
-  // pair, which meant two deposits with the same numbers were the same deposit.
-  readonly savingsProductId: string
+  // Which deposit the money goes into is no longer here — it is a per-plan
+  // decision (PurchasePlan.savingsProductId), so two plans can compare different
+  // deposits. This catalogue is the shared pool they pick from.
 }
 
-export interface HalykInputs {
+// A simple annuity mortgage — the same shape Halyk has, minus the state-programme
+// machinery Otbasy needs (its own account, CC gates, government bonus). Halyk
+// itself is just the built-in entry in this list; a user can add their own.
+export interface LoanProduct {
+  readonly id: string
+  // Just the name — «Halyk». Rendered by loanProductTerms() in app/useFormat.ts,
+  // same split as DepositProduct.
+  readonly name: string
   readonly annualRate: number
   readonly downPaymentFraction: number
   readonly maxTermMonths: number
+}
+
+export interface LoanInputs {
+  // Mutable for the same reason the deposit catalogue is: the panel does CRUD on
+  // it. The engine only ever reads it.
+  products: LoanProduct[]
 }
 
 export interface OtbasyInputs {
@@ -194,23 +264,23 @@ export function rentAt(inputs: Inputs, monthIndex: number): number {
   )
 }
 
-// Income steps, it does not drift: the raise lands once a year in June. So this
-// one is not annualGrowthFactor either — it counts whole raises, and between two
-// Junes the income is flat.
+// Income steps, it does not drift: the raise lands once a year in raiseMonth. So
+// this one is not annualGrowthFactor either — it counts whole raises, and between
+// two raises the income is flat. The free cash is salary × share; income flows
+// from month 0 (there is no start-offset gate anymore).
 export function freeCashAt(inputs: Inputs, monthIndex: number): number {
-  if (monthIndex < inputs.cashflow.startMonthOffset) return 0
   return (
-    inputs.cashflow.monthlyFreeCash *
-    (1 + inputs.cashflow.annualIndexationRate) ** raisesBy(inputs.start, monthIndex)
+    inputs.cashflow.monthlySalary *
+    inputs.cashflow.mortgageShare *
+    (1 + inputs.cashflow.annualIndexationRate) **
+      raisesBy(inputs.start, inputs.cashflow.raiseMonth, monthIndex)
   )
 }
 
-const RAISE_MONTH = 6
-
-// A June in the starting month itself is not a raise: today's income already
-// reflects it. The first raise is therefore always the *next* June.
-function raisesBy(start: YearMonth, monthIndex: number): number {
-  const monthsToFirstRaise = (RAISE_MONTH - start.month + 12) % 12 || 12
+// A raiseMonth in the starting month itself is not a raise: today's income
+// already reflects it. The first raise is therefore always the *next* raiseMonth.
+function raisesBy(start: YearMonth, raiseMonth: number, monthIndex: number): number {
+  const monthsToFirstRaise = (raiseMonth - start.month + 12) % 12 || 12
   if (monthIndex < monthsToFirstRaise) return 0
   return Math.floor((monthIndex - monthsToFirstRaise) / 12) + 1
 }
@@ -235,14 +305,30 @@ export function findProduct(inputs: Inputs, id: string): DepositProduct | undefi
   return inputs.deposits.products.find((product) => product.id === id)
 }
 
-// Total: loadInputs repairs an id that no longer resolves and the panel gives no
-// way to unselect one, so this cannot fail on data the app produces. It throws
-// rather than substituting a default, because inventing a rate in a model whose
-// whole job is comparing rates is worse than stopping.
-export function savingsProduct(inputs: Inputs): DepositProduct {
-  const product = findProduct(inputs, inputs.deposits.savingsProductId)
+// Resolves a plan's chosen deposit by id. loadInputs repairs an id that no longer
+// resolves and the panel gives no way to unselect one, so this cannot fail on data
+// the app produces. It throws rather than substituting a default, because inventing
+// a rate in a model whose whole job is comparing rates is worse than stopping.
+export function savingsProduct(inputs: Inputs, productId: string): DepositProduct {
+  const product = findProduct(inputs, productId)
   if (!product) {
-    throw new Error(`Вклад «${inputs.deposits.savingsProductId}» не найден в каталоге`)
+    throw new Error(`Вклад «${productId}» не найден в каталоге`)
+  }
+  return product
+}
+
+export function findLoanProduct(inputs: Inputs, id: string): LoanProduct | undefined {
+  return inputs.loans.products.find((product) => product.id === id)
+}
+
+// Total over a plan's own loan id: canRemoveLoanProduct refuses to delete a
+// credit any plan still references, so this cannot fail on data the app
+// produces. Throws rather than substituting a default, same reasoning as
+// savingsProduct — inventing a rate here is worse than stopping.
+export function loanProduct(inputs: Inputs, id: string): LoanProduct {
+  const product = findLoanProduct(inputs, id)
+  if (!product) {
+    throw new Error(`Кредит «${id}» не найден в каталоге`)
   }
   return product
 }

@@ -6,6 +6,7 @@ import { useFormat } from '@/app/useFormat'
 import { isBuiltInProduct } from '@/infrastructure/depositCatalogue'
 import NumberField from './NumberField.vue'
 import PercentField from './PercentField.vue'
+import OwnItemAccordion from './OwnItemAccordion.vue'
 
 const { inputs, addProduct, removeProduct, canRemoveProduct } = useInputs()
 const { t } = useI18n()
@@ -34,7 +35,12 @@ const ownProducts = computed(() => inputs.deposits.products.filter((p) => !isBui
       <button type="button" @click="addProduct">{{ t('depositsTab.addButton') }}</button>
     </header>
     <p v-if="ownProducts.length === 0" class="note">{{ t('depositsTab.ownEmpty') }}</p>
-    <div v-for="product in ownProducts" :key="product.id" class="own">
+    <OwnItemAccordion
+      v-for="product in ownProducts"
+      :key="product.id"
+      :name="product.name"
+      :terms="productTerms(product)"
+    >
       <div class="own-head">
         <input
           v-model="product.name"
@@ -61,7 +67,6 @@ const ownProducts = computed(() => inputs.deposits.products.filter((p) => !isBui
         :suffix="t('common.monthsSuffix')"
         :hint="t('depositsTab.payoutHint')"
       />
-      <p class="note">{{ productTerms(product) }}</p>
-    </div>
+    </OwnItemAccordion>
   </section>
 </template>

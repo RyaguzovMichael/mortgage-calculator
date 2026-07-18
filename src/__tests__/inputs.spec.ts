@@ -75,16 +75,19 @@ describe('rentAt', () => {
   })
 })
 
+// Free cash is salary × share, flowing from month 0.
+const FREE_CASH = JULY_START.cashflow.monthlySalary * JULY_START.cashflow.mortgageShare
+
 describe('freeCashAt', () => {
-  it('is zero before the flow starts', () => {
-    expect(freeCashAt(JULY_START, JULY_START.cashflow.startMonthOffset - 1)).toBe(0)
+  it('is the salary times the share from month 0', () => {
+    expect(freeCashAt(JULY_START, 0)).toBeCloseTo(FREE_CASH, 6)
   })
 
-  it('steps once in June and holds flat in between', () => {
+  it('steps once in the raise month and holds flat in between', () => {
     const inputs = indexed(0.1)
-    const base = inputs.cashflow.monthlyFreeCash
-    // Months 1..10 are pre-raise; June 2027 is month 11.
-    expect(freeCashAt(inputs, 1)).toBeCloseTo(base, 6)
+    const base = FREE_CASH
+    // Months 0..10 are pre-raise; June 2027 (the raise month) is month 11.
+    expect(freeCashAt(inputs, 0)).toBeCloseTo(base, 6)
     expect(freeCashAt(inputs, 10)).toBeCloseTo(base, 6)
     expect(freeCashAt(inputs, 11)).toBeCloseTo(base * 1.1, 6)
     expect(freeCashAt(inputs, 22)).toBeCloseTo(base * 1.1, 6)
@@ -92,24 +95,33 @@ describe('freeCashAt', () => {
   })
 
   it('does not drift between raises the way a price does', () => {
-    expect(freeCashAt(indexed(0.1), 6)).toBe(freeCashAt(indexed(0.1), 1))
+    expect(freeCashAt(indexed(0.1), 6)).toBe(freeCashAt(indexed(0.1), 0))
   })
 
-  // Otherwise a June start would hand out a raise in month 0 for a year that was
-  // never worked.
+  // Otherwise a start in the raise month would hand out a raise in month 0 for a
+  // year that was never worked.
   it('does not count the starting month itself as a raise', () => {
     const juneStart: Inputs = {
       ...indexed(0.1),
       start: { year: 2026, month: 6 },
-      cashflow: { ...indexed(0.1).cashflow, startMonthOffset: 0 },
     }
-    const base = juneStart.cashflow.monthlyFreeCash
+    const base = FREE_CASH
     expect(freeCashAt(juneStart, 0)).toBeCloseTo(base, 6)
     expect(freeCashAt(juneStart, 11)).toBeCloseTo(base, 6)
     expect(freeCashAt(juneStart, 12)).toBeCloseTo(base * 1.1, 6)
   })
 
+  it('follows the raise month when it is not June', () => {
+    // Start July 2026, raise every March: first March is month 8 (2027-03).
+    const marchRaises: Inputs = {
+      ...indexed(0.1),
+      cashflow: { ...indexed(0.1).cashflow, raiseMonth: 3 },
+    }
+    expect(freeCashAt(marchRaises, 7)).toBeCloseTo(FREE_CASH, 6)
+    expect(freeCashAt(marchRaises, 8)).toBeCloseTo(FREE_CASH * 1.1, 6)
+  })
+
   it('holds flat at 0%', () => {
-    expect(freeCashAt(indexed(0), 59)).toBe(JULY_START.cashflow.monthlyFreeCash)
+    expect(freeCashAt(indexed(0), 59)).toBe(FREE_CASH)
   })
 })

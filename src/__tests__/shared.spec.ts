@@ -18,7 +18,7 @@ function emptyWallet() {
     deposits: { ...DEFAULT_INPUTS.deposits, savingsBalance: 0 },
     otbasy: { ...DEFAULT_INPUTS.otbasy, hasDeposit: false },
   }
-  return createWallet(inputs, HOUSING, { useOtbasy: false })
+  return createWallet(inputs, HOUSING, 'kaspi-deposit', { useOtbasy: false })
 }
 
 describe('payScheduled', () => {

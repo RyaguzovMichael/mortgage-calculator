@@ -4,7 +4,7 @@
 # Эти планы нельзя изменить или удалить из интерфейса. Свои планы создаются во
 # вкладке «Планы» и лежат в localStorage рядом с остальными исходными данными.
 #
-# Каждый план — пять решений:
+# Каждый план — набор решений:
 #   loan     halyk | otbasy | none   — какой кредит (none = без ипотеки)
 #   buyWhen  asap | after-months | otbasy-gates — когда покупать
 #   saveMonths  число месяцев для after-months; null = «ждать как Otbasy»
@@ -12,10 +12,15 @@
 #   repay    monthly | lump | never — гасить каждый месяц, копить и закрыть одним
 #            платежом, или никогда не гасить досрочно (кредит идёт весь срок, а
 #            излишек всё это время работает во вкладе)
-#   housing  где вы живёте до покупки и что продаёте — свой план для каждого:
-#     situation        selling | free | renting
-#     saleProceeds     сумма продажи сегодня (читается только при selling)
-#     saleMonthOffset  месяц продажи (читается только при selling)
+#   situation  selling | free | renting — где вы живёте до покупки. selling также
+#            требует, чтобы в стартовых условиях была квартира на продажу
+#            (Inputs.existingApartment); free/renting требуют её отсутствия. Сумма
+#            продажи — стартовое условие, а не поле плана.
+#   saleMonthOffset  месяц продажи существующей квартиры (для selling; free/renting
+#            игнорируют). Решение плана — разные планы могут продавать в разные месяцы.
+#   savingsProductId  id вклада из каталога (data/deposits.yml или свой), куда план
+#            складывает деньги. В варианте Otbasy не используется — деньги идут на
+#            счёт Отбасы.
 #
 # borrow/repay не читаются при loan: none — заполнены для формы. Подробнее — MODEL.md.
 
@@ -26,10 +31,9 @@
   saveMonths: null
   borrow: max
   repay: monthly
-  housing:
-    situation: selling
-    saleProceeds: 35000000
-    saleMonthOffset: 3
+  situation: selling
+  saleMonthOffset: 3
+  savingsProductId: kaspi-deposit
 
 - id: otbasy
   name: Otbasy
@@ -38,10 +42,9 @@
   saveMonths: null
   borrow: max
   repay: lump
-  housing:
-    situation: selling
-    saleProceeds: 35000000
-    saleMonthOffset: 3
+  situation: selling
+  saleMonthOffset: 3
+  savingsProductId: kaspi-deposit
 
 - id: otbasy-hold
   name: Otbasy (не гасить)
@@ -50,10 +53,9 @@
   saveMonths: null
   borrow: max
   repay: never
-  housing:
-    situation: selling
-    saleProceeds: 35000000
-    saleMonthOffset: 3
+  situation: selling
+  saleMonthOffset: 3
+  savingsProductId: kaspi-deposit
 
 - id: all-cash
   name: Без ипотеки
@@ -62,7 +64,6 @@
   saveMonths: null
   borrow: max
   repay: monthly
-  housing:
-    situation: selling
-    saleProceeds: 35000000
-    saleMonthOffset: 3
+  situation: selling
+  saleMonthOffset: 3
+  savingsProductId: kaspi-deposit

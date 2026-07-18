@@ -1,6 +1,6 @@
 import { runPlan } from './runPlan'
 import { summarize } from './summary'
-import type { Inputs } from './types/inputs'
+import { planMatchesStart, type Inputs } from './types/inputs'
 import type { PurchasePlan, VariantId, VariantResult } from './types/plan'
 
 // The Vue layer's only entry point into the engine.
@@ -36,7 +36,14 @@ export function simulateAll(
   inputs: Inputs,
   builtInPlans: readonly PurchasePlan[],
 ): SimulationReport {
-  const catalogue = [...builtInPlans, ...inputs.plans.custom]
+  // A plan whose situation does not match the existing-apartment start condition
+  // (a 'selling' plan with no owned flat, or a 'free'/'renting' plan while one is
+  // owned) is not compared at all — the board disables it, and running it against
+  // the wrong world would invent a comparison nobody asked for. Filtered up front
+  // so the Otbasy chain below also ignores an incompatible Otbasy plan.
+  const catalogue = [...builtInPlans, ...inputs.plans.custom].filter((plan) =>
+    planMatchesStart(inputs, plan),
+  )
 
   // Delayed plans wait exactly as long as the Otbasy plan does, so its purchase
   // month has to be known before they can run. Computed once and reused, and from

@@ -1,10 +1,19 @@
 import { computed, reactive, watch } from 'vue'
 import { simulateAll, type SimulationReport } from '@/engine/simulate'
-import type { DepositProduct, Inputs } from '@/engine/types/inputs'
+import { planMatchesStart } from '@/engine/types/inputs'
+import type { DepositProduct, Inputs, LoanProduct } from '@/engine/types/inputs'
 import type { PurchasePlan } from '@/engine/types/plan'
 import { isBuiltInProduct } from '@/infrastructure/depositCatalogue'
+import { isBuiltInLoanProduct } from '@/infrastructure/loanCatalogue'
 import { BUILT_IN_PLANS, isBuiltInPlan } from '@/infrastructure/planCatalogue'
-import { DEFAULT_INPUTS, loadInputs, saveInputs } from '@/infrastructure/inputsStorage'
+import {
+  BLANK_START_INPUTS,
+  DEFAULT_PLAN_SALE_MONTH,
+  DEFAULT_SAVINGS_PRODUCT_ID,
+  loadInputs,
+  saveInputs,
+} from '@/infrastructure/inputsStorage'
+import { clearOnboarded } from '@/infrastructure/onboardingPersistence'
 
 // One line per palette slot: the board colours plans by index, and there are eight
 // validated slots, so the ninth shown plan has no colour to wear.
@@ -12,7 +21,7 @@ export const MAX_SHOWN = 8
 
 // Single reactive tree of inputs plus the report derived from it. There is one
 // page and one model, so this is a plain composable rather than a store.
-const inputs = reactive<Inputs>(structuredClone(loadInputs() ?? DEFAULT_INPUTS))
+const inputs = reactive<Inputs>(structuredClone(loadInputs() ?? BLANK_START_INPUTS))
 
 const report = computed<SimulationReport>(() => simulateAll(toPlain(inputs), BUILT_IN_PLANS))
 
@@ -29,10 +38,13 @@ export function useInputs() {
   return {
     inputs,
     report,
-    reset,
+    startOver,
     addProduct,
     removeProduct,
     canRemoveProduct,
+    addLoanProduct,
+    removeLoanProduct,
+    canRemoveLoanProduct,
     allPlans,
     addPlan,
     removePlan,
@@ -40,12 +52,17 @@ export function useInputs() {
     isPlanBuiltIn: isBuiltInPlan,
     isShown,
     canShow,
+    isCompatible,
     toggleShown,
   }
 }
 
-function reset(): void {
-  Object.assign(inputs, structuredClone(DEFAULT_INPUTS))
+// Blank the personal start conditions back to the wizard's starting point and
+// forget that onboarding was done, so the caller can send the user back through
+// /start. Programme parameters (catalogues, Otbasy rates) are kept.
+function startOver(): void {
+  Object.assign(inputs, structuredClone(BLANK_START_INPUTS))
+  clearOnboarded()
 }
 
 // Ids are never reused: a deposit is deleted, and a later one must not inherit its
@@ -70,16 +87,50 @@ function removeProduct(id: string): void {
   if (at >= 0) inputs.deposits.products.splice(at, 1)
 }
 
-// The built-ins are the file's, and deleting the deposit the money is going into
-// would leave the picker pointing at a ghost — which is the "custom" pseudo-state
-// this design just removed.
+// The built-ins are the file's, and deleting a deposit a plan still stores money
+// in would leave that plan's picker pointing at a ghost — which is the "custom"
+// pseudo-state this design just removed.
 function canRemoveProduct(id: string): boolean {
-  return !isBuiltInProduct(id) && id !== inputs.deposits.savingsProductId
+  return !isBuiltInProduct(id) && !allPlans.value.some((plan) => plan.savingsProductId === id)
 }
 
 function highestOwnId(products: readonly DepositProduct[]): number {
-  return products.reduce((highest, product) => {
-    const match = /^custom-(\d+)$/.exec(product.id)
+  return highestIdWithPrefix(products, 'custom')
+}
+
+// Credits get their own prefix and counter, distinct from deposits' custom-N and
+// plans' plan-N, for the same "never reuse an id" reason as both.
+let nextLoanId = 0
+
+function addLoanProduct(): LoanProduct {
+  nextLoanId = Math.max(nextLoanId, highestIdWithPrefix(inputs.loans.products, 'credit')) + 1
+  const product: LoanProduct = {
+    id: `credit-${nextLoanId}`,
+    name: 'Новый кредит',
+    annualRate: 0.2,
+    downPaymentFraction: 0.2,
+    maxTermMonths: 240,
+  }
+  inputs.loans.products.push(product)
+  return product
+}
+
+function removeLoanProduct(id: string): void {
+  if (!canRemoveLoanProduct(id)) return
+  const at = inputs.loans.products.findIndex((product) => product.id === id)
+  if (at >= 0) inputs.loans.products.splice(at, 1)
+}
+
+// The built-in (Halyk) belongs to the file, and deleting a credit a plan still
+// points at would leave that plan's loan selector pointing at a ghost.
+function canRemoveLoanProduct(id: string): boolean {
+  return !isBuiltInLoanProduct(id) && !allPlans.value.some((plan) => plan.loan === id)
+}
+
+function highestIdWithPrefix(items: readonly { id: string }[], prefix: string): number {
+  const pattern = new RegExp(`^${prefix}-(\\d+)$`)
+  return items.reduce((highest, item) => {
+    const match = pattern.exec(item.id)
     return match ? Math.max(highest, Number(match[1])) : highest
   }, 0)
 }
@@ -100,7 +151,9 @@ function addPlan(): PurchasePlan {
     saveMonths: null,
     borrow: 'max',
     repay: 'monthly',
-    housing: { situation: 'selling', saleProceeds: 35_000_000, saleMonthOffset: 3 },
+    situation: 'selling',
+    saleMonthOffset: DEFAULT_PLAN_SALE_MONTH,
+    savingsProductId: DEFAULT_SAVINGS_PRODUCT_ID,
   }
   inputs.plans.custom.push(plan)
   return plan
@@ -131,11 +184,21 @@ function isShown(id: string): boolean {
   return inputs.plans.shown.includes(id)
 }
 
-// Whether the show checkbox is available: always if it is already on (so it can be
-// turned off), otherwise only while there is a free slot. This is what disables the
-// ninth checkbox.
+// Whether a plan's situation matches the existing-apartment start condition — a
+// 'selling' plan needs an owned flat, the others need none. An incompatible plan
+// is not comparable, so the board offers it disabled.
+function isCompatible(id: string): boolean {
+  const plan = allPlans.value.find((candidate) => candidate.id === id)
+  return plan ? planMatchesStart(inputs, plan) : true
+}
+
+// Whether the show checkbox is available: always if it is already on (so an
+// incompatible plan left on the board can still be turned off), otherwise only
+// while it matches the start condition and there is a free slot. This is what
+// disables the ninth checkbox and every incompatible one.
 function canShow(id: string): boolean {
-  return isShown(id) || inputs.plans.shown.length < MAX_SHOWN
+  if (isShown(id)) return true
+  return isCompatible(id) && inputs.plans.shown.length < MAX_SHOWN
 }
 
 function toggleShown(id: string): void {

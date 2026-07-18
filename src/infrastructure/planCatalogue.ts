@@ -1,4 +1,3 @@
-import type { HousingInputs } from '@/engine/types/inputs'
 import type { PurchasePlan } from '@/engine/types/plan'
 import plansFile from '../../data/plans.yml'
 
@@ -57,27 +56,14 @@ function parsePlan(entry: unknown, index: number): PurchasePlan {
     saveMonths: nullableMonths(candidate.saveMonths, `${at}: saveMonths`),
     borrow: oneOf(candidate.borrow, BORROWS, `${at}: borrow`),
     repay: oneOf(candidate.repay, REPAYS, `${at}: repay`),
-    housing: parseHousing(candidate.housing, `${at}: housing`),
-  }
-}
-
-function parseHousing(value: unknown, at: string): HousingInputs {
-  if (typeof value !== 'object' || value === null) {
-    throw new Error(`${at}: ожидался объект`)
-  }
-  const candidate = value as Record<string, unknown>
-  return {
     situation: oneOf(candidate.situation, HOUSING_SITUATIONS, `${at}: situation`),
-    saleProceeds: nonNegativeNumber(candidate.saleProceeds, `${at}: saleProceeds`),
-    saleMonthOffset: nonNegativeNumber(candidate.saleMonthOffset, `${at}: saleMonthOffset`),
+    saleMonthOffset: wholeMonths(candidate.saleMonthOffset, `${at}: saleMonthOffset`),
+    // Not cross-checked against the deposit catalogue here: deposits are
+    // user-editable, so a shipped plan can only name a built-in id, and
+    // loadInputs repairs a user's plan whose id no longer resolves. Just a
+    // non-empty string, same leniency the global deposit selection had.
+    savingsProductId: text(candidate.savingsProductId, `${at}: savingsProductId`),
   }
-}
-
-function nonNegativeNumber(value: unknown, at: string): number {
-  if (typeof value !== 'number' || !Number.isFinite(value) || value < 0) {
-    throw new Error(`${at}: ожидалось число >= 0, получено ${JSON.stringify(value)}`)
-  }
-  return value
 }
 
 function text(value: unknown, at: string): string {
@@ -98,6 +84,16 @@ function oneOf<const T extends readonly string[]>(
     )
   }
   return value as T[number]
+}
+
+// A required non-negative whole number of months — the sale-month offset. It has
+// to be an integer: the month loop matches it against integer indices, so a
+// fractional month would simply never land a sale.
+function wholeMonths(value: unknown, at: string): number {
+  if (typeof value !== 'number' || !Number.isInteger(value) || value < 0) {
+    throw new Error(`${at}: ожидалось целое число месяцев >= 0, получено ${JSON.stringify(value)}`)
+  }
+  return value
 }
 
 // null is a real value here — "wait as long as Otbasy does"; a number must be a

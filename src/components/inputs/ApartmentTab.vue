@@ -18,4 +18,23 @@ const { t } = useI18n()
     />
     <p class="note">{{ t('apartmentTab.note') }}</p>
   </section>
+
+  <section class="field-group">
+    <h3>{{ t('apartmentTab.existingTitle') }}</h3>
+    <p class="note">{{ t('apartmentTab.existingNote') }}</p>
+
+    <label class="toggle">
+      <input v-model="inputs.existingApartment.owned" type="checkbox" />
+      <span>{{ t('apartmentTab.ownedToggle') }}</span>
+    </label>
+
+    <NumberField
+      v-if="inputs.existingApartment.owned"
+      v-model="inputs.existingApartment.price"
+      :label="t('apartmentTab.existingPriceLabel')"
+      suffix="₸"
+      :step="500000"
+      :hint="t('apartmentTab.existingPriceHint')"
+    />
+  </section>
 </template>

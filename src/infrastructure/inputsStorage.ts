@@ -1,21 +1,22 @@
-import type { HousingInputs, Inputs } from '@/engine/types/inputs'
+import type { HousingSituation, Inputs } from '@/engine/types/inputs'
 import { BUILT_IN_PRODUCTS, isBuiltInProduct } from './depositCatalogue'
+import { BUILT_IN_LOAN_PRODUCT, OTBASY_PARAM_DEFAULTS, isBuiltInLoanProduct } from './loanCatalogue'
 
 // Bump when the Inputs shape changes — a stored blob from an older shape would
 // otherwise deserialize into a half-populated object and silently skew results.
 //
 // Exported so the specs cannot drift from it: they used to hard-code the key as a
 // string, and two of them went on passing for the wrong reason after a bump.
-export const STORAGE_KEY = 'mortgage:inputs:v10'
+export const STORAGE_KEY = 'mortgage:inputs:v14'
 
-// housing used to be a single global Inputs field; it is now a plan decision
-// (PurchasePlan.housing), so a custom plan saved before the v9 bump has none.
-// This is what a plan created under the old global default would have carried.
-const DEFAULT_PLAN_HOUSING: HousingInputs = {
-  situation: 'selling',
-  saleProceeds: 35_000_000,
-  saleMonthOffset: 3,
-}
+// The deposit a plan falls back to when its own choice no longer resolves, and the
+// one a freshly added plan starts on. Also what the built-in plans name in the YAML.
+export const DEFAULT_SAVINGS_PRODUCT_ID = 'kaspi-deposit'
+
+// The situation and sale month a custom plan falls back to when a saved value is
+// missing or invalid — the same starting point a freshly added plan gets.
+const DEFAULT_PLAN_SITUATION: HousingSituation = 'selling'
+export const DEFAULT_PLAN_SALE_MONTH = 3
 
 // Real starting position as of 2026-07. See MODEL.md for provenance of every number.
 export const DEFAULT_INPUTS: Inputs = {
@@ -25,26 +26,40 @@ export const DEFAULT_INPUTS: Inputs = {
     price: 45_000_000,
     annualGrowthRate: 0.05,
   },
+  // The flat you own today and sell to help fund the purchase — a start condition,
+  // shared by every plan. Its price appreciates at the apartment growth rate up to
+  // the month each plan sells it. Only 'selling' plans draw on it; turning owned
+  // off disables them.
+  existingApartment: {
+    owned: true,
+    price: 35_000_000,
+  },
   cashflow: {
-    monthlyFreeCash: 500_000,
+    // 1 000 000 earned, half of it toward housing → 500 000 free cash. Salary and
+    // share are entered separately; freeCashAt multiplies them.
+    monthlySalary: 1_000_000,
+    mortgageShare: 0.5,
     monthlyRent: 400_000,
-    startMonthOffset: 1,
     // 0 by default: an unindexed income is the pessimistic, known case. Anything
     // else would be me guessing your raise schedule.
     annualIndexationRate: 0,
+    // June — the common civil-service / annual-review month here.
+    raiseMonth: 6,
   },
   deposits: {
     // The two Kaspi accounts, 1 021 923,88 + 356 599. They used to be itemised,
     // which only ever showed where the money sits: month 0 merges everything.
     savingsBalance: 1_378_522.88,
-    // Built-ins only; the user's own deposits are added on top at load time.
+    // Built-ins only; the user's own deposits are added on top at load time. Which
+    // deposit a plan uses is now the plan's own choice (PurchasePlan.savingsProductId).
     products: [...BUILT_IN_PRODUCTS],
-    savingsProductId: 'kaspi-deposit',
   },
-  halyk: {
-    annualRate: 0.24,
-    downPaymentFraction: 0.2,
-    maxTermMonths: 240,
+  // Halyk is the built-in entry in the loan-product catalogue (data/loans.yml);
+  // the user's own credits are added on top at load time, same as deposits. Only
+  // the personal Otbasy account state below is a literal here: it is a fact about
+  // this person, not the programme.
+  loans: {
+    products: [BUILT_IN_LOAN_PRODUCT],
   },
   otbasy: {
     hasDeposit: true,
@@ -54,15 +69,7 @@ export const DEFAULT_INPUTS: Inputs = {
     // the Otbasy statement: accrued interest is what CC is actually built from.
     accruedInterest: 0,
     monthsOpen: 0,
-    loanAnnualRate: 0.085,
-    maxTermMonths: 240,
-    depositAnnualRate: 0.02,
-    minBalanceFraction: 0.5,
-    ccTarget: 5,
-    govBonusRate: 0.2,
-    govBonusCap: 200 * 4325,
-    govBonusMonth: 2,
-    seedFromSale: 5_000_000,
+    ...OTBASY_PARAM_DEFAULTS,
   },
   plans: {
     // No built-in definitions here — they come from data/plans.yml. Only the
@@ -71,6 +78,33 @@ export const DEFAULT_INPUTS: Inputs = {
     shown: ['halyk', 'otbasy', 'all-cash'],
   },
   delayedSavingMonths: null,
+}
+
+// What a first-time user (or anyone who pressed Reset) starts the onboarding
+// wizard on: the programme parameters — Otbasy rates, catalogues, price-growth,
+// horizon, start month — are kept from DEFAULT_INPUTS, but every *personal* start
+// condition is blanked so the user enters their own situation rather than
+// inheriting the developer's figures. Personal = the flat they want, the flat
+// they own, their income, savings, Otbasy account, and rent.
+export const BLANK_START_INPUTS: Inputs = {
+  ...structuredClone(DEFAULT_INPUTS),
+  apartment: { ...DEFAULT_INPUTS.apartment, price: 0 },
+  existingApartment: { owned: false, price: 0 },
+  cashflow: {
+    ...DEFAULT_INPUTS.cashflow,
+    monthlySalary: 0,
+    mortgageShare: 0,
+    monthlyRent: 0,
+    annualIndexationRate: 0,
+  },
+  deposits: { ...structuredClone(DEFAULT_INPUTS.deposits), savingsBalance: 0 },
+  otbasy: {
+    ...DEFAULT_INPUTS.otbasy,
+    hasDeposit: false,
+    balance: 0,
+    accruedInterest: 0,
+    monthsOpen: 0,
+  },
 }
 
 export function loadInputs(): Inputs | null {
@@ -85,7 +119,7 @@ export function loadInputs(): Inputs | null {
   // Only a plain object can be repaired; an array or a primitive is not this shape
   // at all and there is nothing to salvage.
   if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) return null
-  return withCatalogue(withPlanHousing(repair(DEFAULT_INPUTS, parsed) as Inputs))
+  return withPlanDefaults(withCatalogue(repair(DEFAULT_INPUTS, parsed) as Inputs))
 }
 
 export function saveInputs(inputs: Inputs): void {
@@ -104,50 +138,60 @@ function withoutBuiltIns(inputs: Inputs): Inputs {
       ...inputs.deposits,
       products: inputs.deposits.products.filter((product) => !isBuiltInProduct(product.id)),
     },
-  }
-}
-
-// repair() takes the custom-plans array wholesale (see its comment below), so a
-// plan saved before housing became a plan field — or otherwise missing/malformed
-// housing — would reach the engine without one. Give it the old global default
-// rather than let simulateAll crash on plan.housing.situation.
-function withPlanHousing(inputs: Inputs): Inputs {
-  return {
-    ...inputs,
-    plans: {
-      ...inputs.plans,
-      custom: inputs.plans.custom.map((plan) =>
-        isHousing(plan.housing) ? plan : { ...plan, housing: DEFAULT_PLAN_HOUSING },
-      ),
+    loans: {
+      ...inputs.loans,
+      products: inputs.loans.products.filter((product) => !isBuiltInLoanProduct(product.id)),
     },
   }
 }
 
-function isHousing(value: unknown): value is HousingInputs {
-  if (typeof value !== 'object' || value === null) return false
-  const candidate = value as Record<string, unknown>
-  return (
-    (candidate.situation === 'selling' ||
-      candidate.situation === 'free' ||
-      candidate.situation === 'renting') &&
-    typeof candidate.saleProceeds === 'number' &&
-    typeof candidate.saleMonthOffset === 'number'
-  )
+// repair() takes the custom-plans array wholesale (see its comment below), so a
+// plan saved with a stale deposit id — one the user has since deleted, or dropped
+// from the YAML — or with a missing/invalid situation would reach the engine
+// broken. Fall each field back to its default rather than let simulateAll throw on
+// savingsProduct() or run against a situation that is not one of the three. Runs
+// after withCatalogue so the deposit list it checks ids against is finalised.
+function withPlanDefaults(inputs: Inputs): Inputs {
+  const ids = new Set(inputs.deposits.products.map((product) => product.id))
+  return {
+    ...inputs,
+    plans: {
+      ...inputs.plans,
+      custom: inputs.plans.custom.map((plan) => ({
+        ...plan,
+        situation: isSituation(plan.situation) ? plan.situation : DEFAULT_PLAN_SITUATION,
+        saleMonthOffset: isWholeMonth(plan.saleMonthOffset)
+          ? plan.saleMonthOffset
+          : DEFAULT_PLAN_SALE_MONTH,
+        savingsProductId: ids.has(plan.savingsProductId)
+          ? plan.savingsProductId
+          : DEFAULT_SAVINGS_PRODUCT_ID,
+      })),
+    },
+  }
+}
+
+function isSituation(value: unknown): value is HousingSituation {
+  return value === 'selling' || value === 'free' || value === 'renting'
+}
+
+function isWholeMonth(value: unknown): value is number {
+  return typeof value === 'number' && Number.isInteger(value) && value >= 0
 }
 
 function withCatalogue(inputs: Inputs): Inputs {
-  const own = inputs.deposits.products.filter((product) => !isBuiltInProduct(product.id))
-  const products = [...BUILT_IN_PRODUCTS, ...own]
+  const ownDeposits = inputs.deposits.products.filter((product) => !isBuiltInProduct(product.id))
+  const products = [...BUILT_IN_PRODUCTS, ...ownDeposits]
+  const ownLoans = inputs.loans.products.filter((product) => !isBuiltInLoanProduct(product.id))
   return {
     ...inputs,
     deposits: {
       ...inputs.deposits,
       products,
-      // Repair rather than reject: a deposit the user deleted, or one dropped from
-      // the YAML, must not cost them their price, sale, cashflow and loan terms.
-      savingsProductId: products.some((product) => product.id === inputs.deposits.savingsProductId)
-        ? inputs.deposits.savingsProductId
-        : DEFAULT_INPUTS.deposits.savingsProductId,
+    },
+    loans: {
+      ...inputs.loans,
+      products: [BUILT_IN_LOAN_PRODUCT, ...ownLoans],
     },
   }
 }

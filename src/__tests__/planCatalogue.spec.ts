@@ -1,8 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { BUILT_IN_PLANS, isBuiltInPlan, parsePurchasePlans } from '@/infrastructure/planCatalogue'
 
-const HOUSING = { situation: 'selling', saleProceeds: 35_000_000, saleMonthOffset: 3 }
-
 function plan(overrides: Record<string, unknown> = {}): Record<string, unknown> {
   return {
     id: 'x',
@@ -12,7 +10,9 @@ function plan(overrides: Record<string, unknown> = {}): Record<string, unknown> 
     saveMonths: null,
     borrow: 'max',
     repay: 'monthly',
-    housing: HOUSING,
+    situation: 'selling',
+    saleMonthOffset: 3,
+    savingsProductId: 'kaspi-deposit',
     ...overrides,
   }
 }
@@ -38,7 +38,9 @@ describe('BUILT_IN_PLANS', () => {
       saveMonths: null,
       borrow: 'max',
       repay: 'lump',
-      housing: { situation: 'selling', saleProceeds: 35_000_000, saleMonthOffset: 3 },
+      situation: 'selling',
+      saleMonthOffset: 3,
+      savingsProductId: 'kaspi-deposit',
     })
   })
 })
@@ -66,7 +68,9 @@ describe('parsePurchasePlans', () => {
         saveMonths: null,
         borrow: 'max',
         repay: 'monthly',
-        housing: HOUSING,
+        situation: 'selling',
+        saleMonthOffset: 3,
+        savingsProductId: 'kaspi-deposit',
       },
     ])
   })
@@ -92,17 +96,13 @@ describe('parsePurchasePlans', () => {
     ['a fractional saveMonths', [plan({ saveMonths: 1.5 })], /saveMonths/],
     ['a negative saveMonths', [plan({ saveMonths: -1 })], /saveMonths/],
     ['a saveMonths written as a string', [plan({ saveMonths: '12' })], /saveMonths/],
-    ['a missing housing', [plan({ housing: undefined })], /housing/],
-    [
-      'an unknown housing situation',
-      [plan({ housing: { ...HOUSING, situation: 'owned' } })],
-      /situation/,
-    ],
-    [
-      'a negative saleProceeds',
-      [plan({ housing: { ...HOUSING, saleProceeds: -1 } })],
-      /saleProceeds/,
-    ],
+    ['a missing situation', [plan({ situation: undefined })], /situation/],
+    ['an unknown situation', [plan({ situation: 'owned' })], /situation/],
+    ['a missing saleMonthOffset', [plan({ saleMonthOffset: undefined })], /saleMonthOffset/],
+    ['a fractional saleMonthOffset', [plan({ saleMonthOffset: 1.5 })], /saleMonthOffset/],
+    ['a negative saleMonthOffset', [plan({ saleMonthOffset: -1 })], /saleMonthOffset/],
+    ['a missing savingsProductId', [plan({ savingsProductId: undefined })], /savingsProductId/],
+    ['an empty savingsProductId', [plan({ savingsProductId: '  ' })], /savingsProductId/],
     ['a duplicate id', [plan({ id: 'same' }), plan({ id: 'same' })], /больше одного раза/],
   ])('rejects %s', (_case, raw, reason) => {
     expect(() => parsePurchasePlans(raw)).toThrow(reason)

@@ -4,14 +4,21 @@ import { useI18n } from 'vue-i18n'
 import { useInputs, MAX_SHOWN } from '@/app/useInputs'
 import { useFormat } from '@/app/useFormat'
 import { BUILT_IN_PLANS } from '@/infrastructure/planCatalogue'
+import { planNeedsExistingApartment } from '@/engine/types/inputs'
 import type { PurchasePlan } from '@/engine/types/plan'
+import ProductPicker from './ProductPicker.vue'
 
-const { inputs, addPlan, removePlan, isShown, canShow, toggleShown } = useInputs()
+const { inputs, addPlan, removePlan, isShown, canShow, isCompatible, toggleShown } = useInputs()
 const { t } = useI18n()
-const { BORROW_LABELS, BUY_WHEN_LABELS, describePlan, HOUSING_LABELS, LOAN_LABELS, REPAY_LABELS } =
-  useFormat()
+const { BORROW_LABELS, BUY_WHEN_LABELS, describePlan, HOUSING_LABELS, REPAY_LABELS } = useFormat()
 
-const LOAN_OPTIONS = computed(() => entries(LOAN_LABELS.value))
+// 'none' and 'otbasy' are the two fixed sentinels; every LoanProduct (built-in
+// Halyk, plus any credit the user added) is an option by its own id and name.
+const LOAN_OPTIONS = computed(() => [
+  { value: 'none', label: t('format.loanLabels.none') },
+  { value: 'otbasy', label: t('format.loanLabels.otbasy') },
+  ...inputs.loans.products.map((product) => ({ value: product.id, label: product.name })),
+])
 const BORROW_OPTIONS = computed(() => entries(BORROW_LABELS.value))
 const REPAY_OPTIONS = computed(() => entries(REPAY_LABELS.value))
 const HOUSING_OPTIONS = computed(() => entries(HOUSING_LABELS.value))
@@ -53,9 +60,16 @@ function entries<T extends string>(labels: Record<T, string>) {
   return (Object.entries(labels) as [T, string][]).map(([value, label]) => ({ value, label }))
 }
 
-function showTitle(id: string): string {
-  if (isShown(id)) return t('plansTab.showRemove')
-  return canShow(id) ? t('plansTab.showAdd') : t('plansTab.showMax', { max: MAX_SHOWN })
+function showTitle(plan: PurchasePlan): string {
+  if (isShown(plan.id)) return t('plansTab.showRemove')
+  // An incompatible plan cannot go on the board at all — say which start condition
+  // it wants, rather than the generic "board is full".
+  if (!isCompatible(plan.id)) {
+    return planNeedsExistingApartment(plan)
+      ? t('plansTab.showNeedsApartment')
+      : t('plansTab.showNeedsNoApartment')
+  }
+  return canShow(plan.id) ? t('plansTab.showAdd') : t('plansTab.showMax', { max: MAX_SHOWN })
 }
 </script>
 
@@ -69,12 +83,14 @@ function showTitle(id: string): string {
           type="checkbox"
           :checked="isShown(plan.id)"
           :disabled="!canShow(plan.id)"
-          :title="showTitle(plan.id)"
+          :title="showTitle(plan)"
           @change="toggleShown(plan.id)"
         />
         <span class="item-name">{{ plan.name }}</span>
       </label>
-      <span class="item-terms">{{ describePlan(plan) }}</span>
+      <span class="item-terms">{{
+        describePlan(plan, inputs.loans.products, inputs.deposits.products)
+      }}</span>
     </div>
   </section>
 
@@ -92,7 +108,7 @@ function showTitle(id: string): string {
             type="checkbox"
             :checked="isShown(plan.id)"
             :disabled="!canShow(plan.id)"
-            :title="showTitle(plan.id)"
+            :title="showTitle(plan)"
             @change="toggleShown(plan.id)"
           />
         </label>
@@ -163,25 +179,37 @@ function showTitle(id: string): string {
 
       <label class="select-field">
         <span>{{ t('plansTab.housingLabel') }}</span>
-        <select v-model="plan.housing.situation">
+        <select v-model="plan.situation">
           <option v-for="option in HOUSING_OPTIONS" :key="option.value" :value="option.value">
             {{ option.label }}
           </option>
         </select>
       </label>
 
-      <template v-if="plan.housing.situation === 'selling'">
-        <label class="select-field">
-          <span>{{ t('plansTab.saleProceedsLabel') }}</span>
-          <input v-model.number="plan.housing.saleProceeds" type="number" min="0" step="500000" />
-        </label>
-        <label class="select-field">
-          <span>{{ t('plansTab.saleMonthLabel') }}</span>
-          <input v-model.number="plan.housing.saleMonthOffset" type="number" min="0" step="1" />
-        </label>
-      </template>
+      <label v-if="plan.situation === 'selling'" class="select-field">
+        <span>{{ t('plansTab.saleMonthLabel') }}</span>
+        <input v-model.number="plan.saleMonthOffset" type="number" min="0" step="1" />
+        <span class="hint">{{ t('plansTab.saleMonthHint') }}</span>
+      </label>
+      <p v-if="!isCompatible(plan.id)" class="note">
+        {{
+          plan.situation === 'selling'
+            ? t('plansTab.showNeedsApartment')
+            : t('plansTab.showNeedsNoApartment')
+        }}
+      </p>
 
-      <p class="item-terms">{{ describePlan(plan) }}</p>
+      <ProductPicker
+        v-if="plan.loan !== 'otbasy'"
+        v-model="plan.savingsProductId"
+        :products="inputs.deposits.products"
+        :label="t('plansTab.depositLabel')"
+        :hint="t('plansTab.depositHint')"
+      />
+
+      <p class="item-terms">
+        {{ describePlan(plan, inputs.loans.products, inputs.deposits.products) }}
+      </p>
     </div>
   </section>
 </template>

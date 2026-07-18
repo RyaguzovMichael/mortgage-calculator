@@ -1,0 +1,42 @@
+# Встроенные кредиты (ипотечные программы). Источник правды: правка этого файла
+# доезжает и до тех, у кого уже есть сохранённые данные — сами параметры кредита
+# не хранятся в localStorage, только персональное состояние счёта (см. ниже).
+#
+# Ровно два кредита, и оба редактируются на месте во вкладке «Ипотеки» — это не
+# каталог переменной длины, как вклады: добавить или удалить кредит через
+# интерфейс нельзя.
+#
+# Поля:
+#   id            halyk | otbasy
+#   name          короткое имя, например «Halyk»
+#   description   { ru, en } — короткое описание программы для интерфейса
+#   ...остальное  параметры кредита/вклада программы (ставки, сроки, лимиты)
+#
+# Персональное состояние Otbasy-счёта (hasDeposit, balance, accruedInterest,
+# monthsOpen) сюда не входит — это факт о конкретном человеке, а не о программе,
+# и он остаётся литералом в DEFAULT_INPUTS (редактируется во вкладке «Деньги»).
+
+- id: halyk
+  name: Halyk
+  description:
+    ru: Ипотека от Halyk Bank без государственных условий — ставка и первый взнос как у обычного банковского кредита.
+    en: A Halyk Bank mortgage with no state conditions attached — bank-standard rate and down payment.
+  annualRate: 0.24
+  downPaymentFraction: 0.2
+  maxTermMonths: 240
+
+- id: otbasy
+  name: Otbasy
+  description:
+    ru: Государственная жилищная программа Otbasy Bank — пониженная ставка кредита в обмен на предварительное накопление на депозите программы и выполнение её условий (порог баланса, целевой CC).
+    en: The Otbasy Bank state housing programme — a reduced loan rate in exchange for saving up on the programme's own deposit first and meeting its gates (balance threshold, target CC).
+  loanAnnualRate: 0.085
+  maxTermMonths: 240
+  depositAnnualRate: 0.02
+  minBalanceFraction: 0.5
+  ccTarget: 5
+  govBonusRate: 0.2
+  # 200 * 4325 — 200 МРП по ставке 4325 тг/МРП.
+  govBonusCap: 865000
+  govBonusMonth: 2
+  seedFromSale: 5000000

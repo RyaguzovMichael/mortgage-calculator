@@ -56,9 +56,10 @@ export interface WalletOptions {
 export function createWallet(
   inputs: Inputs,
   housing: HousingInputs,
+  savingsProductId: string,
   options: WalletOptions = { useOtbasy: true },
 ): Wallet {
-  const product = savingsProduct(inputs)
+  const product = savingsProduct(inputs, savingsProductId)
   const money = startingMoney(inputs)
 
   const savings = createDeposit(

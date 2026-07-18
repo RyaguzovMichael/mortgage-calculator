@@ -4,6 +4,8 @@ import { createWallet, type Wallet } from './wallet'
 import { summarize } from './summary'
 import {
   apartmentPriceAt,
+  effectiveHousing,
+  loanProduct,
   rentDueAt,
   targetLoan,
   type HousingInputs,
@@ -26,13 +28,16 @@ import {
 // it identical across plans — lives here once.
 export function runPlan(inputs: Inputs, plan: PurchasePlan): VariantResult {
   const useOtbasy = plan.loan === 'otbasy'
-  const housing = plan.housing
-  const wallet = createWallet(inputs, housing, { useOtbasy })
+  const housing = effectiveHousing(inputs, plan.situation, plan.saleMonthOffset)
+  const wallet = createWallet(inputs, housing, plan.savingsProductId, { useOtbasy })
   const rows: MonthRow[] = []
 
   const target = targetLoan(inputs, housing)
-  const rate = useOtbasy ? inputs.otbasy.loanAnnualRate : inputs.halyk.annualRate
-  const term = useOtbasy ? inputs.otbasy.maxTermMonths : inputs.halyk.maxTermMonths
+  // Otbasy is the one fixed programme; anything else is a LoanProduct id (built-in
+  // Halyk or a user's own credit) — 'none' never reaches this branch's fields.
+  const product = !useOtbasy && plan.loan !== 'none' ? loanProduct(inputs, plan.loan) : null
+  const rate = useOtbasy ? inputs.otbasy.loanAnnualRate : (product?.annualRate ?? 0)
+  const term = useOtbasy ? inputs.otbasy.maxTermMonths : (product?.maxTermMonths ?? 0)
 
   let loan: Loan | null = null
   let owned = false
@@ -204,12 +209,13 @@ function buy(
   return createLoan(Math.max(0, price - fromOtbasy - fromSavings), rate, term)
 }
 
-// The most the contract allows to be borrowed: Halyk requires a minimum down
-// payment, Otbasy lets you borrow the whole declared target.
+// The most the contract allows to be borrowed: a simple mortgage requires its own
+// minimum down payment, Otbasy lets you borrow the whole declared target. Only
+// called when plan.loan !== 'none', so the lookup never sees the cash sentinel.
 function maxLoan(inputs: Inputs, plan: PurchasePlan): number {
-  const target = targetLoan(inputs, plan.housing)
+  const target = targetLoan(inputs, effectiveHousing(inputs, plan.situation, plan.saleMonthOffset))
   if (plan.loan === 'otbasy') return target
-  return target - inputs.halyk.downPaymentFraction * target
+  return target - loanProduct(inputs, plan.loan).downPaymentFraction * target
 }
 
 // The principal this purchase would open, without touching the wallet — shared by

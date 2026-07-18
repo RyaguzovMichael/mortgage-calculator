@@ -1,4 +1,4 @@
-import type { HousingInputs } from './inputs'
+import type { HousingSituation } from './inputs'
 import type { YearMonth } from './yearMonth'
 
 // What a single variant produced: the month-by-month story plus its rolled-up
@@ -17,8 +17,9 @@ export interface VariantResult {
   // waiting, and it is the whole reason growth cannot be ignored.
   readonly purchasePrice: number | null
   readonly totals: VariantTotals
-  // apartment.price − this plan's own proceeds — housing is now a plan decision,
-  // so the target loan is no longer one number shared by every variant.
+  // apartment.price − the sale proceeds, which the global existing-apartment start
+  // condition supplies and the plan's own situation gates (a 'selling' plan sells,
+  // the others do not), so the target loan is not one number shared by every plan.
   readonly targetLoan: number
 }
 
@@ -28,16 +29,21 @@ export interface VariantResult {
 // legible at the call sites.
 export type VariantId = string
 
-// A way of buying the apartment, expressed as four decisions. The four built-in
-// variants are just four of these; a user builds their own from the same choices.
-// runPlan turns one into a VariantResult.
+// A way of buying the apartment, expressed as a handful of decisions: which loan,
+// when to buy, how much to borrow, how to repay, where you live meanwhile, and
+// which deposit you store money in. The built-in variants are just some of these;
+// a user builds their own from the same choices. runPlan turns one into a
+// VariantResult.
 export interface PurchasePlan {
   readonly id: string
   readonly name: string
-  // Which loan, if any. Everything else the variant used to decide for itself —
-  // whether to use the Otbasy account, where rent-era surplus goes — follows from
-  // this, so it is not asked twice.
-  readonly loan: 'halyk' | 'otbasy' | 'none'
+  // Which loan, if any — a LoanProduct id, or one of two sentinels: 'otbasy' (the
+  // one fixed state programme, not a catalogue entry) or 'none' (cash). Once a
+  // user can add their own credits this can no longer be a closed union, the same
+  // reasoning VariantId went through above. Everything else the variant used to
+  // decide for itself — whether to use the Otbasy account, where rent-era surplus
+  // goes — follows from this, so it is not asked twice.
+  readonly loan: string
   //   asap         — the first month a purchase is allowed
   //   after-months — wait a fixed number of months first
   //   otbasy-gates — wait for the 50%-balance and CC gates
@@ -54,10 +60,19 @@ export interface PurchasePlan {
   //             the loan runs its full term while the cash keeps compounding.
   //             Best when the loan rate stays below the deposit rate (Otbasy).
   readonly repay: 'monthly' | 'lump' | 'never'
-  // Where you live until you buy, and what (if anything) you sell to get there.
-  // A plan decision, not a global setting: two plans can differ on whether to
-  // sell the old flat, and when.
-  readonly housing: HousingInputs
+  // Where you live until you buy — and, through 'selling', whether this plan
+  // requires the existing-apartment start condition. How much the flat fetches is a
+  // global start condition (Inputs.existingApartment.price); the situation and the
+  // sale month below are the plan's own.
+  readonly situation: HousingSituation
+  // The month the existing flat sells, for a 'selling' plan — a plan decision, so
+  // two plans can sell the same flat at different times. Ignored by free/renting,
+  // which have nothing to sell.
+  readonly saleMonthOffset: number
+  // Which deposit this plan stores money in, by id into Inputs.deposits.products.
+  // A plan decision: two plans can compare different deposits. The Otbasy variant
+  // routes savings to its own account instead, so this is unused there.
+  readonly savingsProductId: string
 }
 
 // pre-sale: living in the flat you will sell. free-housing: living rent-free

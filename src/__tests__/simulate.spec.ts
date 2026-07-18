@@ -25,7 +25,9 @@ function delayedPlan(saveMonths: number | null = null): PurchasePlan {
     saveMonths,
     borrow: 'min',
     repay: 'monthly',
-    housing: builtIn('halyk').housing,
+    situation: builtIn('halyk').situation,
+    saleMonthOffset: builtIn('halyk').saleMonthOffset,
+    savingsProductId: builtIn('halyk').savingsProductId,
   }
 }
 
@@ -78,7 +80,9 @@ describe('simulateAll', () => {
       saveMonths: null,
       borrow: 'min',
       repay: 'monthly',
-      housing: { situation: 'selling', saleProceeds: 35_000_000, saleMonthOffset: 3 },
+      situation: 'selling',
+      saleMonthOffset: 3,
+      savingsProductId: 'kaspi-deposit',
     }
     const inputs: Inputs = {
       ...DEFAULT_INPUTS,

@@ -7,21 +7,49 @@ import type { PurchasePlan, VariantResult } from '@/engine/types/plan'
 
 // The three built-ins now live in data/plans.yml and run through the shared
 // driver. These shims keep the per-variant behaviour tests reading the same as
-// before. Housing lives on the plan now, so a shim that needs to vary it takes
-// an override.
+// before. Housing is now split: `situation` is a plan decision, while the sale
+// price and month are the global existing-apartment start condition. A shim that
+// varies any of the three takes an override and applies each to the right place.
 const builtIn = (id: string): PurchasePlan => BUILT_IN_PLANS.find((plan) => plan.id === id)!
-const withHousing = (plan: PurchasePlan, housing: Partial<HousingInputs>): PurchasePlan => ({
+type HousingOverride = Partial<Pick<HousingInputs, 'situation' | 'saleProceeds' | 'saleMonthOffset'>>
+const withDeposit = (plan: PurchasePlan, savingsProductId: string): PurchasePlan => ({
   ...plan,
-  housing: { ...plan.housing, ...housing },
+  savingsProductId,
 })
-const simulateHalyk = (inputs: Inputs, housing?: Partial<HousingInputs>): VariantResult =>
-  runPlan(inputs, housing ? withHousing(builtIn('halyk'), housing) : builtIn('halyk'))
+
+function applyHousing(
+  inputs: Inputs,
+  plan: PurchasePlan,
+  housing: HousingOverride,
+): { inputs: Inputs; plan: PurchasePlan } {
+  // saleProceeds is the global start condition's price; situation and the sale
+  // month are the plan's own.
+  const existingApartment =
+    housing.saleProceeds !== undefined
+      ? { ...inputs.existingApartment, price: housing.saleProceeds }
+      : inputs.existingApartment
+  return {
+    inputs: { ...inputs, existingApartment },
+    plan: {
+      ...plan,
+      situation: housing.situation ?? plan.situation,
+      saleMonthOffset: housing.saleMonthOffset ?? plan.saleMonthOffset,
+    },
+  }
+}
+
+const runHousing = (inputs: Inputs, plan: PurchasePlan, housing?: HousingOverride): VariantResult => {
+  const applied = housing ? applyHousing(inputs, plan, housing) : { inputs, plan }
+  return runPlan(applied.inputs, applied.plan)
+}
+const simulateHalyk = (inputs: Inputs, housing?: HousingOverride): VariantResult =>
+  runHousing(inputs, builtIn('halyk'), housing)
 const simulateOtbasy = (inputs: Inputs): VariantResult => runPlan(inputs, builtIn('otbasy'))
-const simulateAllCash = (inputs: Inputs, housing?: Partial<HousingInputs>): VariantResult =>
-  runPlan(inputs, housing ? withHousing(builtIn('all-cash'), housing) : builtIn('all-cash'))
+const simulateAllCash = (inputs: Inputs, housing?: HousingOverride): VariantResult =>
+  runHousing(inputs, builtIn('all-cash'), housing)
 // "Halyk отложенно" is no longer a built-in — the after-months/min-down/chained
 // shape it used to demonstrate is still a legitimate custom plan, so this shim
-// builds one by hand, on the same housing as the Halyk built-in.
+// builds one by hand, on the same situation and deposit as the Halyk built-in.
 const simulateHalykDelayed = (inputs: Inputs, savingMonths: number): VariantResult =>
   runPlan(inputs, {
     id: 'halyk-delayed-test',
@@ -31,7 +59,9 @@ const simulateHalykDelayed = (inputs: Inputs, savingMonths: number): VariantResu
     saveMonths: savingMonths,
     borrow: 'min',
     repay: 'monthly',
-    housing: builtIn('halyk').housing,
+    situation: builtIn('halyk').situation,
+    saleMonthOffset: builtIn('halyk').saleMonthOffset,
+    savingsProductId: builtIn('halyk').savingsProductId,
   })
 
 function withRent(monthlyRent: number): Inputs {
@@ -98,7 +128,7 @@ describe('Halyk', () => {
   it('pays no rent — it buys the month the sale lands', () => {
     const result = simulateHalyk(DEFAULT_INPUTS)
     expect(result.totals.rentPaid).toBe(0)
-    expect(result.purchaseMonth).toBe(builtIn('halyk').housing.saleMonthOffset)
+    expect(result.purchaseMonth).toBe(builtIn('halyk').saleMonthOffset)
   })
 
   // The prototype never checked this: the down payment has to be real money, and
@@ -196,10 +226,12 @@ describe('deposit rate', () => {
     // to be earning.
     const inputs: Inputs = {
       ...DEFAULT_INPUTS,
+      // Keep the built-in plans' deposit id so they still resolve; only zero the rate.
       deposits: {
         ...DEFAULT_INPUTS.deposits,
-        products: [{ id: 'zero', name: 'Под матрасом', annualRate: 0, payoutPeriodMonths: 1 }],
-        savingsProductId: 'zero',
+        products: [
+          { id: 'kaspi-deposit', name: 'Под матрасом', annualRate: 0, payoutPeriodMonths: 1 },
+        ],
       },
       otbasy: { ...DEFAULT_INPUTS.otbasy, depositAnnualRate: 0 },
     }
@@ -292,7 +324,7 @@ describe('the flat being sold', () => {
 
   // Selling swaps a flat for cash of equal value; if net worth jumps on that
   // month, one side of the swap is being priced wrong.
-  const saleMonth = builtIn('all-cash').housing.saleMonthOffset
+  const saleMonth = builtIn('all-cash').saleMonthOffset
   it.each([
     ['flat market', flat],
     ['rising market', growing],
@@ -356,8 +388,8 @@ describe('indexation', () => {
 
   it('reports the month income on the row, stepping in June', () => {
     const rows = simulateHalyk(indexedAt(0.1)).rows
-    expect(rows[0]!.freeCash).toBe(0)
-    expect(rows[1]!.freeCash).toBeCloseTo(500_000, 2)
+    // Income now flows from month 0; the raise lands in June 2027 (month 11).
+    expect(rows[0]!.freeCash).toBeCloseTo(500_000, 2)
     expect(rows[10]!.freeCash).toBeCloseTo(500_000, 2)
     expect(rows[11]!.freeCash).toBeCloseTo(550_000, 2)
   })
@@ -370,10 +402,18 @@ describe('indexation', () => {
 describe("month 0 consolidation of today's accounts", () => {
   const total = startingMoney(DEFAULT_INPUTS)
 
+  // These pin what month 0 does with today's accounts, so income (which also
+  // lands in the deposit from month 0 now) is turned off to leave the row showing
+  // the consolidation alone. startingMoney does not depend on income.
+  const noIncome: Inputs = {
+    ...DEFAULT_INPUTS,
+    cashflow: { ...DEFAULT_INPUTS.cashflow, monthlySalary: 0 },
+  }
+
   it.each([
-    ['halyk', simulateHalyk(DEFAULT_INPUTS)],
-    ['halyk-delayed', simulateHalykDelayed(DEFAULT_INPUTS, 11)],
-    ['all-cash', simulateAllCash(DEFAULT_INPUTS)],
+    ['halyk', simulateHalyk(noIncome)],
+    ['halyk-delayed', simulateHalykDelayed(noIncome, 11)],
+    ['all-cash', simulateAllCash(noIncome)],
   ] as const)(
     '%s puts the lot in the savings deposit and opens no Otbasy account',
     (_id, result) => {
@@ -389,7 +429,7 @@ describe("month 0 consolidation of today's accounts", () => {
   )
 
   it('the Otbasy variant puts the lot on the Otbasy account instead', () => {
-    const first = simulateOtbasy(DEFAULT_INPUTS).rows[0]!
+    const first = simulateOtbasy(noIncome).rows[0]!
     expect(first.savingsBalance).toBe(0)
     // Not exactly `total`: the Otbasy deposit pays monthly, so month 0's own
     // interest is already credited by the time the row is written.
@@ -410,8 +450,8 @@ describe("month 0 consolidation of today's accounts", () => {
 
   it('drops the Otbasy money when the toggle says there is no such account', () => {
     const without = simulateHalyk({
-      ...DEFAULT_INPUTS,
-      otbasy: { ...DEFAULT_INPUTS.otbasy, hasDeposit: false },
+      ...noIncome,
+      otbasy: { ...noIncome.otbasy, hasDeposit: false },
     })
     const base = DEFAULT_INPUTS.deposits.savingsBalance
     expect(without.rows[0]!.savingsBalance).toBeCloseTo(base * (1 + 0.184 / 12), 2)
@@ -421,18 +461,20 @@ describe("month 0 consolidation of today's accounts", () => {
 // Consolidation put every tenge in one deposit, which makes that deposit's payout
 // cycle decide everything. These pin the sharp edge it created.
 describe('one deposit for everything', () => {
-  // 12% indexes rent past the flat 500k income around month 30; from there every
-  // month needs a withdrawal.
+  // 14% grows the apartment faster than savings can chase, so the all-cash plan
+  // never affords the purchase and keeps renting; rent indexes past the flat 500k
+  // income partway through, and from there every month needs a withdrawal. (At 12%
+  // the plan just barely buys, which would end the renting regime this pins.)
   const growing: Inputs = {
     ...DEFAULT_INPUTS,
-    apartment: { ...DEFAULT_INPUTS.apartment, annualGrowthRate: 0.12 },
+    apartment: { ...DEFAULT_INPUTS.apartment, annualGrowthRate: 0.14 },
   }
 
-  // Selects the catalogue's monthly-payout deposit by id, rather than restating
-  // its numbers here where they could drift from data/deposits.yml.
-  function payingMonthly(inputs: Inputs): Inputs {
-    return { ...inputs, deposits: { ...inputs.deposits, savingsProductId: 'kaspi-savings' } }
-  }
+  // Runs the all-cash plan on the catalogue's monthly-payout deposit — the deposit
+  // is a plan decision now, so it is chosen on the plan by id, rather than
+  // restating its numbers here where they could drift from data/deposits.yml.
+  const allCashMonthly = (inputs: Inputs): VariantResult =>
+    runPlan(inputs, withDeposit(builtIn('all-cash'), 'kaspi-savings'))
 
   it('a six-month deposit stops earning once every month needs a withdrawal', () => {
     const rows = simulateAllCash(growing).rows
@@ -445,14 +487,14 @@ describe('one deposit for everything', () => {
 
   it('so the lower monthly-payout rate beats the higher six-month one', () => {
     const sixMonth = simulateAllCash(growing).totals.depositInterestEarned
-    const monthly = simulateAllCash(payingMonthly(growing)).totals.depositInterestEarned
+    const monthly = allCashMonthly(growing).totals.depositInterestEarned
     expect(monthly).toBeGreaterThan(sixMonth)
   })
 
   it('while with no withdrawals at all the higher rate wins, as it should', () => {
     // Flat rent stays under the income, so nothing is ever taken out.
     const sixMonth = simulateAllCash(DEFAULT_INPUTS).totals.depositInterestEarned
-    const monthly = simulateAllCash(payingMonthly(DEFAULT_INPUTS)).totals.depositInterestEarned
+    const monthly = allCashMonthly(DEFAULT_INPUTS).totals.depositInterestEarned
     expect(sixMonth).toBeGreaterThan(monthly)
   })
 })
