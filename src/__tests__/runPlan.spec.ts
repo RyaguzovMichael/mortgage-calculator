@@ -30,16 +30,19 @@ describe('runPlan built from the constructor', () => {
     expect(min.totals.loanInterestPaid).toBeLessThan(max.totals.loanInterestPaid)
   })
 
-  // Both repayment styles settle the loan. They differ less than you'd expect in
-  // the current model: payScheduled applies the whole month's budget, so there is
-  // rarely a surplus for "lump" to save — the distinction bites only on the final
-  // partial month. (A known limitation, noted for later, not fixed in this refactor
-  // because changing payScheduled would move every number.)
-  it('settles the loan under either repayment style', () => {
-    const monthly = runPlan(DEFAULT_INPUTS, plan({ repay: 'monthly' }))
-    const lump = runPlan(DEFAULT_INPUTS, plan({ repay: 'lump' }))
+  // Both repayment styles settle the loan, but they are genuinely different
+  // strategies. "monthly" prepays every surplus tenge, so it pays the least
+  // interest. "lump" pays only the scheduled annuity and banks the surplus at the
+  // deposit rate, closing the loan in one hit later — it pays MORE interest yet
+  // ends richer, because the deposit rate beats the loan rate. That arbitrage is
+  // the whole reason the Otbasy plan repays lump.
+  it('settles under either style; lump pays more interest but ends richer', () => {
+    const monthly = runPlan(DEFAULT_INPUTS, plan({ loan: 'otbasy', buyWhen: 'otbasy-gates', repay: 'monthly' }))
+    const lump = runPlan(DEFAULT_INPUTS, plan({ loan: 'otbasy', buyWhen: 'otbasy-gates', repay: 'lump' }))
     expect(monthly.debtFreeMonth).not.toBeNull()
     expect(lump.debtFreeMonth).not.toBeNull()
+    expect(lump.totals.loanInterestPaid).toBeGreaterThan(monthly.totals.loanInterestPaid)
+    expect(lump.totals.netWorthAtEnd).toBeGreaterThan(monthly.totals.netWorthAtEnd)
   })
 
   it('after-months buys later, and later means a higher price when the market grows', () => {

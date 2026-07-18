@@ -38,20 +38,22 @@ export function payRent(
   return { rentPaid: fromBudget + fromSavings, budget: budget - fromBudget }
 }
 
-// The bank's scheduled payment comes first and is topped up from savings if the
-// month's cash cannot cover it; only what is left over is discretionary.
+// Pays ONLY the bank's scheduled annuity — topped up from savings if the month's
+// cash cannot cover it — and returns whatever budget is left for the plan to
+// decide on. A monthly plan then prepays that surplus (same total, so its numbers
+// are unchanged); a lump plan saves it at the deposit rate and closes the loan in
+// one hit later, which is the arbitrage the Otbasy strategy is built on.
 export function payScheduled(
   loan: Loan,
   wallet: Wallet,
   budget: number,
 ): { payment: LoanPayment; budget: number } {
-  const topUp = Math.max(0, loan.scheduledPayment - budget)
-  const fromSavings = wallet.takeSavings(topUp)
-  const payment = loan.pay(budget + fromSavings)
+  const scheduled = loan.scheduledPayment
+  const fromSavings = budget < scheduled ? wallet.takeSavings(scheduled - budget) : 0
+  const payment = loan.pay(Math.min(budget + fromSavings, scheduled))
 
-  // The loan caps what it takes at the stub of balance left, so on the final month
-  // it needs less than the scheduled amount. Return the part of the savings top-up
-  // it did not use — otherwise that money simply disappears.
+  // On the final month the loan closes for less than the scheduled amount; return
+  // any savings top-up it did not need, otherwise that money disappears.
   const spentFromBudget = Math.min(payment.paid, budget)
   const spentFromSavings = payment.paid - spentFromBudget
   if (spentFromSavings < fromSavings) wallet.addSavings(fromSavings - spentFromSavings)
