@@ -12,6 +12,10 @@ import { DEFAULT_INPUTS } from '@/infrastructure/inputsStorage'
 // The model starts in July 2026, so the Junes are months 11, 23, 35...
 const JULY_START = DEFAULT_INPUTS
 
+// Growth defaults to 5% now, so tests exercising the flat-market case need to
+// say so explicitly rather than lean on the default.
+const FLAT: Inputs = { ...JULY_START, apartment: { ...JULY_START.apartment, annualGrowthRate: 0 } }
+
 // Housing is a plan decision now, not part of Inputs — these tests exercise
 // housing-independent formulas plus saleProceedsAt, which just needs some
 // selling housing to work against.
@@ -56,7 +60,7 @@ describe('saleProceedsAt', () => {
   })
 
   it('is the value today when the market is flat', () => {
-    expect(saleProceedsAt(JULY_START, HOUSING, 36)).toBe(HOUSING.saleProceeds)
+    expect(saleProceedsAt(FLAT, HOUSING, 36)).toBe(HOUSING.saleProceeds)
   })
 })
 
@@ -67,7 +71,7 @@ describe('rentAt', () => {
   })
 
   it('has no rate of its own to freeze', () => {
-    expect(rentAt(JULY_START, 48)).toBe(JULY_START.cashflow.monthlyRent)
+    expect(rentAt(FLAT, 48)).toBe(FLAT.cashflow.monthlyRent)
   })
 })
 

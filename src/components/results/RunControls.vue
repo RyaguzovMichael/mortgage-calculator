@@ -1,8 +1,31 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useInputs } from '@/app/useInputs'
 
 const { inputs } = useInputs()
+
+const growthPercent = computed<number>({
+  get: () => Math.round(inputs.apartment.annualGrowthRate * 1e6) / 1e4,
+  set: (value) => {
+    Object.assign(inputs.apartment, { annualGrowthRate: value / 100 })
+  },
+})
+
+function onGrowthInput(event: Event): void {
+  const parsed = Number((event.target as HTMLInputElement).value)
+  if (Number.isFinite(parsed)) growthPercent.value = parsed
+}
+
+// A floating tip, not an always-reserved line: it only appears on a pointerup
+// on the input (a tap or click release) and closes again once the field loses
+// focus, so it never pushes the rest of the layout around.
+const growthHintOpen = ref(false)
+function openGrowthHint(): void {
+  growthHintOpen.value = true
+}
+function closeGrowthHint(): void {
+  growthHintOpen.value = false
+}
 
 // The slider's own scale, independent of the stored horizon: dragging always
 // works in whole years, but a saved horizonMonths that isn't a multiple of 12
@@ -52,6 +75,27 @@ const yearsWord = computed<string>(() => {
       <span class="label">Старт</span>
       <input v-model="startValue" type="month" />
     </label>
+    <label class="growth-field">
+      <span class="label">Рост цены в год</span>
+      <span class="control">
+        <input
+          class="growth-input"
+          type="number"
+          step="1"
+          :value="growthPercent"
+          @input="onGrowthInput"
+          @pointerup="openGrowthHint"
+          @blur="closeGrowthHint"
+        />
+        <span class="suffix">%</span>
+        <span v-if="growthHintOpen" class="hint-tip" role="tooltip">
+          Год к году: 12% = через год цена выше на 12%. Меняется ступенькой раз в полгода. Этой
+          же ставкой индексируются аренда и цена вашей продаваемой квартиры. Подставляйте
+          долгосрочное среднее, а не пиковый год: порог переворота выводов ≈ 9%, и в диапазоне
+          8–10% ответ определяется деталями модели, а не рынком.
+        </span>
+      </span>
+    </label>
     <label class="horizon-field">
       <span class="label">
         Горизонт расчёта
@@ -91,13 +135,41 @@ const yearsWord = computed<string>(() => {
   gap: 14px 20px;
 }
 .start-field,
+.growth-field,
 .horizon-field {
   display: flex;
   flex-direction: column;
   gap: 4px;
 }
-.start-field {
+.start-field,
+.growth-field {
   flex: none;
+}
+.growth-field .control {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+}
+.growth-input {
+  width: 70px;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface-1);
+  color: var(--text-primary);
+  font: inherit;
+  font-family: var(--mono);
+  font-size: var(--text-lg);
+}
+.growth-input:focus-visible {
+  outline: 2px solid var(--series-1);
+  outline-offset: -1px;
+}
+.growth-field .suffix {
+  color: var(--text-muted);
+  font-size: var(--text-md);
 }
 /* Takes whatever room the plan chips leave: the slider is the thing worth
    dragging precisely, so it gets the width. */

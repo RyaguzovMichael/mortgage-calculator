@@ -127,10 +127,8 @@ function endAt(variant: VariantResult, months: number): VariantResult {
   return { ...variant, rows, totals: summarize(rows) }
 }
 
-// Ranked by net worth, not by totalLoss: totalLoss assumes every variant ends up
-// with the same apartment so its price cancels out, which stops being true the
-// moment prices grow and the variants buy in different months at different prices.
-// Net worth stays honest either way.
+// Ranked by net worth: it stays honest even once prices grow and variants buy
+// in different months at different prices.
 function bestOf(variants: readonly VariantResult[]): VariantId {
   return variants.reduce((best, variant) =>
     variant.totals.netWorthAtEnd > best.totals.netWorthAtEnd ? variant : best,

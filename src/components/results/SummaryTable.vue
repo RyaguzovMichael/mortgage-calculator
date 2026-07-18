@@ -17,11 +17,6 @@ const colorOf = computed<Record<VariantId, string>>(() => {
   return map
 })
 
-// totalLoss assumes every variant ends up with the same apartment so its price
-// cancels out. Once the price moves, they buy in different months at different
-// prices and it quietly mis-ranks — so say so rather than show it bare.
-const lossIsValid = computed(() => inputs.apartment.annualGrowthRate === 0)
-
 // Plans the user asked to see but the engine could not run — a delayed plan whose
 // window chains to an Otbasy purchase that never happens. Named so the table says
 // why they are missing rather than letting them vanish.
@@ -96,12 +91,6 @@ const COLUMNS: readonly Column[] = [
     cell: (variant) => money(variant.totals.govBonusReceived),
   },
   {
-    key: 'totalLoss',
-    label: 'Потеря',
-    sort: (variant) => variant.totals.totalLoss,
-    cell: (variant) => money(variant.totals.totalLoss),
-  },
-  {
     key: 'netWorthAtEnd',
     label: 'Чистые активы',
     sort: (variant) => variant.totals.netWorthAtEnd,
@@ -142,7 +131,6 @@ function classesFor(column: Column, variant: VariantResult): Record<string, bool
   return {
     left: column.left === true,
     primary: column.key === 'netWorthAtEnd',
-    dim: column.key === 'totalLoss' && !lossIsValid.value,
     // Flagged only when waiting actually cost something: at 0% growth every
     // variant pays the list price and colouring the column would be noise.
     overpay:
@@ -173,7 +161,6 @@ function classesFor(column: Column, variant: VariantResult): Record<string, bool
               :class="{
                 left: column.left,
                 primary: column.key === 'netWorthAtEnd',
-                dim: column.key === 'totalLoss' && !lossIsValid,
                 on: sortKey === column.key,
               }"
               :aria-sort="
@@ -211,15 +198,6 @@ function classesFor(column: Column, variant: VariantResult): Record<string, bool
       Не считается: {{ droppedShown.join(', ') }}. План ждёт ровно столько же, сколько Otbasy, а
       Otbasy не выходит на покупку в пределах горизонта — ждать не за чем. Задайте окно накопления
       вручную или поднимите горизонт.
-    </p>
-
-    <p v-if="!lossIsValid" class="warning">
-      Рост цены {{ (inputs.apartment.annualGrowthRate * 100).toFixed(1) }}%/год — колонка «потеря»
-      больше не сравнима: варианты покупают в разные месяцы по разной цене, и цена квартиры
-      перестаёт сокращаться. Ориентируйтесь на чистые активы.
-    </p>
-    <p v-else class="note">
-      Отрицательная потеря = вы в плюсе: доход с вкладов перекрыл аренду и проценты банку.
     </p>
   </section>
 </template>
@@ -297,10 +275,6 @@ td.left {
   font-weight: 600;
   color: var(--text-primary);
 }
-.dim {
-  color: var(--text-muted);
-  text-decoration: line-through;
-}
 .overpay {
   color: var(--critical);
 }
@@ -314,13 +288,10 @@ td.left {
   border-radius: 2px;
   margin-right: 7px;
 }
-.warning,
-.note {
+.warning {
   font-size: var(--text-md);
   margin: 10px 0 0;
   color: var(--text-secondary);
-}
-.warning {
   border-left: 2px solid var(--critical);
   padding-left: 8px;
 }

@@ -23,7 +23,7 @@ export const DEFAULT_INPUTS: Inputs = {
   horizonMonths: 60,
   apartment: {
     price: 45_000_000,
-    annualGrowthRate: 0,
+    annualGrowthRate: 0.05,
   },
   cashflow: {
     monthlyFreeCash: 500_000,

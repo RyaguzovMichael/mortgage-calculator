@@ -90,7 +90,6 @@ describe('every variant', () => {
       expect(result.totals.loanInterestPaid).toBeCloseTo(interestPaid, 4)
       expect(result.totals.depositInterestEarned).toBeCloseTo(earned, 4)
       expect(result.totals.govBonusReceived).toBeCloseTo(bonus, 4)
-      expect(result.totals.totalLoss).toBeCloseTo(rentPaid + interestPaid - earned - bonus, 4)
     },
   )
 })
@@ -144,8 +143,12 @@ describe('rent', () => {
   it('is what makes saving expensive — at zero rent the savers win', () => {
     const free = withRent(0)
     const immediate = simulateHalyk(free)
-    expect(simulateAllCash(free).totals.totalLoss).toBeLessThan(immediate.totals.totalLoss)
-    expect(simulateHalykDelayed(free, 11).totals.totalLoss).toBeLessThan(immediate.totals.totalLoss)
+    expect(simulateAllCash(free).totals.netWorthAtEnd).toBeGreaterThan(
+      immediate.totals.netWorthAtEnd,
+    )
+    expect(simulateHalykDelayed(free, 11).totals.netWorthAtEnd).toBeGreaterThan(
+      immediate.totals.netWorthAtEnd,
+    )
   })
 })
 
@@ -200,13 +203,14 @@ describe('deposit rate', () => {
       },
       otbasy: { ...DEFAULT_INPUTS.otbasy, depositAnnualRate: 0 },
     }
-    const immediate = simulateHalyk(inputs).totals.totalLoss
-    expect(immediate).toBeLessThan(simulateAllCash(inputs).totals.totalLoss)
-    expect(immediate).toBeLessThan(simulateOtbasy(inputs).totals.totalLoss)
+    const immediate = simulateHalyk(inputs).totals.netWorthAtEnd
+    expect(immediate).toBeGreaterThan(simulateAllCash(inputs).totals.netWorthAtEnd)
+    expect(immediate).toBeGreaterThan(simulateOtbasy(inputs).totals.netWorthAtEnd)
   })
 })
 
 describe('apartment price', () => {
+  const flat: Inputs = { ...DEFAULT_INPUTS, apartment: { ...DEFAULT_INPUTS.apartment, annualGrowthRate: 0 } }
   const growing: Inputs = {
     ...DEFAULT_INPUTS,
     apartment: { ...DEFAULT_INPUTS.apartment, annualGrowthRate: 0.12 },
@@ -221,10 +225,10 @@ describe('apartment price', () => {
   })
 
   it('holds at the list price when growth is off', () => {
-    for (const result of allVariants(DEFAULT_INPUTS)) {
-      expect(result.purchasePrice).toBe(DEFAULT_INPUTS.apartment.price)
+    for (const result of allVariants(flat)) {
+      expect(result.purchasePrice).toBe(flat.apartment.price)
       for (const row of result.rows) {
-        expect(row.apartmentPrice).toBe(DEFAULT_INPUTS.apartment.price)
+        expect(row.apartmentPrice).toBe(flat.apartment.price)
       }
     }
   })
@@ -260,6 +264,7 @@ describe('apartment price', () => {
 })
 
 describe('the flat being sold', () => {
+  const flat: Inputs = { ...DEFAULT_INPUTS, apartment: { ...DEFAULT_INPUTS.apartment, annualGrowthRate: 0 } }
   const growing: Inputs = {
     ...DEFAULT_INPUTS,
     apartment: { ...DEFAULT_INPUTS.apartment, annualGrowthRate: 0.12 },
@@ -276,14 +281,14 @@ describe('the flat being sold', () => {
       simulateAllCash(inputs, soldOnMonth(12)).rows[12]!.savingsBalance
     // A year of 12% on 35M is ~4.2M; the only other thing that differs is one
     // month of indexed rent, worth ~48k.
-    expect(savingsAtSale(growing)).toBeGreaterThan(savingsAtSale(DEFAULT_INPUTS) + 3_000_000)
+    expect(savingsAtSale(growing)).toBeGreaterThan(savingsAtSale(flat) + 3_000_000)
   })
 
   // Selling swaps a flat for cash of equal value; if net worth jumps on that
   // month, one side of the swap is being priced wrong.
   const saleMonth = builtIn('all-cash').housing.saleMonthOffset
   it.each([
-    ['flat market', DEFAULT_INPUTS],
+    ['flat market', flat],
     ['rising market', growing],
   ] as const)('does not make net worth jump on the sale month (%s)', (_label, inputs) => {
     const rows = simulateAllCash(inputs).rows
@@ -304,7 +309,7 @@ describe('indexation', () => {
   }
 
   it('leaves rent flat when the apartment price is flat', () => {
-    for (const row of simulateAllCash(DEFAULT_INPUTS).rows.filter((row) => row.rentPaid > 0)) {
+    for (const row of simulateAllCash(growingAt(0)).rows.filter((row) => row.rentPaid > 0)) {
       expect(row.rentPaid).toBeCloseTo(DEFAULT_INPUTS.cashflow.monthlyRent, 6)
     }
   })
@@ -327,7 +332,7 @@ describe('indexation', () => {
     const growingMonths = growing.rows.filter((row) => row.rentPaid > 0).length
     expect(growing.totals.rentPaid).toBeGreaterThan(growingMonths * base)
 
-    const flat = simulateAllCash(DEFAULT_INPUTS)
+    const flat = simulateAllCash(growingAt(0))
     const flatMonths = flat.rows.filter((row) => row.rentPaid > 0).length
     expect(flat.totals.rentPaid).toBeCloseTo(flatMonths * base, 2)
   })

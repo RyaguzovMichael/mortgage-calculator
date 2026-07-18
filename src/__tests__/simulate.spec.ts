@@ -139,20 +139,6 @@ describe('simulateAll', () => {
     expect(report(onlyCash).bestVariant).toBe('all-cash')
   })
 
-  // totalLoss silently mis-ranks once the price moves, because the variants then
-  // buy at different prices and the apartment no longer cancels out.
-  it('does not fall back to total loss when prices grow', () => {
-    const growing = {
-      ...DEFAULT_INPUTS,
-      apartment: { ...DEFAULT_INPUTS.apartment, annualGrowthRate: 0.1 },
-    }
-    const r = report(growing)
-    const cheapest = [...r.variants].sort(
-      (left, right) => left.totals.totalLoss - right.totals.totalLoss,
-    )[0]
-    expect(r.bestVariant).not.toBe(cheapest!.id)
-  })
-
   describe('comparison window', () => {
     it('ends the month the last shown variant clears its debt', () => {
       const r = report(DEFAULT_INPUTS)

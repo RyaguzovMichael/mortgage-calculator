@@ -90,10 +90,6 @@ export interface VariantTotals {
   readonly loanInterestPaid: number
   readonly depositInterestEarned: number
   readonly govBonusReceived: number
-  // rent + loan interest − deposit income − state bonus. Comparable across
-  // variants because each ends holding the same apartment with no debt, so the
-  // price cancels out and only the cash flows differ.
-  readonly totalLoss: number
   // Net worth on the last month of the comparison window, not of the horizon:
   // simulateAll cuts every variant back to the month the slowest one clears its
   // debt, because past that point there is nothing left to compare.
