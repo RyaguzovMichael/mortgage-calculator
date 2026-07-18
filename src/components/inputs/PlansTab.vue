@@ -56,7 +56,7 @@ function showTitle(id: string): string {
 </script>
 
 <template>
-  <section>
+  <section class="field-group">
     <h3>Встроенные планы</h3>
     <p class="note">
       Из файла <code>data/plans.yml</code>. Их нельзя изменить или удалить. Отметьте, какие показывать
@@ -71,13 +71,13 @@ function showTitle(id: string): string {
           :title="showTitle(plan.id)"
           @change="toggleShown(plan.id)"
         />
-        <span class="plan-name">{{ plan.name }}</span>
+        <span class="item-name">{{ plan.name }}</span>
       </label>
-      <span class="plan-terms">{{ describePlan(plan) }}</span>
+      <span class="item-terms">{{ describePlan(plan) }}</span>
     </div>
   </section>
 
-  <section>
+  <section class="field-group">
     <header class="section-head">
       <h3>Свои планы</h3>
       <button type="button" @click="addPlan">+ Добавить</button>
@@ -102,7 +102,7 @@ function showTitle(id: string): string {
         <button type="button" title="Удалить план" @click="removePlan(plan.id)">Удалить</button>
       </div>
 
-      <label class="field">
+      <label class="select-field">
         <span>Кредит</span>
         <select :value="plan.loan" @change="setLoan(plan, ($event.target as HTMLSelectElement).value as PurchasePlan['loan'])">
           <option v-for="option in LOAN_OPTIONS" :key="option.value" :value="option.value">
@@ -111,7 +111,7 @@ function showTitle(id: string): string {
         </select>
       </label>
 
-      <label class="field">
+      <label class="select-field">
         <span>Когда покупать</span>
         <select v-model="plan.buyWhen">
           <option v-for="option in buyWhenOptions(plan)" :key="option.value" :value="option.value">
@@ -120,7 +120,7 @@ function showTitle(id: string): string {
         </select>
       </label>
 
-      <label v-if="plan.buyWhen === 'after-months'" class="field">
+      <label v-if="plan.buyWhen === 'after-months'" class="select-field">
         <span>Копить месяцев</span>
         <input
           type="number"
@@ -133,7 +133,7 @@ function showTitle(id: string): string {
       </label>
 
       <template v-if="plan.loan !== 'none'">
-        <label class="field">
+        <label class="select-field">
           <span>Сколько занимать</span>
           <select v-model="plan.borrow">
             <option v-for="option in BORROW_OPTIONS" :key="option.value" :value="option.value">
@@ -142,7 +142,7 @@ function showTitle(id: string): string {
           </select>
         </label>
 
-        <label class="field">
+        <label class="select-field">
           <span>Как гасить</span>
           <select v-model="plan.repay">
             <option v-for="option in REPAY_OPTIONS" :key="option.value" :value="option.value">
@@ -152,62 +152,15 @@ function showTitle(id: string): string {
         </label>
       </template>
 
-      <p class="plan-terms">{{ describePlan(plan) }}</p>
+      <p class="item-terms">{{ describePlan(plan) }}</p>
     </div>
   </section>
 </template>
 
 <style scoped>
-h3 {
-  font-size: var(--text-md);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--text-muted);
-  margin: 0 0 8px;
-}
-.note {
-  color: var(--text-muted);
-  font-size: var(--text-sm);
-  margin: 0;
-}
-code {
-  font-family: var(--mono);
-}
-.section-head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 8px;
-}
-.section-head h3 {
-  margin: 0;
-}
-.section-head button {
-  border: 1px solid var(--border);
-  background: var(--surface-2);
-  color: var(--text-secondary);
-  border-radius: 6px;
-  padding: 4px 10px;
-  font: inherit;
-  font-size: var(--text-md);
-  cursor: pointer;
-  white-space: nowrap;
-}
-.section-head button:hover {
-  color: var(--text-primary);
-}
-.built-in,
-.own {
-  border-left: 2px solid var(--border);
-  padding-left: 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-.own {
-  gap: 8px;
-  padding-bottom: 10px;
-}
+/* Everything else — .field-group, .note, .section-head, .built-in, .own,
+   .own-head, .select-field, .item-name, .item-terms, .hint — comes from
+   assets/forms.css. Only the show-checkbox row is specific to this tab. */
 .show {
   display: flex;
   align-items: center;
@@ -219,76 +172,5 @@ code {
 }
 .show input:disabled {
   cursor: not-allowed;
-}
-.plan-name {
-  font-size: var(--text-lg);
-}
-.plan-terms {
-  color: var(--text-muted);
-  font-size: var(--text-sm);
-  margin: 0;
-}
-.own-head {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.own-head input[type='text'] {
-  flex: 1;
-  min-width: 0;
-  padding: 6px 8px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: var(--surface-1);
-  color: var(--text-primary);
-  font: inherit;
-  font-size: var(--text-lg);
-}
-.own-head input[type='text']:focus-visible {
-  outline: 2px solid var(--series-1);
-  outline-offset: -1px;
-}
-.own-head button {
-  border: 1px solid var(--border);
-  background: var(--surface-2);
-  color: var(--text-secondary);
-  border-radius: 6px;
-  padding: 4px 10px;
-  font: inherit;
-  font-size: var(--text-md);
-  cursor: pointer;
-  white-space: nowrap;
-}
-.own-head button:hover {
-  color: var(--text-primary);
-}
-.field {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  font-size: var(--text-md);
-  color: var(--text-secondary);
-}
-.field select,
-.field input[type='number'] {
-  padding: 6px 8px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: var(--surface-1);
-  color: var(--text-primary);
-  font: inherit;
-  font-size: var(--text-lg);
-}
-.field input[type='number'] {
-  font-family: var(--mono);
-}
-.field select:focus-visible,
-.field input[type='number']:focus-visible {
-  outline: 2px solid var(--series-1);
-  outline-offset: -1px;
-}
-.hint {
-  color: var(--text-muted);
-  font-size: var(--text-sm);
 }
 </style>

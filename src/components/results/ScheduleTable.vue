@@ -78,7 +78,7 @@ function cell(column: Column, row: MonthRow): string {
     </header>
 
     <div class="scroll">
-      <table>
+      <table class="data-table">
         <thead>
           <tr>
             <th>Мес</th>
@@ -121,11 +121,10 @@ function cell(column: Column, row: MonthRow): string {
 </template>
 
 <style scoped>
+/* .card and the .data-table skeleton come from assets/forms.css; only the
+   schedule's own bits — the dense padding, the sticky header, the variant tabs,
+   the event tint — stay here. */
 .card {
-  background: var(--surface-1);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 14px;
   /* Header and note take what they need; the scroller gets the rest of whatever
      height the parent hands this card. */
   display: flex;
@@ -172,16 +171,11 @@ button.on {
   min-height: 200px;
 }
 table {
-  border-collapse: collapse;
-  width: 100%;
   font-size: var(--text-md);
 }
 th,
 td {
   padding: 4px 8px;
-  text-align: right;
-  white-space: nowrap;
-  border-bottom: 1px solid var(--border);
 }
 thead th {
   position: sticky;
@@ -192,13 +186,6 @@ thead th {
   font-size: var(--text-xs);
   text-transform: uppercase;
   letter-spacing: 0.03em;
-}
-td {
-  font-family: var(--mono);
-  font-variant-numeric: tabular-nums;
-}
-.left {
-  text-align: left;
 }
 .phase {
   font-family: var(--font);

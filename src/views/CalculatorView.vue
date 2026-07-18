@@ -6,6 +6,7 @@ import PlanVisibility from '@/components/results/PlanVisibility.vue'
 import NetWorthChart from '@/components/results/NetWorthChart.vue'
 import ScheduleTable from '@/components/results/ScheduleTable.vue'
 import TabBar from '@/components/TabBar.vue'
+import { tabButtonId, tabPanelId } from '@/components/tabIds'
 
 // The summary stays put above these: it is the answer, and the chart and the
 // schedule are two ways of auditing it.
@@ -28,9 +29,18 @@ const view = ref<ViewId>('chart')
       <SummaryTable />
       <PlanVisibility />
       <div class="views">
-        <TabBar v-model="view" :tabs="VIEWS" />
-        <NetWorthChart v-if="view === 'chart'" />
-        <ScheduleTable v-else />
+        <TabBar v-model="view" :tabs="VIEWS" base="views" />
+        <!-- One panel, whose id/labelledby track the active tab: only the shown
+             view is mounted, so the panel wears the active tab's association. -->
+        <div
+          class="view-panel"
+          role="tabpanel"
+          :id="tabPanelId('views', view)"
+          :aria-labelledby="tabButtonId('views', view)"
+        >
+          <NetWorthChart v-if="view === 'chart'" />
+          <ScheduleTable v-else />
+        </div>
       </div>
     </main>
   </div>
@@ -72,10 +82,16 @@ main {
   flex: 1;
   min-height: 0;
 }
-/* The tab strip keeps its natural height; the card below it takes the rest. The
-   cards cannot do this with height: 100% — that would resolve against .views and
-   overflow by exactly the height of the strip. */
-.views > section {
+/* The tab strip keeps its natural height; the panel below it takes the rest and
+   hands that height straight to its card. Cannot use height: 100% — that would
+   resolve against .views and overflow by exactly the height of the strip. */
+.view-panel {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+.view-panel > section {
   flex: 1;
   min-height: 0;
 }

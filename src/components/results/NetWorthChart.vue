@@ -374,13 +374,9 @@ const tooltip = computed(() => {
 </template>
 
 <style scoped>
+/* .card base comes from assets/forms.css; the chart adds column layout so the plot
+   can take whatever height is left after the header and legend. */
 .card {
-  background: var(--surface-1);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 14px;
-  /* The header and legend take what they need; the plot gets the rest of
-     whatever height the parent hands this card. */
   display: flex;
   flex-direction: column;
   min-height: 0;

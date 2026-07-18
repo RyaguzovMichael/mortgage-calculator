@@ -165,7 +165,7 @@ function classesFor(column: Column, variant: VariantResult): Record<string, bool
     </header>
 
     <div class="scroll">
-      <table>
+      <table class="data-table">
         <thead>
           <tr>
             <th
@@ -226,12 +226,10 @@ function classesFor(column: Column, variant: VariantResult): Record<string, bool
 </template>
 
 <style scoped>
-.card {
-  background: var(--surface-1);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 14px;
-}
+/* .card and the .data-table skeleton (border-collapse, cell borders, right-align,
+   mono figures, .left) come from assets/forms.css; only what is specific to the
+   summary — its roomier padding, wrapping sortable headings, the best-row tint —
+   stays here. */
 header {
   margin-bottom: 10px;
 }
@@ -248,16 +246,11 @@ h2 {
   overflow-x: auto;
 }
 table {
-  border-collapse: collapse;
-  width: 100%;
   font-size: var(--text-lg);
 }
 th,
 td {
   padding: 7px 10px;
-  text-align: right;
-  white-space: nowrap;
-  border-bottom: 1px solid var(--border);
 }
 th {
   color: var(--text-muted);
@@ -297,13 +290,6 @@ th.on {
   /* Reserved even when empty, so switching columns does not shuffle the widths. */
   display: inline-block;
   width: 0.75em;
-}
-td {
-  font-family: var(--mono);
-  font-variant-numeric: tabular-nums;
-}
-.left {
-  text-align: left;
 }
 td.left {
   font-family: var(--font);
