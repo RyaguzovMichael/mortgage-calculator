@@ -105,6 +105,10 @@ export const BLANK_START_INPUTS: Inputs = {
     accruedInterest: 0,
     monthsOpen: 0,
   },
+  // Nothing on the board to begin with: the onboarding wizard's final step is where
+  // the user picks which plans to compare, so a first-time run starts them empty
+  // rather than pre-selecting the developer's three.
+  plans: { ...DEFAULT_INPUTS.plans, shown: [] },
 }
 
 export function loadInputs(): Inputs | null {

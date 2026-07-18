@@ -46,7 +46,8 @@ export function useInputs() {
     removeLoanProduct,
     canRemoveLoanProduct,
     allPlans,
-    addPlan,
+    newPlanDraft,
+    upsertPlan,
     removePlan,
     canRemovePlan,
     isPlanBuiltIn: isBuiltInPlan,
@@ -138,12 +139,13 @@ function highestIdWithPrefix(items: readonly { id: string }[], prefix: string): 
 // Plans get their own id counter for the same reason deposits do.
 let nextPlanId = 0
 
-// A new plan mirrors "Halyk" — a sensible, complete starting point the user
-// then edits. It is not shown by default: adding a plan must not shove someone
-// else off the eight-slot board on its own.
-function addPlan(): PurchasePlan {
+// A blank plan mirrors "Halyk" — a sensible, complete starting point the wizard
+// then walks the user through. It is *not* pushed here: the wizard edits this
+// draft in isolation and only commits it with upsertPlan on Finish, so a cancelled
+// creation leaves nothing behind (a skipped id is harmless — ids are never reused).
+function newPlanDraft(): PurchasePlan {
   nextPlanId = Math.max(nextPlanId, highestPlanId(inputs.plans.custom)) + 1
-  const plan: PurchasePlan = {
+  return {
     id: `plan-${nextPlanId}`,
     name: 'Новый план',
     loan: 'halyk',
@@ -155,8 +157,15 @@ function addPlan(): PurchasePlan {
     saleMonthOffset: DEFAULT_PLAN_SALE_MONTH,
     savingsProductId: DEFAULT_SAVINGS_PRODUCT_ID,
   }
-  inputs.plans.custom.push(plan)
-  return plan
+}
+
+// Commit a plan the wizard built or edited: replace the entry with the same id if
+// it is already there, otherwise append. A brand-new plan is not put on the board —
+// adding a plan must not shove someone else off the eight-slot board on its own.
+function upsertPlan(plan: PurchasePlan): void {
+  const at = inputs.plans.custom.findIndex((candidate) => candidate.id === plan.id)
+  if (at >= 0) inputs.plans.custom.splice(at, 1, plan)
+  else inputs.plans.custom.push(plan)
 }
 
 function removePlan(id: string): void {

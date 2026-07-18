@@ -22,8 +22,15 @@
     "conditions": "Start conditions",
     "plans": "Plans",
     "database": "Database",
-    "theme": { "system": "System", "light": "Light", "dark": "Dark" },
-    "locale": { "ru": "RU", "en": "EN" }
+    "theme": {
+      "system": "System",
+      "light": "Light",
+      "dark": "Dark"
+    },
+    "locale": {
+      "ru": "RU",
+      "en": "EN"
+    }
   },
   "footer": {
     "disclaimer": "This site is not financial advice. It is a personal, informational tool only — always verify real terms with your bank, lender, or a qualified financial advisor before making any decision.",
@@ -89,6 +96,10 @@
     "rent": {
       "title": "Rent you'd pay",
       "instruction": "If a plan has you renting between selling and buying, this is the monthly rent. It's ignored by plans where you never rent."
+    },
+    "plans": {
+      "title": "Which plans to compare",
+      "instruction": "Check the built-in plans you’d like to compare — and build your own if you like. You can change all of this later on the “Plans” page."
     }
   },
   "apartmentTab": {
@@ -156,7 +167,7 @@
     "builtInTitle": "Built-in plans",
     "builtInNote": "Preset plans. They cannot be changed or removed. Check which ones to show on the chart and in the summary.",
     "ownTitle": "Your plans",
-    "addButton": "+ Add",
+    "addButton": "Add",
     "ownEmpty": "Nothing yet. Build your own plan out of four decisions — e.g. “Halyk, but with a 50% down payment” — and compare it against the built-ins.",
     "nameAriaLabel": "Plan name {id}",
     "removeTitle": "Remove plan",
@@ -176,7 +187,9 @@
     "showAdd": "Show on chart",
     "showMax": "Chart shows at most {max} — unpick another plan first",
     "showNeedsApartment": "Needs an apartment you own now — turn it on in “Start conditions”",
-    "showNeedsNoApartment": "For when you own no apartment — turn ownership off in “Start conditions”"
+    "showNeedsNoApartment": "For when you own no apartment — turn ownership off in “Start conditions”",
+    "showAllLabel": "Show unavailable plans",
+    "editTitle": "Edit plan"
   },
   "runControls": {
     "startLabel": "Start",
@@ -242,13 +255,20 @@
     "payoutMonthly": "paid out every month, withdraw and lose nothing",
     "payoutPeriodic": "paid out every {months} {word}",
     "monthsForms": ["month", "months"],
-    "loanLabels": { "halyk": "Halyk", "otbasy": "Otbasy", "none": "No mortgage" },
+    "loanLabels": {
+      "halyk": "Halyk",
+      "otbasy": "Otbasy",
+      "none": "No mortgage"
+    },
     "buyWhenLabels": {
       "asap": "as soon as affordable",
       "afterMonths": "after N months",
       "otbasyGates": "on Otbasy's gates"
     },
-    "borrowLabels": { "max": "maximum (smaller down payment)", "min": "minimum (all upfront)" },
+    "borrowLabels": {
+      "max": "maximum (smaller down payment)",
+      "min": "minimum (all upfront)"
+    },
     "repayLabels": {
       "monthly": "repay every month",
       "lump": "save up and clear at once",
@@ -268,5 +288,71 @@
     },
     "describePlanAfterMonths": "after {n} {word}",
     "describePlanOtbasyWait": "wait like Otbasy"
+  },
+  "planWizard": {
+    "createTitle": "New plan",
+    "editTitle": "Edit plan",
+    "progress": "Step {current} of {total}",
+    "back": "Back",
+    "next": "Next",
+    "finish": "Done",
+    "cancel": "Cancel",
+    "nameLabel": "Plan name",
+    "namePlaceholder": "e.g. Halyk with 50% down",
+    "steps": {
+      "name": {
+        "title": "Name",
+        "instruction": "What should this plan be called? It appears under this name on the chart and in the summary."
+      },
+      "loan": {
+        "title": "Which loan",
+        "instruction": "How to pay for the flat: a bank mortgage, the Otbasy state-housing loan, or no loan — all cash."
+      },
+      "buyWhen": {
+        "title": "When to buy",
+        "instruction": "The moment this plan goes ahead and buys."
+      },
+      "borrow": {
+        "title": "How much to borrow",
+        "instruction": "How much of the price to put on the loan, and how much to pay upfront."
+      },
+      "repay": {
+        "title": "How to repay",
+        "instruction": "What to do with spare cash: repay the loan early, or let it compound on a deposit."
+      },
+      "situation": {
+        "title": "Current housing",
+        "instruction": "Where you live until you buy the new flat — and whether you sell the one you have."
+      },
+      "deposit": {
+        "title": "Deposit for savings",
+        "instruction": "Where this plan stores money until it buys. Add your own in the “Deposits” tab."
+      }
+    },
+    "desc": {
+      "loan": {
+        "none": "Save up and buy with cash — no interest.",
+        "otbasy": "State programme: a lower rate, but you must save up and wait for its gates."
+      },
+      "buyWhen": {
+        "asap": "Buy the first month you can afford it.",
+        "afterMonths": "Wait a set number of months, saving first.",
+        "otbasyGates": "Wait for Otbasy’s 50% balance and score gates."
+      },
+      "borrow": {
+        "max": "Smaller down payment, larger loan.",
+        "min": "Pay as much upfront as possible, borrow only the rest."
+      },
+      "repay": {
+        "monthly": "Pour spare cash into the loan every month.",
+        "lump": "Save on a deposit and clear the loan in one hit.",
+        "never": "Pay only the schedule; the cash compounds on a deposit."
+      },
+      "situation": {
+        "selling": "Sell the flat I own now, then rent.",
+        "free": "Live for free, nothing to sell.",
+        "renting": "Rent a place from the very start."
+      }
+    }
   }
 }

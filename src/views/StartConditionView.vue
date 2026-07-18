@@ -8,6 +8,7 @@ import NumberField from '@/components/inputs/NumberField.vue'
 import PercentField from '@/components/inputs/PercentField.vue'
 import MonthSelect from '@/components/inputs/MonthSelect.vue'
 import MortgageShareField from '@/components/inputs/MortgageShareField.vue'
+import PlansTab from '@/components/inputs/PlansTab.vue'
 
 const { inputs } = useInputs()
 const { t } = useI18n()
@@ -24,6 +25,9 @@ const STEPS = [
   'savings',
   'otbasy',
   'rent',
+  // The last screen is not a start condition but the pay-off: now that the
+  // conditions are set, choose which plans to compare and, if you like, build one.
+  'plans',
 ] as const
 type Step = (typeof STEPS)[number]
 
@@ -51,7 +55,7 @@ function finish(): void {
 
 <template>
   <main class="layout">
-    <section class="wizard card">
+    <section class="wizard card" :class="{ wide: step === 'plans' }">
       <p class="progress">
         {{ t('startCondition.progress', { current: index + 1, total: STEPS.length }) }}
       </p>
@@ -158,6 +162,8 @@ function finish(): void {
           :step="50000"
           :hint="t('moneyTab.rentHint')"
         />
+
+        <PlansTab v-else-if="step === 'plans'" />
       </div>
 
       <footer class="controls">
@@ -186,6 +192,10 @@ function finish(): void {
   display: flex;
   flex-direction: column;
   gap: 16px;
+}
+/* The plans step is a list of rows, not a single field — give it room to breathe. */
+.wizard.wide {
+  max-width: 680px;
 }
 .progress {
   color: var(--text-muted);
