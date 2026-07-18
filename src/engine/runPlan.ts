@@ -2,7 +2,7 @@ import { createLoan, type Loan } from './loan'
 import { createWallet, type Wallet } from './wallet'
 import { summarize } from './summary'
 import { apartmentPriceAt, rentDueAt, targetLoan, type Inputs } from './types/inputs'
-import type { MonthRow, PurchasePlan, VariantId, VariantResult } from './types/plan'
+import type { MonthRow, PurchasePlan, VariantResult } from './types/plan'
 import { months } from './variants/months'
 import { buildRow, canBuyAt, NO_PAYMENT, payRent, payScheduled, purchasePriceAt } from './variants/shared'
 
@@ -94,7 +94,8 @@ export function runPlan(inputs: Inputs, plan: PurchasePlan): VariantResult {
   }
 
   return {
-    id: plan.id as VariantId,
+    id: plan.id,
+    name: plan.name,
     rows,
     purchaseMonth,
     debtFreeMonth,

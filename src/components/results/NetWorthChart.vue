@@ -1,10 +1,27 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useInputs } from '@/app/useInputs'
-import { millions, money, monthLabel, VARIANT_COLORS, VARIANT_LABELS } from '@/app/format'
+import { colorForIndex, millions, money, monthLabel } from '@/app/format'
 import type { VariantId } from '@/engine/types/plan'
 
 const { report } = useInputs()
+
+// Colour and label are looked up by id off the shown variants: colour by their
+// order (the palette's fixed slots), the name straight off the plan. The chart's
+// derived lists (series, end labels, tooltip rows) only carry ids, so these two
+// maps are how they reach both.
+const colorOf = computed<Record<VariantId, string>>(() => {
+  const map: Record<VariantId, string> = {}
+  report.value.variants.forEach((variant, index) => {
+    map[variant.id] = colorForIndex(index)
+  })
+  return map
+})
+const nameOf = computed<Record<VariantId, string>>(() => {
+  const map: Record<VariantId, string> = {}
+  for (const variant of report.value.variants) map[variant.id] = variant.name
+  return map
+})
 
 // left fits "52,2 млн", right fits the longest variant name — both at --text-xs,
 // which is why they are wider than they look like they need to be.
@@ -194,8 +211,8 @@ const tooltip = computed(() => {
 
     <ul class="legend">
       <li v-for="variant in report.variants" :key="variant.id">
-        <span class="swatch" :style="{ background: VARIANT_COLORS[variant.id] }" />
-        {{ VARIANT_LABELS[variant.id] }}
+        <span class="swatch" :style="{ background: colorOf[variant.id] }" />
+        {{ nameOf[variant.id] }}
       </li>
       <li class="marks">
         <svg width="11" height="11" viewBox="0 0 11 11" aria-hidden="true">
@@ -279,7 +296,7 @@ const tooltip = computed(() => {
           :key="entry.id"
           :d="entry.path"
           fill="none"
-          :stroke="VARIANT_COLORS[entry.id]"
+          :stroke="colorOf[entry.id]"
           stroke-width="2"
           stroke-linejoin="round"
           stroke-linecap="round"
@@ -296,7 +313,7 @@ const tooltip = computed(() => {
               :cy="entry.debtFree.y"
               r="4.5"
               fill="var(--surface-1)"
-              :stroke="VARIANT_COLORS[entry.id]"
+              :stroke="colorOf[entry.id]"
               stroke-width="2"
             />
             <circle
@@ -304,7 +321,7 @@ const tooltip = computed(() => {
               :cx="entry.purchase.x"
               :cy="entry.purchase.y"
               r="4"
-              :fill="VARIANT_COLORS[entry.id]"
+              :fill="colorOf[entry.id]"
               stroke="var(--surface-1)"
               stroke-width="2"
             />
@@ -318,7 +335,7 @@ const tooltip = computed(() => {
             :cx="entry.points[hovered]?.x"
             :cy="entry.points[hovered]?.y"
             r="4"
-            :fill="VARIANT_COLORS[entry.id]"
+            :fill="colorOf[entry.id]"
             stroke="var(--surface-1)"
             stroke-width="2"
           />
@@ -331,7 +348,7 @@ const tooltip = computed(() => {
             :x="PAD.left + plot.width + 8"
             :y="label.y + 3.5"
           >
-            {{ VARIANT_LABELS[label.id] }}
+            {{ nameOf[label.id] }}
           </text>
         </g>
       </svg>
@@ -339,8 +356,8 @@ const tooltip = computed(() => {
       <div v-if="tooltip" class="tooltip" :style="{ left: `${tooltip.x}px` }">
         <p class="when">{{ tooltip.yearMonth }}</p>
         <p v-for="entry in tooltip.rows" :key="entry.id" class="row">
-          <span class="swatch" :style="{ background: VARIANT_COLORS[entry.id] }" />
-          <span class="name">{{ VARIANT_LABELS[entry.id] }}</span>
+          <span class="swatch" :style="{ background: colorOf[entry.id] }" />
+          <span class="name">{{ nameOf[entry.id] }}</span>
           <span class="value">{{ money(entry.row!.netWorth) }}</span>
         </p>
         <p class="row price">

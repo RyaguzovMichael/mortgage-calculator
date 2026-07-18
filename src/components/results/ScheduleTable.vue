@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useInputs } from '@/app/useInputs'
-import { money, monthLabel, PHASE_LABELS, VARIANT_COLORS, VARIANT_LABELS } from '@/app/format'
+import { colorForIndex, money, monthLabel, PHASE_LABELS } from '@/app/format'
 import type { MonthRow, VariantId } from '@/engine/types/plan'
 
 const { report } = useInputs()
@@ -63,7 +63,7 @@ function cell(column: Column, row: MonthRow): string {
       <h2>Помесячно</h2>
       <div class="tabs" role="tablist">
         <button
-          v-for="entry in report.variants"
+          v-for="(entry, index) in report.variants"
           :key="entry.id"
           type="button"
           role="tab"
@@ -71,8 +71,8 @@ function cell(column: Column, row: MonthRow): string {
           :class="{ on: entry.id === active }"
           @click="active = entry.id"
         >
-          <span class="swatch" :style="{ background: VARIANT_COLORS[entry.id] }" />
-          {{ VARIANT_LABELS[entry.id] }}
+          <span class="swatch" :style="{ background: colorForIndex(index) }" />
+          {{ entry.name }}
         </button>
       </div>
     </header>

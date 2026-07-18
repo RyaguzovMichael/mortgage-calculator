@@ -1,10 +1,21 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useInputs } from '@/app/useInputs'
-import { money, VARIANT_COLORS, VARIANT_LABELS } from '@/app/format'
-import type { VariantResult } from '@/engine/types/plan'
+import { colorForIndex, money } from '@/app/format'
+import type { VariantId, VariantResult } from '@/engine/types/plan'
 
 const { inputs, report } = useInputs()
+
+// Rows sort every which way, so colour cannot come from row order — it is keyed
+// on id and fixed by the variant's position in the report (its slot among the
+// shown), matching the chart.
+const colorOf = computed<Record<VariantId, string>>(() => {
+  const map: Record<VariantId, string> = {}
+  report.value.variants.forEach((variant, index) => {
+    map[variant.id] = colorForIndex(index)
+  })
+  return map
+})
 
 // totalLoss assumes every variant ends up with the same apartment so its price
 // cancels out. Once the price moves, they buy in different months at different
@@ -40,8 +51,8 @@ const COLUMNS: readonly Column[] = [
     key: 'variant',
     label: 'Вариант',
     left: true,
-    sort: (variant) => VARIANT_LABELS[variant.id],
-    cell: (variant) => VARIANT_LABELS[variant.id],
+    sort: (variant) => variant.name,
+    cell: (variant) => variant.name,
   },
   {
     key: 'purchaseMonth',
@@ -190,7 +201,7 @@ function classesFor(column: Column, variant: VariantResult): Record<string, bool
               <span
                 v-if="column.key === 'variant'"
                 class="swatch"
-                :style="{ background: VARIANT_COLORS[variant.id] }"
+                :style="{ background: colorOf[variant.id] }"
               />{{ column.cell(variant) }}
             </td>
           </tr>

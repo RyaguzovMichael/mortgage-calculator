@@ -5,6 +5,9 @@ import type { YearMonth } from './yearMonth'
 // from it.
 export interface VariantResult {
   readonly id: VariantId
+  // The plan's display name, carried through so the board can label a variant
+  // without a lookup table keyed on id — custom plans have no such table.
+  readonly name: string
   readonly rows: readonly MonthRow[]
   readonly purchaseMonth: number | null
   readonly debtFreeMonth: number | null
@@ -15,7 +18,11 @@ export interface VariantResult {
   readonly totals: VariantTotals
 }
 
-export type VariantId = 'halyk-immediate' | 'halyk-delayed' | 'otbasy' | 'all-cash'
+// Once a user can build their own plans, an id is just its slug — the four
+// built-ins keep their historical ids, but the type can no longer be a closed
+// union. Kept as a named alias so the intent (this string is a plan id) stays
+// legible at the call sites.
+export type VariantId = string
 
 // A way of buying the apartment, expressed as four decisions. The four built-in
 // variants are just four of these; a user builds their own from the same choices.

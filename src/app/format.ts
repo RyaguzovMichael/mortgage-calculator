@@ -1,5 +1,5 @@
 import type { DepositProduct } from '@/engine/types/inputs'
-import type { Phase, VariantId } from '@/engine/types/plan'
+import type { Phase } from '@/engine/types/plan'
 import { formatYearMonth, type YearMonth } from '@/engine/types/yearMonth'
 
 const TENGE = new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 })
@@ -51,18 +51,12 @@ function monthsWord(months: number): string {
   return 'месяцев'
 }
 
-export const VARIANT_LABELS: Record<VariantId, string> = {
-  'halyk-immediate': 'Halyk сразу',
-  'halyk-delayed': 'Halyk отложенно',
-  otbasy: 'Otbasy',
-  'all-cash': 'Без ипотеки',
-}
-
-export const VARIANT_COLORS: Record<VariantId, string> = {
-  'halyk-immediate': 'var(--series-1)',
-  'halyk-delayed': 'var(--series-2)',
-  otbasy: 'var(--series-3)',
-  'all-cash': 'var(--series-4)',
+// Colour follows the plan's position among the shown, not its id: eight validated
+// categorical slots, assigned in order. The board caps the shown at eight, so the
+// index never runs past the palette; the modulo is a belt-and-braces guard, not a
+// licence to draw a ninth line.
+export function colorForIndex(index: number): string {
+  return `var(--series-${(index % 8) + 1})`
 }
 
 // Typed on Phase, not string: a new phase must be given a label, and a typo'd key
