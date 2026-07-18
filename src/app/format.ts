@@ -1,5 +1,5 @@
 import type { DepositProduct } from '@/engine/types/inputs'
-import type { Phase } from '@/engine/types/plan'
+import type { Phase, PurchasePlan } from '@/engine/types/plan'
 import { formatYearMonth, type YearMonth } from '@/engine/types/yearMonth'
 
 const TENGE = new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 })
@@ -57,6 +57,42 @@ function monthsWord(months: number): string {
 // licence to draw a ninth line.
 export function colorForIndex(index: number): string {
   return `var(--series-${(index % 8) + 1})`
+}
+
+// The four plan decisions in Russian. Typed on the plan's own literal unions, so a
+// new option is a compile error here rather than a blank in a dropdown. Shared by
+// the plan editor (option labels) and describePlan (the read-only summary).
+export const LOAN_LABELS: Record<PurchasePlan['loan'], string> = {
+  halyk: 'Halyk',
+  otbasy: 'Otbasy',
+  none: 'Без ипотеки',
+}
+export const BUY_WHEN_LABELS: Record<PurchasePlan['buyWhen'], string> = {
+  asap: 'как только хватит',
+  'after-months': 'через N месяцев',
+  'otbasy-gates': 'по воротам Otbasy',
+}
+export const BORROW_LABELS: Record<PurchasePlan['borrow'], string> = {
+  max: 'максимум (меньше взнос)',
+  min: 'минимум (всё вниз)',
+}
+export const REPAY_LABELS: Record<PurchasePlan['repay'], string> = {
+  monthly: 'гасить каждый месяц',
+  lump: 'копить и закрыть разом',
+}
+
+// A one-line summary of what a plan does, for the read-only built-in rows. borrow
+// and repay are left off a cash plan — they do not apply without a loan.
+export function describePlan(plan: PurchasePlan): string {
+  const when =
+    plan.buyWhen === 'after-months' && plan.saveMonths !== null
+      ? `через ${plan.saveMonths} ${monthsWord(plan.saveMonths)}`
+      : plan.buyWhen === 'after-months'
+        ? 'ждать как Otbasy'
+        : BUY_WHEN_LABELS[plan.buyWhen]
+  const parts = [LOAN_LABELS[plan.loan], when]
+  if (plan.loan !== 'none') parts.push(BORROW_LABELS[plan.borrow], REPAY_LABELS[plan.repay])
+  return parts.join(' · ')
 }
 
 // Typed on Phase, not string: a new phase must be given a label, and a typo'd key

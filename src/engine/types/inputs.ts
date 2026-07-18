@@ -1,4 +1,5 @@
 import { annualGrowthFactor } from '../money'
+import type { PurchasePlan } from './plan'
 import type { YearMonth } from './yearMonth'
 
 // Every parameter of the model. See MODEL.md for what each one means and which
@@ -12,9 +13,23 @@ export interface Inputs {
   readonly deposits: DepositInputs
   readonly halyk: HalykInputs
   readonly otbasy: OtbasyInputs
+  readonly plans: PlansInputs
   // null chains the delayed-Halyk savings window to Otbasy's purchase month, so
   // the two variants are compared over the same window.
   readonly halykDelayedSavingMonths: number | null
+}
+
+// The user's own plans plus which plans go on the board. Built-in plan
+// definitions are NOT here — they live in data/plans.yml and are read-only; only
+// these two, the user's own creations and their board choices, are persisted.
+export interface PlansInputs {
+  // Mutable for the same reason the deposit catalogue is: the panel does CRUD on
+  // it. The engine only ever reads it.
+  custom: PurchasePlan[]
+  // Ids of the plans shown on the board, built-in and custom alike. A preference,
+  // so it is stored rather than derived — which plans to compare is exactly what
+  // the human is choosing. Capped at eight by the UI (one per palette slot).
+  shown: string[]
 }
 
 export interface ApartmentInputs {

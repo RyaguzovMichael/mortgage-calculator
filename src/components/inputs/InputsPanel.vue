@@ -8,6 +8,7 @@ import TabBar from '../TabBar.vue'
 import NumberField from './NumberField.vue'
 import PercentField from './PercentField.vue'
 import ProductPicker from './ProductPicker.vue'
+import PlansTab from './PlansTab.vue'
 
 const { inputs, reset, addProduct, removeProduct, canRemoveProduct } = useInputs()
 
@@ -22,6 +23,7 @@ const TABS = [
   { id: 'apartment', label: 'Квартира' },
   { id: 'money', label: 'Деньги' },
   { id: 'deposits', label: 'Вклады' },
+  { id: 'plans', label: 'Планы' },
   { id: 'loans', label: 'Ипотеки' },
   { id: 'run', label: 'Расчёт' },
 ] as const
@@ -229,6 +231,8 @@ const existingTotal = computed(() => startingMoney(inputs))
         <p class="note">{{ productTerms(product) }}</p>
       </div>
     </section>
+
+    <PlansTab v-show="active === 'plans'" />
 
     <section v-show="active === 'loans'">
       <h3>Halyk</h3>

@@ -1,11 +1,18 @@
 import { describe, it, expect } from 'vitest'
-import { simulateHalykImmediate } from '@/engine/variants/halykImmediate'
-import { simulateHalykDelayed } from '@/engine/variants/halykDelayed'
-import { simulateOtbasy } from '@/engine/variants/otbasy'
-import { simulateAllCash } from '@/engine/variants/allCash'
+import { runPlan } from '@/engine/runPlan'
+import { BUILT_IN_PLANS } from '@/infrastructure/planCatalogue'
 import { DEFAULT_INPUTS } from '@/infrastructure/inputsStorage'
 import { startingMoney, type Inputs } from '@/engine/types/inputs'
-import type { VariantResult } from '@/engine/types/plan'
+import type { PurchasePlan, VariantResult } from '@/engine/types/plan'
+
+// The four built-ins now live in data/plans.yml and run through the shared driver.
+// These shims keep the per-variant behaviour tests reading the same as before.
+const builtIn = (id: string): PurchasePlan => BUILT_IN_PLANS.find((plan) => plan.id === id)!
+const simulateHalykImmediate = (inputs: Inputs): VariantResult => runPlan(inputs, builtIn('halyk-immediate'))
+const simulateOtbasy = (inputs: Inputs): VariantResult => runPlan(inputs, builtIn('otbasy'))
+const simulateAllCash = (inputs: Inputs): VariantResult => runPlan(inputs, builtIn('all-cash'))
+const simulateHalykDelayed = (inputs: Inputs, savingMonths: number): VariantResult =>
+  runPlan(inputs, { ...builtIn('halyk-delayed'), saveMonths: savingMonths })
 
 function withRent(monthlyRent: number): Inputs {
   return { ...DEFAULT_INPUTS, cashflow: { ...DEFAULT_INPUTS.cashflow, monthlyRent } }

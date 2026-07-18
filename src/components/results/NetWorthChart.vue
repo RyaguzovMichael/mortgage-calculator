@@ -235,7 +235,11 @@ const tooltip = computed(() => {
       </li>
     </ul>
 
-    <div ref="plotElement" class="plot">
+    <p v-if="report.variants.length === 0" class="empty">
+      Ни один план не выбран. Отметьте планы над графиком или во вкладке «Планы».
+    </p>
+
+    <div v-else ref="plotElement" class="plot">
       <svg
         ref="svg"
         :viewBox="`0 0 ${width} ${height}`"
@@ -428,6 +432,16 @@ h2 {
   position: relative;
   flex: 1;
   min-height: 220px;
+}
+.empty {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  font-size: var(--text-md);
+  text-align: center;
+  margin: 0;
 }
 /* Scoped to the plot: a bare `svg` rule would stretch the legend's tiny mark
    swatches to the full width of the card. Absolute so the svg fills the measured

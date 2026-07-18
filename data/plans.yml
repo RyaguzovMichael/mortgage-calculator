@@ -1,0 +1,46 @@
+# Встроенные планы покупки. Источник правды: правка этого файла доезжает и до тех,
+# у кого уже есть сохранённые данные — встроенные планы не хранятся в localStorage.
+#
+# Эти планы нельзя изменить или удалить из интерфейса. Свои планы создаются во
+# вкладке «Планы» и лежат в localStorage рядом с остальными исходными данными.
+#
+# Каждый план — четыре решения:
+#   loan     halyk | otbasy | none   — какой кредит (none = без ипотеки)
+#   buyWhen  asap | after-months | otbasy-gates — когда покупать
+#   saveMonths  число месяцев для after-months; null = «ждать как Otbasy»
+#   borrow   max | min   — занять максимум (меньший взнос) или минимум (всё вниз)
+#   repay    monthly | lump — гасить каждый месяц или копить и закрыть одним платежом
+#
+# borrow/repay не читаются при loan: none — заполнены для формы. Подробнее — MODEL.md.
+
+- id: halyk-immediate
+  name: Halyk сразу
+  loan: halyk
+  buyWhen: asap
+  saveMonths: null
+  borrow: max
+  repay: monthly
+
+- id: halyk-delayed
+  name: Halyk отложенно
+  loan: halyk
+  buyWhen: after-months
+  saveMonths: null
+  borrow: min
+  repay: monthly
+
+- id: otbasy
+  name: Otbasy
+  loan: otbasy
+  buyWhen: otbasy-gates
+  saveMonths: null
+  borrow: max
+  repay: lump
+
+- id: all-cash
+  name: Без ипотеки
+  loan: none
+  buyWhen: asap
+  saveMonths: null
+  borrow: max
+  repay: monthly

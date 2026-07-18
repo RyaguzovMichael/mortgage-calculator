@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import InputsPanel from '@/components/inputs/InputsPanel.vue'
 import SummaryTable from '@/components/results/SummaryTable.vue'
+import PlanVisibility from '@/components/results/PlanVisibility.vue'
 import NetWorthChart from '@/components/results/NetWorthChart.vue'
 import ScheduleTable from '@/components/results/ScheduleTable.vue'
 import TabBar from '@/components/TabBar.vue'
@@ -25,6 +26,7 @@ const view = ref<ViewId>('chart')
     </div>
     <main>
       <SummaryTable />
+      <PlanVisibility />
       <div class="views">
         <TabBar v-model="view" :tabs="VIEWS" />
         <NetWorthChart v-if="view === 'chart'" />

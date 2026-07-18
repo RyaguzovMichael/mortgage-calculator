@@ -6,7 +6,7 @@ import { BUILT_IN_PRODUCTS, isBuiltInProduct } from './depositCatalogue'
 //
 // Exported so the specs cannot drift from it: they used to hard-code the key as a
 // string, and two of them went on passing for the wrong reason after a bump.
-export const STORAGE_KEY = 'mortgage:inputs:v7'
+export const STORAGE_KEY = 'mortgage:inputs:v8'
 
 // Real starting position as of 2026-07. See MODEL.md for provenance of every number.
 export const DEFAULT_INPUTS: Inputs = {
@@ -59,6 +59,14 @@ export const DEFAULT_INPUTS: Inputs = {
     govBonusCap: 200 * 4325,
     govBonusMonth: 2,
     seedFromSale: 5_000_000,
+  },
+  plans: {
+    // No built-in definitions here — they come from data/plans.yml. Only the
+    // user's own plans (none to start) and the board choice live in storage.
+    custom: [],
+    // Halyk отложенно is off the board by default: it is a niche comparison and
+    // starts hidden so the first view is the three that matter. The others are on.
+    shown: ['halyk-immediate', 'otbasy', 'all-cash'],
   },
   halykDelayedSavingMonths: null,
 }

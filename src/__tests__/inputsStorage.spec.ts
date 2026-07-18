@@ -153,3 +153,43 @@ describe('the deposit catalogue in storage', () => {
     expect(loadInputs()!.deposits.savingsProductId).toBe('custom-1')
   })
 })
+
+describe('the plan catalogue in storage', () => {
+  const mine = {
+    id: 'plan-1',
+    name: 'Мой план',
+    loan: 'halyk',
+    buyWhen: 'after-months',
+    saveMonths: 12,
+    borrow: 'min',
+    repay: 'monthly',
+  } as const
+
+  function withOwnPlan(): Inputs {
+    return {
+      ...DEFAULT_INPUTS,
+      plans: { custom: [{ ...mine }], shown: ['halyk-immediate', 'plan-1'] },
+    }
+  }
+
+  it('round-trips the user’s own plans and board choice', () => {
+    saveInputs(withOwnPlan())
+    const loaded = loadInputs()!
+    expect(loaded.plans.custom).toEqual([mine])
+    expect(loaded.plans.shown).toEqual(['halyk-immediate', 'plan-1'])
+  })
+
+  // Built-in plan definitions live in data/plans.yml, never in the blob — only the
+  // user's own plans are stored. (The shown list may name built-ins; those are ids,
+  // a board preference, not the definition.)
+  it('stores only the custom plans, never the built-in definitions', () => {
+    saveInputs(withOwnPlan())
+    const stored = JSON.parse(localStorage.getItem(STORAGE_KEY)!) as Inputs
+    expect(stored.plans.custom).toEqual([mine])
+  })
+
+  it('defaults the board when the plans field is missing entirely', () => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ horizonMonths: 12 }))
+    expect(loadInputs()!.plans).toEqual(DEFAULT_INPUTS.plans)
+  })
+})
