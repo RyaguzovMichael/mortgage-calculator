@@ -118,7 +118,7 @@
   },
   "depositsTab": {
     "builtInTitle": "Built-in deposits",
-    "builtInNote": "From data/deposits.yml. They cannot be changed or removed here — edit the file, and the edit reaches everyone.",
+    "builtInNote": "Preset deposits. They cannot be changed or removed here.",
     "ownTitle": "Your deposits",
     "addButton": "+ Add",
     "ownEmpty": "Nothing yet. Add a deposit if you have a bank offer not listed above — and pick it on a plan in the “Plans” tab.",
@@ -132,7 +132,7 @@
   },
   "loansTab": {
     "builtInTitle": "Built-in credits",
-    "builtInNote": "From data/loans.yml. They cannot be changed or removed here — edit the file, and the edit reaches everyone.",
+    "builtInNote": "Preset credits. They cannot be changed or removed here.",
     "ownTitle": "Your credits",
     "addButton": "+ Add",
     "ownEmpty": "Nothing yet. Add a credit if you have a bank offer not listed above — and pick it in the “Plans” tab.",
@@ -147,7 +147,7 @@
   },
   "plansTab": {
     "builtInTitle": "Built-in plans",
-    "builtInNote": "From data/plans.yml. They cannot be changed or removed. Check which ones to show on the chart and in the summary.",
+    "builtInNote": "Preset plans. They cannot be changed or removed. Check which ones to show on the chart and in the summary.",
     "ownTitle": "Your plans",
     "addButton": "+ Add",
     "ownEmpty": "Nothing yet. Build your own plan out of four decisions — e.g. “Halyk, but with a 50% down payment” — and compare it against the built-ins.",
