@@ -6,6 +6,14 @@
     "theme": { "system": "System", "light": "Light", "dark": "Dark" },
     "locale": { "ru": "RU", "en": "EN" }
   },
+  "footer": {
+    "disclaimer": "This site is not financial advice. It is a personal, informational tool only — always verify real terms with your bank, lender, or a qualified financial advisor before making any decision.",
+    "github": "GitHub",
+    "contact": "Contact",
+    "license": "License",
+    "readme": "README",
+    "copyright": "© {year} Ryaguzov Michael"
+  },
   "inputsPanel": {
     "title": "Inputs",
     "reset": "Reset",
