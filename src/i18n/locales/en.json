@@ -176,7 +176,7 @@
       "otbasyGates": "on Otbasy's gates"
     },
     "borrowLabels": { "max": "maximum (smaller down payment)", "min": "minimum (all upfront)" },
-    "repayLabels": { "monthly": "repay every month", "lump": "save up and clear at once" },
+    "repayLabels": { "monthly": "repay every month", "lump": "save up and clear at once", "never": "never repay early" },
     "housingLabels": {
       "selling": "selling my apartment",
       "free": "living for free",

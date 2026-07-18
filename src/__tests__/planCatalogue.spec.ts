@@ -21,7 +21,12 @@ function plan(overrides: Record<string, unknown> = {}): Record<string, unknown> 
 // build time, there would be nothing here to assert on.
 describe('BUILT_IN_PLANS', () => {
   it('comes from data/plans.yml', () => {
-    expect(BUILT_IN_PLANS.map((entry) => entry.id)).toEqual(['halyk', 'otbasy', 'all-cash'])
+    expect(BUILT_IN_PLANS.map((entry) => entry.id)).toEqual([
+      'halyk',
+      'otbasy',
+      'otbasy-hold',
+      'all-cash',
+    ])
   })
 
   it('carries the five decisions of each plan', () => {
@@ -83,7 +88,7 @@ describe('parsePurchasePlans', () => {
     ['an unknown loan', [plan({ loan: 'sberbank' })], /loan/],
     ['an unknown buyWhen', [plan({ buyWhen: 'someday' })], /buyWhen/],
     ['an unknown borrow', [plan({ borrow: 'half' })], /borrow/],
-    ['an unknown repay', [plan({ repay: 'never' })], /repay/],
+    ['an unknown repay', [plan({ repay: 'someday' })], /repay/],
     ['a fractional saveMonths', [plan({ saveMonths: 1.5 })], /saveMonths/],
     ['a negative saveMonths', [plan({ saveMonths: -1 })], /saveMonths/],
     ['a saveMonths written as a string', [plan({ saveMonths: '12' })], /saveMonths/],

@@ -9,7 +9,9 @@
 #   buyWhen  asap | after-months | otbasy-gates — когда покупать
 #   saveMonths  число месяцев для after-months; null = «ждать как Otbasy»
 #   borrow   max | min   — занять максимум (меньший взнос) или минимум (всё вниз)
-#   repay    monthly | lump — гасить каждый месяц или копить и закрыть одним платежом
+#   repay    monthly | lump | never — гасить каждый месяц, копить и закрыть одним
+#            платежом, или никогда не гасить досрочно (кредит идёт весь срок, а
+#            излишек всё это время работает во вкладе)
 #   housing  где вы живёте до покупки и что продаёте — свой план для каждого:
 #     situation        selling | free | renting
 #     saleProceeds     сумма продажи сегодня (читается только при selling)
@@ -36,6 +38,18 @@
   saveMonths: null
   borrow: max
   repay: lump
+  housing:
+    situation: selling
+    saleProceeds: 35000000
+    saleMonthOffset: 3
+
+- id: otbasy-hold
+  name: Otbasy (не гасить)
+  loan: otbasy
+  buyWhen: otbasy-gates
+  saveMonths: null
+  borrow: max
+  repay: never
   housing:
     situation: selling
     saleProceeds: 35000000

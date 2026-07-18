@@ -5,7 +5,7 @@ import plansFile from '../../data/plans.yml'
 const LOANS = ['halyk', 'otbasy', 'none'] as const
 const BUY_WHENS = ['asap', 'after-months', 'otbasy-gates'] as const
 const BORROWS = ['max', 'min'] as const
-const REPAYS = ['monthly', 'lump'] as const
+const REPAYS = ['monthly', 'lump', 'never'] as const
 const HOUSING_SITUATIONS = ['selling', 'free', 'renting'] as const
 
 // The built-in purchase plans, from data/plans.yml. Like the deposits, they are

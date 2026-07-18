@@ -64,6 +64,7 @@ describe('simulateAll', () => {
     expect(report(showingAll(DEFAULT_INPUTS)).variants.map((variant) => variant.id)).toEqual([
       'halyk',
       'otbasy',
+      'otbasy-hold',
       'all-cash',
     ])
   })
@@ -94,7 +95,12 @@ describe('simulateAll', () => {
     it('is dropped: there is no window to chain to', () => {
       const r = report(tooShort)
       expect(r.variants.find((variant) => variant.id === 'otbasy')!.purchaseMonth).toBeNull()
-      expect(r.variants.map((variant) => variant.id)).toEqual(['halyk', 'otbasy', 'all-cash'])
+      expect(r.variants.map((variant) => variant.id)).toEqual([
+        'halyk',
+        'otbasy',
+        'otbasy-hold',
+        'all-cash',
+      ])
     })
 
     // A shown plan that got dropped is named, so the board can say why it is gone
@@ -108,6 +114,7 @@ describe('simulateAll', () => {
       expect(report(explicit).variants.map((variant) => variant.id)).toEqual([
         'halyk',
         'otbasy',
+        'otbasy-hold',
         'all-cash',
         'halyk-delayed-test',
       ])

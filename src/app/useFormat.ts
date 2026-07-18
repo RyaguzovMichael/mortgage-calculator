@@ -89,6 +89,7 @@ export function useFormat() {
   const REPAY_LABELS = computed<Record<PurchasePlan['repay'], string>>(() => ({
     monthly: t('format.repayLabels.monthly'),
     lump: t('format.repayLabels.lump'),
+    never: t('format.repayLabels.never'),
   }))
   const HOUSING_LABELS = computed<Record<HousingSituation, string>>(() => ({
     selling: t('format.housingLabels.selling'),

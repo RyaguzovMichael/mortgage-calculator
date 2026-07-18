@@ -50,7 +50,10 @@ export interface PurchasePlan {
   readonly borrow: 'max' | 'min'
   //   monthly — pour the free cash into the loan every month (early repayment)
   //   lump    — pay only the scheduled amount, save the rest, close in one hit
-  readonly repay: 'monthly' | 'lump'
+  //   never   — pay only the scheduled amount, save the rest, never close early;
+  //             the loan runs its full term while the cash keeps compounding.
+  //             Best when the loan rate stays below the deposit rate (Otbasy).
+  readonly repay: 'monthly' | 'lump' | 'never'
   // Where you live until you buy, and what (if anything) you sell to get there.
   // A plan decision, not a global setting: two plans can differ on whether to
   // sell the old flat, and when.

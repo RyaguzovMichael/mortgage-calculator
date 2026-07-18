@@ -55,6 +55,30 @@ describe('runPlan built from the constructor', () => {
     expect(lump.totals.netWorthAtEnd).toBeGreaterThan(monthly.totals.netWorthAtEnd)
   })
 
+  // "never" pays only the scheduled annuity and never closes the loan early — the
+  // loan runs its full term while every surplus tenge keeps compounding in the
+  // deposit. Against "lump" (which yanks the balance out of the deposit to close
+  // in one hit), it pays even more interest but, on a window inside the loan term,
+  // still carries the debt and ends at least as rich — the deposit rate (18.4%)
+  // beating the Otbasy loan rate (8.5%) is worth more than being debt-free.
+  it('never repays early, so it settles no loan but banks the arbitrage', () => {
+    const lump = runPlan(
+      DEFAULT_INPUTS,
+      plan({ loan: 'otbasy', buyWhen: 'otbasy-gates', repay: 'lump' }),
+    )
+    const never = runPlan(
+      DEFAULT_INPUTS,
+      plan({ loan: 'otbasy', buyWhen: 'otbasy-gates', repay: 'never' }),
+    )
+    // The horizon ends before the term, so the loan never clears.
+    expect(never.debtFreeMonth).toBeNull()
+    expect(never.rows[never.rows.length - 1]!.loanBalance).toBeGreaterThan(0)
+    // More interest than lump (it services the loan longer), yet no poorer at the
+    // end — the surplus kept working in the deposit the whole time.
+    expect(never.totals.loanInterestPaid).toBeGreaterThan(lump.totals.loanInterestPaid)
+    expect(never.totals.netWorthAtEnd).toBeGreaterThanOrEqual(lump.totals.netWorthAtEnd)
+  })
+
   it('after-months buys later, and later means a higher price when the market grows', () => {
     const asap = runPlan(GROWING, plan({ buyWhen: 'asap' }))
     const waited = runPlan(GROWING, plan({ buyWhen: 'after-months', saveMonths: 24 }))

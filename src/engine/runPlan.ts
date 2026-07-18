@@ -102,20 +102,28 @@ export function runPlan(inputs: Inputs, plan: PurchasePlan): VariantResult {
         }
         if (loan.balance === 0 && debtFreeMonth === null) debtFreeMonth = month.index
       } else {
-        // Save the surplus instead, and close the loan in one hit once it covers
-        // the balance — worth it only while the loan rate is below the deposit
-        // rate. Gated on what is actually withdrawable, not the deposit's true
-        // value: closing with money that is still mid-term would forfeit this
-        // term's interest and come up short of the loan balance.
+        // lump and never both bank the surplus at the deposit rate instead of
+        // prepaying — worth it only while the loan rate is below the deposit
+        // rate, which is the arbitrage the Otbasy strategy is built on.
         wallet.addSavings(budget)
         budget = 0
-        if (wallet.savingsWithdrawable >= loan.balance) {
+        // lump then closes the loan in one hit once withdrawable savings cover
+        // the balance; never leaves it to amortize over its full term, keeping
+        // the cash working in the deposit the whole way. Gated on what is
+        // actually withdrawable, not the deposit's true value: closing with
+        // money still mid-term would forfeit this term's interest and come up
+        // short of the loan balance.
+        if (plan.repay === 'lump' && wallet.savingsWithdrawable >= loan.balance) {
           const settled = loan.prepay(wallet.takeSavings(loan.balance))
           payment = {
             paid: payment.paid + settled,
             interest: payment.interest,
             principal: payment.principal + settled,
           }
+          debtFreeMonth = month.index
+        } else if (loan.balance === 0 && debtFreeMonth === null) {
+          // never: the scheduled annuity paid the loan off on its final term
+          // month — no lump payoff, but it is debt-free from here.
           debtFreeMonth = month.index
         }
       }
