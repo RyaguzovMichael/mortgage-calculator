@@ -49,7 +49,9 @@ describe('BLANK_START_INPUTS', () => {
     expect(BLANK_START_INPUTS.cashflow.monthlySalary).toBe(0)
     expect(BLANK_START_INPUTS.cashflow.mortgageShare).toBe(0)
     expect(BLANK_START_INPUTS.cashflow.monthlyRent).toBe(0)
-    expect(BLANK_START_INPUTS.cashflow.annualIndexationRate).toBe(0)
+    expect(BLANK_START_INPUTS.cashflow.annualIndexationRate).toBe(
+      DEFAULT_INPUTS.apartment.annualGrowthRate,
+    )
     expect(BLANK_START_INPUTS.deposits.savingsBalance).toBe(0)
     expect(BLANK_START_INPUTS.otbasy.hasDeposit).toBe(false)
     expect(BLANK_START_INPUTS.otbasy.balance).toBe(0)
