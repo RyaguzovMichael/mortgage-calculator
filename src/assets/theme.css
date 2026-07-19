@@ -59,7 +59,8 @@
   --glass-border: rgba(255, 255, 255, 0.6);
 
   /* A very subtle tinted glow behind the page, strongest under the navbar. */
-  --app-bg: radial-gradient(1200px 620px at 50% -12%, rgba(70, 102, 224, 0.07), transparent 68%),
+  --app-bg:
+    radial-gradient(1200px 620px at 50% -12%, rgba(70, 102, 224, 0.07), transparent 68%),
     var(--surface-0);
 
   --font: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
@@ -124,7 +125,8 @@
     --glass-solid: #1c2029;
     --glass-border: rgba(255, 255, 255, 0.07);
 
-    --app-bg: radial-gradient(1200px 620px at 50% -12%, rgba(120, 145, 255, 0.1), transparent 66%),
+    --app-bg:
+      radial-gradient(1200px 620px at 50% -12%, rgba(120, 145, 255, 0.1), transparent 66%),
       var(--surface-0);
   }
 }
@@ -165,7 +167,8 @@
   --glass-solid: #1c2029;
   --glass-border: rgba(255, 255, 255, 0.07);
 
-  --app-bg: radial-gradient(1200px 620px at 50% -12%, rgba(120, 145, 255, 0.1), transparent 66%),
+  --app-bg:
+    radial-gradient(1200px 620px at 50% -12%, rgba(120, 145, 255, 0.1), transparent 66%),
     var(--surface-0);
 }
 

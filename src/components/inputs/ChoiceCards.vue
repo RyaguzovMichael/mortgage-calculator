@@ -48,26 +48,29 @@ const model = defineModel<T>({ required: true })
   gap: 6px;
   padding: 16px 12px;
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   background: var(--surface-1);
   color: var(--text-secondary);
   font: inherit;
   cursor: pointer;
   transition:
-    border-color 0.12s,
-    background 0.12s,
-    color 0.12s;
+    border-color var(--transition),
+    background var(--transition),
+    color var(--transition),
+    box-shadow var(--transition),
+    transform var(--transition);
 }
 .card:hover {
-  border-color: var(--text-muted);
+  border-color: var(--accent);
   color: var(--text-primary);
+  transform: var(--lift);
 }
 .glyph {
   color: var(--text-muted);
 }
 .card:hover .glyph,
 .card.on .glyph {
-  color: var(--series-1);
+  color: var(--accent);
 }
 .label {
   font-size: var(--text-lg);
@@ -80,12 +83,13 @@ const model = defineModel<T>({ required: true })
   line-height: 1.35;
 }
 .card.on {
-  border-color: var(--series-1);
-  background: color-mix(in srgb, var(--series-1) 8%, var(--surface-1));
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  box-shadow: 0 4px 14px var(--accent-glow);
 }
 .card.on:focus-visible,
 .card:focus-visible {
-  outline: 2px solid var(--series-1);
-  outline-offset: 1px;
+  outline: none;
+  box-shadow: 0 0 0 3px var(--accent-glow);
 }
 </style>

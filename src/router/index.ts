@@ -29,6 +29,7 @@ export const router = createRouter({
       name: 'database',
       component: () => import('@/views/DatabaseView.vue'),
     },
+    { path: '/:pathMatch(.*)*', redirect: { name: 'calculator' } },
   ],
 })
 

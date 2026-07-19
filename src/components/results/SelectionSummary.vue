@@ -1,12 +1,28 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { mdiPencilOutline } from '@mdi/js'
 import { useInputs } from '@/app/useInputs'
 import { money, colorForIndex, useFormat } from '@/app/useFormat'
+import AppIcon from '@/components/AppIcon.vue'
+import PlanEditorDialog from '@/components/inputs/PlanEditorDialog.vue'
+import type { PurchasePlan } from '@/engine/types/plan'
 
-const { inputs, allPlans } = useInputs()
+const { inputs, allPlans, isPlanBuiltIn, upsertPlan } = useInputs()
 const { t, tm, rt } = useI18n()
 const { describePlan } = useFormat()
+
+// Editing a custom plan straight from the recap — same all-in-one dialog the
+// Plans page's "Edit" uses — so tweaking a shown plan doesn't need a trip there.
+// Built-in plans have no edit affordance: they cannot be changed.
+const editing = ref<PurchasePlan | null>(null)
+function openEdit(plan: PurchasePlan): void {
+  editing.value = plan
+}
+function onEditSave(plan: PurchasePlan): void {
+  upsertPlan(plan)
+  editing.value = null
+}
 
 const monthNames = computed(() => tm('common.monthNames') as unknown[])
 const raiseMonthName = computed(() =>
@@ -93,9 +109,20 @@ const shownPlans = computed(() =>
             describePlan(entry.plan, inputs.loans.products, inputs.deposits.products)
           }}</span>
         </div>
+        <button
+          v-if="!isPlanBuiltIn(entry.plan.id)"
+          type="button"
+          class="edit-btn"
+          :title="t('plansTab.editTitle')"
+          @click="openEdit(entry.plan)"
+        >
+          <AppIcon :path="mdiPencilOutline" :size="16" />
+        </button>
       </div>
     </section>
   </aside>
+
+  <PlanEditorDialog v-if="editing" :initial="editing" @save="onEditSave" @cancel="editing = null" />
 </template>
 
 <style scoped>
@@ -139,6 +166,24 @@ const shownPlans = computed(() =>
   display: flex;
   align-items: flex-start;
   gap: 8px;
+}
+.edit-btn {
+  display: flex;
+  margin-left: auto;
+  flex-shrink: 0;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text-muted);
+  border-radius: var(--radius-sm);
+  padding: 4px;
+  cursor: pointer;
+  transition:
+    color var(--transition),
+    border-color var(--transition);
+}
+.edit-btn:hover {
+  color: var(--text-primary);
+  border-color: var(--accent);
 }
 .dot {
   flex-shrink: 0;

@@ -1,13 +1,12 @@
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { mdiChevronLeft, mdiChevronRight, mdiCheck, mdiClose } from '@mdi/js'
 import { useInputs } from '@/app/useInputs'
 import { useFormat } from '@/app/useFormat'
 import { planMatchesStart } from '@/engine/types/inputs'
 import type { HousingSituation } from '@/engine/types/inputs'
 import type { PurchasePlan } from '@/engine/types/plan'
-import AppIcon from '@/components/AppIcon.vue'
+import WizardShell from '@/components/WizardShell.vue'
 import ChoiceCards, { type Choice } from './ChoiceCards.vue'
 import {
   BORROW_ICONS,
@@ -43,14 +42,19 @@ const {
 type PlanDraft = { -readonly [K in keyof PurchasePlan]: PurchasePlan[K] }
 const draft = reactive<PlanDraft>(JSON.parse(JSON.stringify(props.initial)) as PlanDraft)
 
-// Dropping the Otbasy loan while the plan still waits on Otbasy gates would leave an
-// impossible plan; coerce the trigger back to "as soon as possible". Same guard the
-// old dropdown editor carried, now that the loan card can change under the trigger.
+// The Otbasy loan can only be issued once its own gates (50%-balance and CC)
+// are met — there is no "buy sooner" option under it, so the buyWhen step is
+// skipped entirely (see `steps` below) and the trigger is pinned here instead
+// of asked. Leaving Otbasy the other way round would leave the trigger stuck
+// on a screen the wizard no longer shows, so coerce it back to "as soon as
+// possible" — the same guard the old dropdown editor carried.
 watch(
   () => draft.loan,
   (loan) => {
-    if (loan !== 'otbasy' && draft.buyWhen === 'otbasy-gates') draft.buyWhen = 'asap'
+    if (loan === 'otbasy') draft.buyWhen = 'otbasy-gates'
+    else if (draft.buyWhen === 'otbasy-gates') draft.buyWhen = 'asap'
   },
+  { immediate: true },
 )
 
 // Selling is only offered when there is a flat to sell — the existing-apartment
@@ -65,12 +69,14 @@ watch(
   { immediate: true },
 )
 
-// --- Which screens this plan shows, in order. borrow/repay vanish for cash (no
-// loan to size or repay); the deposit screen vanishes for Otbasy (it saves to its
-// own account, not a deposit). The rest are always asked. ---
+// --- Which screens this plan shows, in order. buyWhen vanishes for Otbasy (its
+// trigger is pinned to the programme's own gates, not a choice); borrow/repay
+// vanish for cash (no loan to size or repay); the deposit screen vanishes for
+// Otbasy (it saves to its own account, not a deposit). The rest are always asked. ---
 type StepId = 'name' | 'loan' | 'buyWhen' | 'borrow' | 'repay' | 'situation' | 'deposit'
 const steps = computed<StepId[]>(() => {
-  const list: StepId[] = ['name', 'loan', 'buyWhen']
+  const list: StepId[] = ['name', 'loan']
+  if (draft.loan !== 'otbasy') list.push('buyWhen')
   if (draft.loan !== 'none') list.push('borrow', 'repay')
   list.push('situation')
   if (draft.loan !== 'otbasy') list.push('deposit')
@@ -86,6 +92,11 @@ watch(steps, (list) => {
 const step = computed<StepId>(() => steps.value[index.value]!)
 const isFirst = computed(() => index.value === 0)
 const isLast = computed(() => index.value === steps.value.length - 1)
+const progress = computed(
+  () =>
+    `${props.mode === 'create' ? t('planWizard.createTitle') : t('planWizard.editTitle')} · ` +
+    t('planWizard.progress', { current: index.value + 1, total: steps.value.length }),
+)
 
 function back(): void {
   if (!isFirst.value) index.value -= 1
@@ -117,17 +128,15 @@ const loanOptions = computed<Choice<string>[]>(() => [
     icon: loanIcon(product.id),
   })),
 ])
+// otbasy-gates is never offered here — it is pinned automatically when the
+// loan is Otbasy (see the watch above), and this step doesn't show then.
 const buyWhenOptions = computed<Choice<PurchasePlan['buyWhen']>[]>(() =>
-  (['asap', 'after-months', 'otbasy-gates'] as const)
-    .filter((value) => value !== 'otbasy-gates' || draft.loan === 'otbasy')
-    .map((value) => ({
-      value,
-      label: BUY_WHEN_LABELS.value[value],
-      description: t(
-        `planWizard.desc.buyWhen.${value === 'after-months' ? 'afterMonths' : value === 'otbasy-gates' ? 'otbasyGates' : 'asap'}`,
-      ),
-      icon: BUY_WHEN_ICONS[value],
-    })),
+  (['asap', 'after-months'] as const).map((value) => ({
+    value,
+    label: BUY_WHEN_LABELS.value[value],
+    description: t(`planWizard.desc.buyWhen.${value === 'after-months' ? 'afterMonths' : 'asap'}`),
+    icon: BUY_WHEN_ICONS[value],
+  })),
 )
 const borrowOptions = computed<Choice<PurchasePlan['borrow']>[]>(() =>
   (['max', 'min'] as const).map((value) => ({
@@ -184,177 +193,100 @@ const summary = computed(() => describePlan(draft, inputs.loans.products, inputs
 </script>
 
 <template>
-  <div class="overlay">
-    <section class="wizard card" role="dialog" aria-modal="true">
-      <header class="head">
-        <p class="progress">
-          {{ mode === 'create' ? t('planWizard.createTitle') : t('planWizard.editTitle') }} ·
-          {{ t('planWizard.progress', { current: index + 1, total: steps.length }) }}
-        </p>
-        <button
-          type="button"
-          class="icon-btn"
-          :title="t('planWizard.cancel')"
-          @click="emit('cancel')"
-        >
-          <AppIcon :path="mdiClose" :size="20" />
-        </button>
-      </header>
+  <WizardShell
+    modal
+    :progress="progress"
+    :title="t(`planWizard.steps.${step}.title`)"
+    :instruction="t(`planWizard.steps.${step}.instruction`)"
+    :is-first="isFirst"
+    :is-last="isLast"
+    :back-label="t('planWizard.back')"
+    :next-label="t('planWizard.next')"
+    :finish-label="t('planWizard.finish')"
+    :close-label="t('planWizard.cancel')"
+    @back="back"
+    @next="next"
+    @close="emit('cancel')"
+  >
+    <label v-if="step === 'name'" class="name-field">
+      <span>{{ t('planWizard.nameLabel') }}</span>
+      <input v-model="draft.name" type="text" :placeholder="t('planWizard.namePlaceholder')" />
+    </label>
 
-      <h2>{{ t(`planWizard.steps.${step}.title`) }}</h2>
-      <p class="instruction">{{ t(`planWizard.steps.${step}.instruction`) }}</p>
+    <ChoiceCards
+      v-else-if="step === 'loan'"
+      v-model="draft.loan"
+      :options="loanOptions"
+      :aria-label="t('planWizard.steps.loan.title')"
+    />
 
-      <div class="body">
-        <label v-if="step === 'name'" class="name-field">
-          <span>{{ t('planWizard.nameLabel') }}</span>
-          <input v-model="draft.name" type="text" :placeholder="t('planWizard.namePlaceholder')" />
-        </label>
-
-        <ChoiceCards
-          v-else-if="step === 'loan'"
-          v-model="draft.loan"
-          :options="loanOptions"
-          :aria-label="t('planWizard.steps.loan.title')"
+    <template v-else-if="step === 'buyWhen'">
+      <ChoiceCards
+        v-model="draft.buyWhen"
+        :options="buyWhenOptions"
+        :aria-label="t('planWizard.steps.buyWhen.title')"
+      />
+      <label v-if="draft.buyWhen === 'after-months'" class="inline-field">
+        <span>{{ t('plansTab.saveMonthsLabel') }}</span>
+        <input
+          type="number"
+          min="0"
+          step="1"
+          :value="draft.saveMonths ?? ''"
+          @input="setSaveMonths"
         />
+        <span class="hint">{{ t('plansTab.saveMonthsHint') }}</span>
+      </label>
+    </template>
 
-        <template v-else-if="step === 'buyWhen'">
-          <ChoiceCards
-            v-model="draft.buyWhen"
-            :options="buyWhenOptions"
-            :aria-label="t('planWizard.steps.buyWhen.title')"
-          />
-          <label v-if="draft.buyWhen === 'after-months'" class="inline-field">
-            <span>{{ t('plansTab.saveMonthsLabel') }}</span>
-            <input
-              type="number"
-              min="0"
-              step="1"
-              :value="draft.saveMonths ?? ''"
-              @input="setSaveMonths"
-            />
-            <span class="hint">{{ t('plansTab.saveMonthsHint') }}</span>
-          </label>
-        </template>
+    <ChoiceCards
+      v-else-if="step === 'borrow'"
+      v-model="draft.borrow"
+      :options="borrowOptions"
+      :aria-label="t('planWizard.steps.borrow.title')"
+    />
 
-        <ChoiceCards
-          v-else-if="step === 'borrow'"
-          v-model="draft.borrow"
-          :options="borrowOptions"
-          :aria-label="t('planWizard.steps.borrow.title')"
-        />
+    <ChoiceCards
+      v-else-if="step === 'repay'"
+      v-model="draft.repay"
+      :options="repayOptions"
+      :aria-label="t('planWizard.steps.repay.title')"
+    />
 
-        <ChoiceCards
-          v-else-if="step === 'repay'"
-          v-model="draft.repay"
-          :options="repayOptions"
-          :aria-label="t('planWizard.steps.repay.title')"
-        />
+    <template v-else-if="step === 'situation'">
+      <ChoiceCards
+        v-model="draft.situation"
+        :options="situationOptions"
+        :aria-label="t('planWizard.steps.situation.title')"
+      />
+      <label v-if="draft.situation === 'selling'" class="inline-field">
+        <span>{{ t('plansTab.saleMonthLabel') }}</span>
+        <input v-model.number="draft.saleMonthOffset" type="number" min="0" step="1" />
+        <span class="hint">{{ t('plansTab.saleMonthHint') }}</span>
+      </label>
+      <p v-if="!situationMatches" class="warn">
+        {{
+          draft.situation === 'selling'
+            ? t('plansTab.showNeedsApartment')
+            : t('plansTab.showNeedsNoApartment')
+        }}
+      </p>
+    </template>
 
-        <template v-else-if="step === 'situation'">
-          <ChoiceCards
-            v-model="draft.situation"
-            :options="situationOptions"
-            :aria-label="t('planWizard.steps.situation.title')"
-          />
-          <label v-if="draft.situation === 'selling'" class="inline-field">
-            <span>{{ t('plansTab.saleMonthLabel') }}</span>
-            <input v-model.number="draft.saleMonthOffset" type="number" min="0" step="1" />
-            <span class="hint">{{ t('plansTab.saleMonthHint') }}</span>
-          </label>
-          <p v-if="!situationMatches" class="warn">
-            {{
-              draft.situation === 'selling'
-                ? t('plansTab.showNeedsApartment')
-                : t('plansTab.showNeedsNoApartment')
-            }}
-          </p>
-        </template>
+    <ChoiceCards
+      v-else-if="step === 'deposit'"
+      v-model="draft.savingsProductId"
+      :options="depositOptions"
+      :aria-label="t('planWizard.steps.deposit.title')"
+    />
 
-        <ChoiceCards
-          v-else-if="step === 'deposit'"
-          v-model="draft.savingsProductId"
-          :options="depositOptions"
-          :aria-label="t('planWizard.steps.deposit.title')"
-        />
-      </div>
-
+    <template #after-body>
       <p class="terms">{{ summary }}</p>
-
-      <footer class="controls">
-        <button type="button" class="secondary" :disabled="isFirst" @click="back">
-          <AppIcon :path="mdiChevronLeft" :size="18" />
-          {{ t('planWizard.back') }}
-        </button>
-        <button type="button" class="primary" @click="next">
-          {{ isLast ? t('planWizard.finish') : t('planWizard.next') }}
-          <AppIcon :path="isLast ? mdiCheck : mdiChevronRight" :size="18" />
-        </button>
-      </footer>
-    </section>
-  </div>
+    </template>
+  </WizardShell>
 </template>
 
 <style scoped>
-.overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 50;
-  display: flex;
-  align-items: flex-start;
-  justify-content: center;
-  /* Pushed down from the top and sat on a near-opaque backdrop so it lands over —
-     and fully hides — the onboarding wizard card it opens on top of. */
-  padding: 7vh 16px 40px;
-  overflow-y: auto;
-  background: rgb(0 0 0 / 0.72);
-}
-.wizard {
-  width: 100%;
-  max-width: 760px;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  box-shadow: 0 12px 40px rgb(0 0 0 / 0.3);
-}
-.head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-}
-.progress {
-  color: var(--text-muted);
-  font-size: var(--text-sm);
-  margin: 0;
-}
-.icon-btn {
-  display: flex;
-  border: none;
-  background: none;
-  color: var(--text-muted);
-  cursor: pointer;
-  padding: 2px;
-  border-radius: 6px;
-}
-.icon-btn:hover {
-  color: var(--text-primary);
-  background: var(--surface-2);
-}
-h2 {
-  font-size: var(--text-xl);
-  margin: 0;
-}
-.instruction {
-  color: var(--text-secondary);
-  font-size: var(--text-md);
-  margin: 0;
-}
-.body {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  min-height: 200px;
-}
 .name-field,
 .inline-field {
   display: flex;
@@ -367,11 +299,14 @@ h2 {
 .inline-field input {
   padding: 8px 10px;
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   background: var(--surface-1);
   color: var(--text-primary);
   font: inherit;
   font-size: var(--text-lg);
+  transition:
+    border-color var(--transition),
+    box-shadow var(--transition);
 }
 .inline-field input {
   font-family: var(--mono);
@@ -379,8 +314,9 @@ h2 {
 }
 .name-field input:focus-visible,
 .inline-field input:focus-visible {
-  outline: 2px solid var(--series-1);
-  outline-offset: -1px;
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow);
 }
 .hint {
   color: var(--text-muted);
@@ -395,40 +331,7 @@ h2 {
   color: var(--text-muted);
   font-size: var(--text-sm);
   margin: 0;
-  padding-top: 2px;
-  border-top: 1px solid var(--border);
   padding-top: 10px;
-}
-.controls {
-  display: flex;
-  justify-content: space-between;
-  gap: 8px;
-}
-.controls button {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  border-radius: 6px;
-  padding: 8px 16px;
-  font: inherit;
-  font-size: var(--text-md);
-  cursor: pointer;
-  border: 1px solid var(--border);
-}
-.controls button:disabled {
-  opacity: 0.5;
-  cursor: default;
-}
-.secondary {
-  background: var(--surface-2);
-  color: var(--text-secondary);
-}
-.secondary:hover:not(:disabled) {
-  color: var(--text-primary);
-}
-.primary {
-  background: var(--series-1);
-  color: #fff;
-  border-color: var(--series-1);
+  border-top: 1px solid var(--border);
 }
 </style>

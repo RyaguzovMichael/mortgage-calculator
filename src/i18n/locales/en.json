@@ -42,6 +42,7 @@
   },
   "conditionsView": {
     "title": "Start conditions",
+    "redoWizard": "Redo the setup wizard",
     "reset": "Start over",
     "apartmentTitle": "Apartment",
     "moneyTitle": "Money & savings"
@@ -288,6 +289,10 @@
     },
     "describePlanAfterMonths": "after {n} {word}",
     "describePlanOtbasyWait": "wait like Otbasy"
+  },
+  "planEditor": {
+    "title": "Edit plan",
+    "save": "Save"
   },
   "planWizard": {
     "createTitle": "New plan",

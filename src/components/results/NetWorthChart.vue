@@ -491,14 +491,14 @@ h2 {
   position: absolute;
   top: 0;
   transform: translateX(-50%);
-  background: var(--surface-2);
+  background: var(--glass-solid);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   padding: 8px 10px;
   pointer-events: none;
   font-size: var(--text-md);
   min-width: 200px;
-  box-shadow: 0 4px 14px rgb(0 0 0 / 0.14);
+  box-shadow: var(--shadow-lg);
 }
 .when {
   margin: 0 0 5px;

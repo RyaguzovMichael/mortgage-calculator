@@ -42,6 +42,7 @@
   },
   "conditionsView": {
     "title": "Исходные условия",
+    "redoWizard": "Пройти мастер заново",
     "reset": "Начать заново",
     "apartmentTitle": "Квартира",
     "moneyTitle": "Деньги и накопления"
@@ -288,6 +289,10 @@
     },
     "describePlanAfterMonths": "через {n} {word}",
     "describePlanOtbasyWait": "ждать как Otbasy"
+  },
+  "planEditor": {
+    "title": "Изменение плана",
+    "save": "Сохранить"
   },
   "planWizard": {
     "createTitle": "Новый план",

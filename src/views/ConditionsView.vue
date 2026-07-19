@@ -22,7 +22,10 @@ function reset(): void {
   <div class="layout">
     <header class="head">
       <h1>{{ t('conditionsView.title') }}</h1>
-      <button type="button" @click="reset">{{ t('conditionsView.reset') }}</button>
+      <div class="head-actions">
+        <RouterLink to="/start" class="redo-link">{{ t('conditionsView.redoWizard') }}</RouterLink>
+        <button type="button" @click="reset">{{ t('conditionsView.reset') }}</button>
+      </div>
     </header>
 
     <div class="columns">
@@ -59,18 +62,34 @@ h1 {
   font-size: var(--text-xl);
   margin: 0;
 }
+.head-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.redo-link {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+.redo-link:hover {
+  color: var(--text-primary);
+}
 .head button {
   border: 1px solid var(--border);
   background: var(--surface-2);
   color: var(--text-secondary);
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   padding: 4px 10px;
   font: inherit;
   font-size: var(--text-md);
   cursor: pointer;
+  transition:
+    color var(--transition),
+    border-color var(--transition);
 }
 .head button:hover {
   color: var(--text-primary);
+  border-color: var(--accent);
 }
 .columns {
   display: grid;

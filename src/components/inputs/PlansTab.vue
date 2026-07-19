@@ -9,6 +9,7 @@ import { planNeedsExistingApartment } from '@/engine/types/inputs'
 import type { PurchasePlan } from '@/engine/types/plan'
 import AppIcon from '@/components/AppIcon.vue'
 import PlanWizard from './PlanWizard.vue'
+import PlanEditorDialog from './PlanEditorDialog.vue'
 
 const {
   inputs,
@@ -24,18 +25,23 @@ const {
 const { t } = useI18n()
 const { describePlan } = useFormat()
 
-// The wizard is the one editor now — both "+ Add" and "Edit" open it. null means
-// closed; otherwise it carries the draft (a fresh one to create, a clone to edit)
-// and which verb to show.
-const editing = ref<{ plan: PurchasePlan; mode: 'create' | 'edit' } | null>(null)
+// "+ Add" opens the stepped wizard (one decision per screen — better for a plan
+// built from scratch); "Edit" opens the all-in-one dialog instead, since an
+// existing plan just needs a few fields nudged, not walked through again.
+const creating = ref<PurchasePlan | null>(null)
+const editing = ref<PurchasePlan | null>(null)
 
 function openCreate(): void {
-  editing.value = { plan: newPlanDraft(), mode: 'create' }
+  creating.value = newPlanDraft()
 }
 function openEdit(plan: PurchasePlan): void {
-  editing.value = { plan, mode: 'edit' }
+  editing.value = plan
 }
-function onSave(plan: PurchasePlan): void {
+function onCreateSave(plan: PurchasePlan): void {
+  upsertPlan(plan)
+  creating.value = null
+}
+function onEditSave(plan: PurchasePlan): void {
   upsertPlan(plan)
   editing.value = null
 }
@@ -133,12 +139,13 @@ function showTitle(plan: PurchasePlan): string {
   </section>
 
   <PlanWizard
-    v-if="editing"
-    :initial="editing.plan"
-    :mode="editing.mode"
-    @save="onSave"
-    @cancel="editing = null"
+    v-if="creating"
+    :initial="creating"
+    mode="create"
+    @save="onCreateSave"
+    @cancel="creating = null"
   />
+  <PlanEditorDialog v-if="editing" :initial="editing" @save="onEditSave" @cancel="editing = null" />
 </template>
 
 <style scoped>
@@ -172,12 +179,16 @@ function showTitle(plan: PurchasePlan): string {
   border: 1px solid var(--border);
   background: var(--surface-2);
   color: var(--text-muted);
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   padding: 5px;
   cursor: pointer;
+  transition:
+    color var(--transition),
+    border-color var(--transition);
 }
 .actions button:hover {
   color: var(--text-primary);
+  border-color: var(--accent);
 }
 .add {
   display: flex;
@@ -226,15 +237,15 @@ function showTitle(plan: PurchasePlan): string {
     background 0.15s;
 }
 .switch input:checked + .track {
-  background: var(--series-1);
-  border-color: var(--series-1);
+  background: var(--accent-gradient);
+  border-color: transparent;
 }
 .switch input:checked + .track .thumb {
   transform: translateX(14px);
-  background: #fff;
+  background: var(--accent-contrast);
 }
 .switch input:focus-visible + .track {
-  outline: 2px solid var(--series-1);
-  outline-offset: 2px;
+  outline: none;
+  box-shadow: 0 0 0 3px var(--accent-glow);
 }
 </style>
