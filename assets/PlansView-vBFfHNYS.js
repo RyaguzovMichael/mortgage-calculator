@@ -1,0 +1,1 @@
+import{F as e,M as t,S as n,_ as r,a as i,d as a,i as o,m as s,v as c}from"./index-vkaY2YmJ.js";import{t as l}from"./PlansTab-3e4jZtRf.js";var u={class:`layout`},d={class:`card`},f=o(c({__name:`PlansView`,setup(o){let{t:c}=i();return(i,o)=>(n(),s(`div`,u,[a(`h1`,null,e(t(c)(`plansView.title`)),1),a(`section`,d,[r(l)])]))}}),[[`__scopeId`,`data-v-630443e4`]]);export{f as default};
