@@ -2,6 +2,7 @@
 import { useI18n } from 'vue-i18n'
 import { useInputs } from '@/app/useInputs'
 import NumberField from './NumberField.vue'
+import PercentField from './PercentField.vue'
 
 const { inputs } = useInputs()
 const { t } = useI18n()
@@ -17,6 +18,12 @@ const { t } = useI18n()
       :step="500000"
     />
     <p class="note">{{ t('apartmentTab.note') }}</p>
+    <PercentField
+      v-model="inputs.apartment.annualGrowthRate"
+      :label="t('apartmentTab.growthLabel')"
+      :step="1"
+      :hint="t('apartmentTab.growthHint')"
+    />
   </section>
 
   <section class="field-group">

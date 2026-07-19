@@ -34,6 +34,7 @@
   },
   "footer": {
     "disclaimer": "This site is not financial advice. It is a personal, informational tool only — always verify real terms with your bank, lender, or a qualified financial advisor before making any decision.",
+    "privacy": "All your data is stored locally in your browser. Nothing is sent to any server.",
     "github": "GitHub",
     "contact": "Contact",
     "license": "License",
@@ -44,6 +45,10 @@
     "title": "Start conditions",
     "redoWizard": "Redo the setup wizard",
     "reset": "Start over",
+    "resetConfirmTitle": "Start over?",
+    "resetConfirmMessage": "Every start condition — the apartment, income, savings, chosen plans — will be wiped with no way to undo it. This is not the same as “Redo the setup wizard”, which keeps your current data.",
+    "resetConfirmAction": "Yes, wipe everything",
+    "resetConfirmCancel": "Cancel",
     "apartmentTitle": "Apartment",
     "moneyTitle": "Money & savings"
   },
@@ -66,9 +71,14 @@
     "back": "Back",
     "next": "Next",
     "finish": "Start calculating",
+    "useExample": "Use example numbers",
     "apartment": {
       "title": "The apartment you want",
       "instruction": "How much does the apartment you're aiming to buy cost today? Its price grows over time on its own — you set the growth rate later."
+    },
+    "appreciation": {
+      "title": "How fast apartments get pricier",
+      "instruction": "Average yearly price growth for apartments. The same rate indexes rent and the price of your current apartment when it sells. Use a long-run average, not a peak year."
     },
     "existing": {
       "title": "An apartment you own now",
@@ -111,7 +121,9 @@
     "existingNote": "A start condition shared by every plan: the flat you'd sell to help fund the purchase. It appreciates at the same growth rate as the one you're buying. Turn it off and the plans that sell it go unavailable; the renting and rent-free plans become available instead.",
     "ownedToggle": "I own an apartment now",
     "existingPriceLabel": "Its price today",
-    "existingPriceHint": "What it's worth now. Grows with the market up to the month a plan sells it. When it sells is a per-plan decision, set in the “Plans” tab."
+    "existingPriceHint": "What it's worth now. Grows with the market up to the month a plan sells it. When it sells is a per-plan decision, set in the “Plans” tab.",
+    "growthLabel": "Price growth per year",
+    "growthHint": "Year over year: 12% = a year from now the price is 12% higher. Steps once every six months. The same rate indexes rent and the price of your apartment being sold. Use a long-run average, not a peak year: the threshold where conclusions flip is ≈9%, and in the 8–10% range the answer is decided by model details, not the market."
   },
   "moneyTab": {
     "cashflowTitle": "Cash flow",
@@ -139,7 +151,7 @@
     "builtInTitle": "Built-in deposits",
     "builtInNote": "Preset deposits. They cannot be changed or removed here.",
     "ownTitle": "Your deposits",
-    "addButton": "+ Add",
+    "addButton": "Add",
     "ownEmpty": "Nothing yet. Add a deposit if you have a bank offer not listed above — and pick it on a plan in the “Plans” tab.",
     "nameAriaLabel": "Deposit name {id}",
     "removeButton": "Remove",
@@ -153,7 +165,7 @@
     "builtInTitle": "Built-in credits",
     "builtInNote": "Preset credits. They cannot be changed or removed here.",
     "ownTitle": "Your credits",
-    "addButton": "+ Add",
+    "addButton": "Add",
     "ownEmpty": "Nothing yet. Add a credit if you have a bank offer not listed above — and pick it in the “Plans” tab.",
     "nameAriaLabel": "Credit name {id}",
     "removeButton": "Remove",
@@ -173,6 +185,10 @@
     "nameAriaLabel": "Plan name {id}",
     "removeTitle": "Remove plan",
     "removeButton": "Remove",
+    "removeConfirmTitle": "Remove this plan?",
+    "removeConfirmMessage": "“{name}” will be removed with no way to undo it. If it's currently shown on the chart, it'll disappear from there too.",
+    "removeConfirmAction": "Yes, remove it",
+    "removeConfirmCancel": "Cancel",
     "loanLabel": "Loan",
     "buyWhenLabel": "When to buy",
     "saveMonthsLabel": "Months to save",
@@ -190,12 +206,12 @@
     "showNeedsApartment": "Needs an apartment you own now — turn it on in “Start conditions”",
     "showNeedsNoApartment": "For when you own no apartment — turn ownership off in “Start conditions”",
     "showAllLabel": "Show unavailable plans",
-    "editTitle": "Edit plan"
+    "editTitle": "Edit plan",
+    "duplicateTitle": "Duplicate plan",
+    "copyName": "{name}-Copy"
   },
   "runControls": {
     "startLabel": "Start",
-    "growthLabel": "Price growth per year",
-    "growthHint": "Year over year: 12% = a year from now the price is 12% higher. Steps once every six months. The same rate indexes rent and the price of your apartment being sold. Use a long-run average, not a peak year: the threshold where conclusions flip is ≈9%, and in the 8–10% range the answer is decided by model details, not the market.",
     "horizonLabel": "Calculation horizon",
     "horizonAriaLabel": "Calculation horizon, years",
     "horizonHint": "A ceiling only: the calculation still cuts off once the last plan clears its debt. Worth raising if someone doesn't finish paying it off in time.",

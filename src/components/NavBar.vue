@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
+import { mdiClipboardListOutline, mdiCogOutline, mdiDatabaseOutline, mdiHome } from '@mdi/js'
 import { useTheme } from '@/app/useTheme'
 import { useLocale } from '@/app/useLocale'
+import AppIcon from '@/components/AppIcon.vue'
 import type { ThemeOverride } from '@/infrastructure/themePersistence'
 import type { Locale } from '@/infrastructure/localePersistence'
 
@@ -24,18 +26,22 @@ function themeLabel(value: ThemeOverride): string {
     <div class="left">
       <span class="brand">{{ t('nav.brand') }}</span>
       <nav class="nav-links">
-        <RouterLink to="/" class="nav-link" active-class="on" exact-active-class="on">{{
-          t('nav.home')
-        }}</RouterLink>
-        <RouterLink to="/conditions" class="nav-link" active-class="on" exact-active-class="on">{{
-          t('nav.conditions')
-        }}</RouterLink>
-        <RouterLink to="/plans" class="nav-link" active-class="on" exact-active-class="on">{{
-          t('nav.plans')
-        }}</RouterLink>
-        <RouterLink to="/database" class="nav-link" active-class="on" exact-active-class="on">{{
-          t('nav.database')
-        }}</RouterLink>
+        <RouterLink to="/" class="nav-link" active-class="on" exact-active-class="on">
+          <AppIcon :path="mdiHome" :size="16" />
+          {{ t('nav.home') }}
+        </RouterLink>
+        <RouterLink to="/conditions" class="nav-link" active-class="on" exact-active-class="on">
+          <AppIcon :path="mdiCogOutline" :size="16" />
+          {{ t('nav.conditions') }}
+        </RouterLink>
+        <RouterLink to="/plans" class="nav-link" active-class="on" exact-active-class="on">
+          <AppIcon :path="mdiClipboardListOutline" :size="16" />
+          {{ t('nav.plans') }}
+        </RouterLink>
+        <RouterLink to="/database" class="nav-link" active-class="on" exact-active-class="on">
+          <AppIcon :path="mdiDatabaseOutline" :size="16" />
+          {{ t('nav.database') }}
+        </RouterLink>
       </nav>
     </div>
     <div class="right">
@@ -110,6 +116,9 @@ function themeLabel(value: ThemeOverride): string {
   gap: 4px;
 }
 .nav-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   border: none;
   background: none;
   color: var(--text-muted);

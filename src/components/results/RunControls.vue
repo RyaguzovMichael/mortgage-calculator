@@ -1,33 +1,10 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useInputs } from '@/app/useInputs'
 
 const { inputs } = useInputs()
 const { t, tm, locale } = useI18n()
-
-const growthPercent = computed<number>({
-  get: () => Math.round(inputs.apartment.annualGrowthRate * 1e6) / 1e4,
-  set: (value) => {
-    Object.assign(inputs.apartment, { annualGrowthRate: value / 100 })
-  },
-})
-
-function onGrowthInput(event: Event): void {
-  const parsed = Number((event.target as HTMLInputElement).value)
-  if (Number.isFinite(parsed)) growthPercent.value = parsed
-}
-
-// A floating tip, not an always-reserved line: it only appears on a pointerup
-// on the input (a tap or click release) and closes again once the field loses
-// focus, so it never pushes the rest of the layout around.
-const growthHintOpen = ref(false)
-function openGrowthHint(): void {
-  growthHintOpen.value = true
-}
-function closeGrowthHint(): void {
-  growthHintOpen.value = false
-}
 
 // The slider's own scale, independent of the stored horizon: dragging always
 // works in whole years, but a saved horizonMonths that isn't a multiple of 12
@@ -83,24 +60,6 @@ const yearsWord = computed<string>(() => {
       <span class="label">{{ t('runControls.startLabel') }}</span>
       <input v-model="startValue" type="month" />
     </label>
-    <label class="growth-field">
-      <span class="label">{{ t('runControls.growthLabel') }}</span>
-      <span class="control">
-        <input
-          class="growth-input"
-          type="number"
-          step="1"
-          :value="growthPercent"
-          @input="onGrowthInput"
-          @pointerup="openGrowthHint"
-          @blur="closeGrowthHint"
-        />
-        <span class="suffix">%</span>
-        <span v-if="growthHintOpen" class="hint-tip" role="tooltip">
-          {{ t('runControls.growthHint') }}
-        </span>
-      </span>
-    </label>
     <label class="horizon-field">
       <span class="label">
         {{ t('runControls.horizonLabel') }}
@@ -137,45 +96,13 @@ const yearsWord = computed<string>(() => {
   gap: 14px 20px;
 }
 .start-field,
-.growth-field,
 .horizon-field {
   display: flex;
   flex-direction: column;
   gap: 4px;
 }
-.start-field,
-.growth-field {
+.start-field {
   flex: none;
-}
-.growth-field .control {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-top: 10px;
-}
-.growth-input {
-  width: 70px;
-  padding: 7px 9px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  background: var(--surface-1);
-  color: var(--text-primary);
-  font: inherit;
-  font-family: var(--mono);
-  font-size: var(--text-lg);
-  transition:
-    border-color var(--transition),
-    box-shadow var(--transition);
-}
-.growth-input:focus-visible {
-  outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-glow);
-}
-.growth-field .suffix {
-  color: var(--text-muted);
-  font-size: var(--text-md);
 }
 /* Takes whatever room the plan chips leave: the slider is the thing worth
    dragging precisely, so it gets the width. */

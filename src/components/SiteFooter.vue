@@ -11,6 +11,7 @@ const year = new Date().getFullYear()
 <template>
   <footer class="site-footer">
     <p class="disclaimer">{{ t('footer.disclaimer') }}</p>
+    <p class="disclaimer">{{ t('footer.privacy') }}</p>
     <div class="bottom">
       <span class="copyright">{{ t('footer.copyright', { year }) }}</span>
       <nav class="links">
@@ -40,7 +41,7 @@ const year = new Date().getFullYear()
   margin: 0;
   font-size: var(--text-sm);
   color: var(--text-muted);
-  max-width: 900px;
+  max-width: none;
 }
 .bottom {
   display: flex;

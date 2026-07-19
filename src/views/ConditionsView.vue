@@ -1,18 +1,27 @@
 <script setup lang="ts">
+import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
+import { mdiClipboardEditOutline, mdiRestore } from '@mdi/js'
 import { useInputs } from '@/app/useInputs'
 import ApartmentTab from '@/components/inputs/ApartmentTab.vue'
 import MoneyTab from '@/components/inputs/MoneyTab.vue'
+import AppIcon from '@/components/AppIcon.vue'
+import ConfirmDialog from '@/components/ConfirmDialog.vue'
 
 const { t } = useI18n()
 const { startOver } = useInputs()
 const router = useRouter()
 
-// Start over blanks the personal conditions and walks the user back through the
-// wizard — the same thing the old left-panel Reset did, now living with the
-// conditions it resets.
-function reset(): void {
+// Reset is irreversible (it blanks every personal field with no undo), and it
+// used to fire on a single click right next to the non-destructive "redo
+// wizard" link — easy to hit by mistake. It now always asks first.
+const confirmingReset = ref(false)
+function requestReset(): void {
+  confirmingReset.value = true
+}
+function confirmReset(): void {
+  confirmingReset.value = false
   startOver()
   router.push({ name: 'start' })
 }
@@ -23,10 +32,26 @@ function reset(): void {
     <header class="head">
       <h1>{{ t('conditionsView.title') }}</h1>
       <div class="head-actions">
-        <RouterLink to="/start" class="redo-link">{{ t('conditionsView.redoWizard') }}</RouterLink>
-        <button type="button" @click="reset">{{ t('conditionsView.reset') }}</button>
+        <RouterLink to="/start" class="redo-link">
+          <AppIcon :path="mdiClipboardEditOutline" :size="16" />
+          {{ t('conditionsView.redoWizard') }}
+        </RouterLink>
+        <button type="button" @click="requestReset">
+          <AppIcon :path="mdiRestore" :size="16" />
+          {{ t('conditionsView.reset') }}
+        </button>
       </div>
     </header>
+
+    <ConfirmDialog
+      v-if="confirmingReset"
+      :title="t('conditionsView.resetConfirmTitle')"
+      :message="t('conditionsView.resetConfirmMessage')"
+      :confirm-label="t('conditionsView.resetConfirmAction')"
+      :cancel-label="t('conditionsView.resetConfirmCancel')"
+      @confirm="confirmReset"
+      @cancel="confirmingReset = false"
+    />
 
     <div class="columns">
       <section class="card">
@@ -68,6 +93,9 @@ h1 {
   gap: 10px;
 }
 .redo-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   font-size: var(--text-sm);
   color: var(--text-muted);
 }
@@ -75,6 +103,9 @@ h1 {
   color: var(--text-primary);
 }
 .head button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   border: 1px solid var(--border);
   background: var(--surface-2);
   color: var(--text-secondary);

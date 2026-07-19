@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { mdiPlus, mdiTrashCanOutline } from '@mdi/js'
 import { useInputs } from '@/app/useInputs'
 import { useFormat } from '@/app/useFormat'
 import { BUILT_IN_LOANS, isBuiltInLoanProduct } from '@/infrastructure/loanCatalogue'
+import AppIcon from '@/components/AppIcon.vue'
 import NumberField from './NumberField.vue'
 import PercentField from './PercentField.vue'
 import OwnItemAccordion from './OwnItemAccordion.vue'
@@ -40,7 +42,10 @@ const ownProducts = computed(() =>
   <section class="field-group">
     <header class="section-head">
       <h3>{{ t('loansTab.ownTitle') }}</h3>
-      <button type="button" @click="addLoanProduct">{{ t('loansTab.addButton') }}</button>
+      <button type="button" @click="addLoanProduct">
+        <AppIcon :path="mdiPlus" :size="16" />
+        {{ t('loansTab.addButton') }}
+      </button>
     </header>
     <p v-if="ownProducts.length === 0" class="note">{{ t('loansTab.ownEmpty') }}</p>
     <OwnItemAccordion
@@ -65,6 +70,7 @@ const ownProducts = computed(() =>
           "
           @click="removeLoanProduct(product.id)"
         >
+          <AppIcon :path="mdiTrashCanOutline" :size="16" />
           {{ t('loansTab.removeButton') }}
         </button>
       </div>

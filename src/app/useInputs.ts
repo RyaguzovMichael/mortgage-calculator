@@ -14,6 +14,7 @@ import {
   saveInputs,
 } from '@/infrastructure/inputsStorage'
 import { clearOnboarded } from '@/infrastructure/onboardingPersistence'
+import { clearWizardStep } from '@/infrastructure/wizardProgressPersistence'
 
 // One line per palette slot: the board colours plans by index, and there are eight
 // validated slots, so the ninth shown plan has no colour to wear.
@@ -48,6 +49,7 @@ export function useInputs() {
     allPlans,
     newPlanDraft,
     upsertPlan,
+    duplicatePlan,
     removePlan,
     canRemovePlan,
     isPlanBuiltIn: isBuiltInPlan,
@@ -64,6 +66,7 @@ export function useInputs() {
 function startOver(): void {
   Object.assign(inputs, structuredClone(BLANK_START_INPUTS))
   clearOnboarded()
+  clearWizardStep()
 }
 
 // Ids are never reused: a deposit is deleted, and a later one must not inherit its
@@ -166,6 +169,26 @@ function upsertPlan(plan: PurchasePlan): void {
   const at = inputs.plans.custom.findIndex((candidate) => candidate.id === plan.id)
   if (at >= 0) inputs.plans.custom.splice(at, 1, plan)
   else inputs.plans.custom.push(plan)
+}
+
+// Clones any plan — built-in or custom — into a new custom plan, so tweaking
+// "Halyk, but with a bigger down payment" starts from Halyk's own terms instead
+// of the blank draft newPlanDraft() hands the wizard. Not auto-shown, same as a
+// brand-new plan: copying one must not shove something else off the board.
+function duplicatePlan(id: string, name: string): PurchasePlan {
+  const source = allPlans.value.find((candidate) => candidate.id === id)
+  if (!source) throw new Error(`Unknown plan: ${id}`)
+  nextPlanId = Math.max(nextPlanId, highestPlanId(inputs.plans.custom)) + 1
+  // structuredClone can't clone a Vue reactive Proxy — a custom plan is one, a
+  // built-in isn't, so this only broke on copying your own plans. JSON round-trip
+  // instead, same as toPlain() below.
+  const copy: PurchasePlan = {
+    ...(JSON.parse(JSON.stringify(source)) as PurchasePlan),
+    id: `plan-${nextPlanId}`,
+    name,
+  }
+  inputs.plans.custom.push(copy)
+  return copy
 }
 
 function removePlan(id: string): void {

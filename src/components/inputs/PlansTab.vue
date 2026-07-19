@@ -1,13 +1,14 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { mdiPencilOutline, mdiPlus, mdiTrashCanOutline } from '@mdi/js'
+import { mdiContentCopy, mdiPencilOutline, mdiPlus, mdiTrashCanOutline } from '@mdi/js'
 import { useInputs, MAX_SHOWN } from '@/app/useInputs'
 import { useFormat } from '@/app/useFormat'
 import { BUILT_IN_PLANS } from '@/infrastructure/planCatalogue'
 import { planNeedsExistingApartment } from '@/engine/types/inputs'
 import type { PurchasePlan } from '@/engine/types/plan'
 import AppIcon from '@/components/AppIcon.vue'
+import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import PlanWizard from './PlanWizard.vue'
 import PlanEditorDialog from './PlanEditorDialog.vue'
 
@@ -16,6 +17,7 @@ const {
   allPlans,
   newPlanDraft,
   upsertPlan,
+  duplicatePlan,
   removePlan,
   isShown,
   canShow,
@@ -44,6 +46,25 @@ function onCreateSave(plan: PurchasePlan): void {
 function onEditSave(plan: PurchasePlan): void {
   upsertPlan(plan)
   editing.value = null
+}
+
+// Duplicate is instant, not a trip through a dialog: the new row lands in "Your
+// plans" right away, named after its source, ready to rename or tweak with the
+// same Edit button every other custom plan gets.
+function onDuplicate(plan: PurchasePlan): void {
+  duplicatePlan(plan.id, t('plansTab.copyName', { name: plan.name }))
+}
+
+// Deleting a plan is irreversible (there's no undo, and it also drops the plan
+// off the board if it was shown) — same reasoning as Reset on the conditions
+// page, so it gets the same confirm-first treatment.
+const deleting = ref<PurchasePlan | null>(null)
+function requestRemove(plan: PurchasePlan): void {
+  deleting.value = plan
+}
+function confirmRemove(): void {
+  if (deleting.value) removePlan(deleting.value.id)
+  deleting.value = null
 }
 
 // A plan is "unavailable" when its housing situation does not match the start
@@ -85,16 +106,23 @@ function showTitle(plan: PurchasePlan): string {
     <h3>{{ t('plansTab.builtInTitle') }}</h3>
     <p class="note">{{ t('plansTab.builtInNote') }}</p>
     <div v-for="plan in visibleBuiltIns" :key="plan.id" class="built-in">
-      <label class="show">
-        <input
-          type="checkbox"
-          :checked="isShown(plan.id)"
-          :disabled="!canShow(plan.id)"
-          :title="showTitle(plan)"
-          @change="toggleShown(plan.id)"
-        />
-        <span class="item-name">{{ plan.name }}</span>
-      </label>
+      <div class="row">
+        <label class="show">
+          <input
+            type="checkbox"
+            :checked="isShown(plan.id)"
+            :disabled="!canShow(plan.id)"
+            :title="showTitle(plan)"
+            @change="toggleShown(plan.id)"
+          />
+          <span class="item-name">{{ plan.name }}</span>
+        </label>
+        <div class="actions">
+          <button type="button" :title="t('plansTab.duplicateTitle')" @click="onDuplicate(plan)">
+            <AppIcon :path="mdiContentCopy" :size="18" />
+          </button>
+        </div>
+      </div>
       <span class="item-terms">{{
         describePlan(plan, inputs.loans.products, inputs.deposits.products)
       }}</span>
@@ -124,10 +152,13 @@ function showTitle(plan: PurchasePlan): string {
           <span class="item-name">{{ plan.name }}</span>
         </label>
         <div class="actions">
+          <button type="button" :title="t('plansTab.duplicateTitle')" @click="onDuplicate(plan)">
+            <AppIcon :path="mdiContentCopy" :size="18" />
+          </button>
           <button type="button" :title="t('plansTab.editTitle')" @click="openEdit(plan)">
             <AppIcon :path="mdiPencilOutline" :size="18" />
           </button>
-          <button type="button" :title="t('plansTab.removeTitle')" @click="removePlan(plan.id)">
+          <button type="button" :title="t('plansTab.removeTitle')" @click="requestRemove(plan)">
             <AppIcon :path="mdiTrashCanOutline" :size="18" />
           </button>
         </div>
@@ -146,6 +177,16 @@ function showTitle(plan: PurchasePlan): string {
     @cancel="creating = null"
   />
   <PlanEditorDialog v-if="editing" :initial="editing" @save="onEditSave" @cancel="editing = null" />
+
+  <ConfirmDialog
+    v-if="deleting"
+    :title="t('plansTab.removeConfirmTitle')"
+    :message="t('plansTab.removeConfirmMessage', { name: deleting.name })"
+    :confirm-label="t('plansTab.removeConfirmAction')"
+    :cancel-label="t('plansTab.removeConfirmCancel')"
+    @confirm="confirmRemove"
+    @cancel="deleting = null"
+  />
 </template>
 
 <style scoped>

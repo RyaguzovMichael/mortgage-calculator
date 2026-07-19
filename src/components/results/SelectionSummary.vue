@@ -47,7 +47,10 @@ const shownPlans = computed(() =>
     <section class="field-group">
       <header class="section-head">
         <h3>{{ t('selectionSummary.conditionsTitle') }}</h3>
-        <RouterLink to="/conditions" class="edit-link">{{ t('selectionSummary.edit') }}</RouterLink>
+        <RouterLink to="/conditions" class="edit-link">
+          <AppIcon :path="mdiPencilOutline" :size="14" />
+          {{ t('selectionSummary.edit') }}
+        </RouterLink>
       </header>
 
       <dl class="rows">
@@ -56,20 +59,25 @@ const shownPlans = computed(() =>
           <dd>{{ money(inputs.apartment.price) }} ₸</dd>
         </div>
         <div class="row">
-          <dt>{{ t('apartmentTab.ownedToggle') }}</dt>
-          <dd>
-            {{
-              inputs.existingApartment.owned ? money(inputs.existingApartment.price) + ' ₸' : '—'
-            }}
-          </dd>
+          <dt>{{ t('apartmentTab.growthLabel') }}</dt>
+          <dd>{{ percent(inputs.apartment.annualGrowthRate) }}</dd>
         </div>
+        <div v-if="inputs.existingApartment.owned" class="row">
+          <dt>{{ t('apartmentTab.ownedToggle') }}</dt>
+          <dd>{{ money(inputs.existingApartment.price) }} ₸</dd>
+        </div>
+        <hr class="divider" />
         <div class="row">
           <dt>{{ t('moneyTab.salaryLabel') }}</dt>
           <dd>{{ money(inputs.cashflow.monthlySalary) }} ₸</dd>
         </div>
         <div class="row">
           <dt>{{ t('moneyTab.mortgageShareLabel') }}</dt>
-          <dd>{{ percent(inputs.cashflow.mortgageShare) }}</dd>
+          <dd>
+            {{ money(inputs.cashflow.monthlySalary * inputs.cashflow.mortgageShare) }} ₸ ({{
+              percent(inputs.cashflow.mortgageShare)
+            }})
+          </dd>
         </div>
         <div class="row">
           <dt>{{ t('moneyTab.indexationLabel') }}</dt>
@@ -83,13 +91,14 @@ const shownPlans = computed(() =>
           <dt>{{ t('moneyTab.rentLabel') }}</dt>
           <dd>{{ money(inputs.cashflow.monthlyRent) }} ₸</dd>
         </div>
+        <hr class="divider" />
         <div class="row">
           <dt>{{ t('moneyTab.savingsLabel') }}</dt>
           <dd>{{ money(inputs.deposits.savingsBalance) }} ₸</dd>
         </div>
-        <div class="row">
+        <div v-if="inputs.otbasy.hasDeposit" class="row">
           <dt>{{ t('moneyTab.otbasyToggle') }}</dt>
-          <dd>{{ inputs.otbasy.hasDeposit ? money(inputs.otbasy.balance) + ' ₸' : '—' }}</dd>
+          <dd>{{ money(inputs.otbasy.balance) }} ₸</dd>
         </div>
       </dl>
     </section>
@@ -97,7 +106,10 @@ const shownPlans = computed(() =>
     <section class="field-group">
       <header class="section-head">
         <h3>{{ t('selectionSummary.variantsTitle') }}</h3>
-        <RouterLink to="/plans" class="edit-link">{{ t('selectionSummary.edit') }}</RouterLink>
+        <RouterLink to="/plans" class="edit-link">
+          <AppIcon :path="mdiPencilOutline" :size="14" />
+          {{ t('selectionSummary.edit') }}
+        </RouterLink>
       </header>
 
       <p v-if="shownPlans.length === 0" class="note">{{ t('selectionSummary.noVariants') }}</p>
@@ -132,6 +144,9 @@ const shownPlans = computed(() =>
   gap: 18px;
 }
 .edit-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
   font-size: var(--text-sm);
   color: var(--text-muted);
   white-space: nowrap;
@@ -161,6 +176,12 @@ const shownPlans = computed(() =>
   font-family: var(--mono);
   font-variant-numeric: tabular-nums;
   text-align: right;
+}
+.divider {
+  width: 100%;
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 4px 0;
 }
 .variant {
   display: flex;

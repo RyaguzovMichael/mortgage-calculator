@@ -226,6 +226,9 @@ details[open] > .own-summary::before {
 
 .section-head button,
 .own-head button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   border: 1px solid var(--border);
   background: var(--surface-2);
   color: var(--text-secondary);
