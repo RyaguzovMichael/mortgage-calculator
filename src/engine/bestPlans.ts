@@ -229,6 +229,19 @@ interface Category {
   better(a: PlanMetrics, b: PlanMetrics): boolean
 }
 
+// A plan's timing (buyWhen/borrow/repay/term/...) is swept independently of its
+// deposit product, so several candidates can tie exactly on purchaseMonth or
+// monthsRenting while differing only in which deposit the free cash sits in. Without
+// this, the tie is broken by enumeration order — an arbitrary deposit — which can
+// diverge from what 'best-assets' picks for the very same timing, so the board ends
+// up showing two near-identical cards for one strategy (see planFingerprint in
+// useInputs.ts, which would otherwise have collapsed them). Preferring the higher net
+// worth on a tie makes the timing categories agree with 'best-assets' whenever the
+// timing is the same, so they collapse into one card instead.
+function betterOnTie(a: PlanMetrics, b: PlanMetrics): boolean {
+  return a.netWorthAtHorizon > b.netWorthAtHorizon
+}
+
 // The categories the user asked for, as data so a sixth is a one-liner. Every one
 // requires that the plan actually buys the apartment — a plan that never buys is
 // not a way of buying it. "shortest-loan" is deliberately mortgage-only: it ranks on
@@ -239,12 +252,16 @@ const CATEGORIES: readonly Category[] = [
   {
     id: 'earliest-move-in',
     eligible: (m) => m.bought,
-    better: (a, b) => a.purchaseMonth! < b.purchaseMonth!,
+    better: (a, b) =>
+      a.purchaseMonth! < b.purchaseMonth! ||
+      (a.purchaseMonth === b.purchaseMonth && betterOnTie(a, b)),
   },
   {
     id: 'shortest-rent',
     eligible: (m) => m.bought,
-    better: (a, b) => a.monthsRenting < b.monthsRenting,
+    better: (a, b) =>
+      a.monthsRenting < b.monthsRenting ||
+      (a.monthsRenting === b.monthsRenting && betterOnTie(a, b)),
   },
   {
     id: 'best-assets',
@@ -254,7 +271,9 @@ const CATEGORIES: readonly Category[] = [
   {
     id: 'shortest-loan',
     eligible: (m) => m.hasLoan,
-    better: (a, b) => a.debtFreeMonth! < b.debtFreeMonth!,
+    better: (a, b) =>
+      a.debtFreeMonth! < b.debtFreeMonth! ||
+      (a.debtFreeMonth === b.debtFreeMonth && betterOnTie(a, b)),
   },
 ]
 
