@@ -48,11 +48,11 @@ export const HOUSING_ICONS: Record<HousingSituation, string> = {
 // Every deposit card wears the same glyph — the deposits differ by rate, not kind.
 export const DEPOSIT_ICON = mdiPiggyBankOutline
 
-// The two fixed loans get their own glyph; a user's own credit falls back to the
+// The built-in loans get their own glyph; a user's own credit falls back to the
 // generic card. Cash ('none') is money with no loan behind it.
 export function loanIcon(loanId: string): string {
   if (loanId === 'none') return mdiCash
   if (loanId === 'otbasy') return mdiShieldHomeOutline
-  if (loanId === 'halyk') return mdiBank
+  if (loanId === 'halyk' || loanId === 'halyk-fee' || loanId === 'halyk-7-20-25') return mdiBank
   return mdiCreditCardOutline
 }

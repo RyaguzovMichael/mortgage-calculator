@@ -2,12 +2,19 @@
 # доезжает и до тех, у кого уже есть сохранённые данные — сами параметры кредита
 # не хранятся в localStorage, только персональное состояние счёта (см. ниже).
 #
-# Ровно два кредита, и оба редактируются на месте во вкладке «Ипотеки» — это не
-# каталог переменной длины, как вклады: добавить или удалить кредит через
-# интерфейс нельзя.
+# «otbasy» — единственная зарезервированная запись: ровно одна, редактируется
+# только в этом файле, не в интерфейсе. Все остальные записи — обычные кредиты
+# (LoanProduct), каждая ведёт себя как своя карточка в шаге «Кредит» мастера
+# плана и во вкладке «Ипотеки»; добавить/удалить такую запись через интерфейс
+# всё равно нельзя — это built-in каталог, не каталог переменной длины, как
+# вклады.
+#
+# Halyk даёт две ставки на один и тот же продукт — «без комиссии» и «с
+# комиссией» — поэтому это две отдельных записи, а не поле-переключатель:
+# они выбираются как два разных кредита на шаге «Кредит» и в редакторе плана.
 #
 # Поля:
-#   id            halyk | otbasy
+#   id            произвольный, кроме зарезервированного otbasy
 #   name          короткое имя, например «Halyk»
 #   description   { ru, en } — короткое описание программы для интерфейса
 #   ...остальное  параметры кредита/вклада программы (ставки, сроки, лимиты)
@@ -19,11 +26,68 @@
 - id: halyk
   name: Halyk
   description:
-    ru: Ипотека от Halyk Bank без государственных условий — ставка и первый взнос как у обычного банковского кредита.
-    en: A Halyk Bank mortgage with no state conditions attached — bank-standard rate and down payment.
+    ru: Ипотека от Halyk Bank без государственных условий — ставка и первый взнос как у обычного банковского кредита. Тариф «без комиссии» — без комиссии за выдачу, ставка выше. Первый взнос не менее 20%, срок от 6 до 240 месяцев, залог — жильё, страхование от банка.
+    en: A Halyk Bank mortgage with no state conditions attached — bank-standard rate and down payment. The no-fee tier — no origination fee, a higher rate. Down payment at least 20%, term 6 to 240 months, the property itself as collateral, insurance provided by the bank.
+  # Верхняя граница диапазона банка «без комиссии» (22–24%) — тот же
+  # консервативный подход, что и раньше у единственной ставки 24%.
   annualRate: 0.24
   downPaymentFraction: 0.2
   maxTermMonths: 240
+
+- id: halyk-fee
+  name: Halyk (с комиссией)
+  description:
+    ru: То же самое предложение Halyk Bank, но с комиссией за выдачу 1% от суммы кредита в обмен на более низкую ставку. Первый взнос не менее 20%, срок от 6 до 240 месяцев, залог — жильё, страхование от банка.
+    en: The same Halyk Bank offer, but with a 1% origination fee (of the loan amount) in exchange for a lower rate. Down payment at least 20%, term 6 to 240 months, the property itself as collateral, insurance provided by the bank.
+  # Верхняя граница диапазона банка «с комиссией» (20,5–22,5%).
+  annualRate: 0.225
+  downPaymentFraction: 0.2
+  maxTermMonths: 240
+
+- id: halyk-7-20-25
+  name: Halyk 7-20-25
+  description:
+    ru: Программа «7-20-25» — лимит от Казахстанского фонда устойчивости (АО), выдаёт Halyk Bank. Ставка 7% (номинал; ГЭСВ 7,24–7,80%), первый взнос не менее 20%, срок до 25 лет, только первичный рынок, без комиссии за выдачу. Максимальная стоимость жилья и часть требований (нет другого жилья за 18 месяцев, кредит только один раз в жизни) в модели не учитываются — это качественные ограничения программы, а не параметр расчёта.
+    en: The «7-20-25» programme — funded via the Kazakhstan Sustainability Fund, issued by Halyk Bank. Rate 7% (nominal; AEIR 7.24–7.80%), down payment at least 20%, term up to 25 years, primary market only, no origination fee. The home-price cap and some eligibility rules (no other owned housing in the last 18 months, one loan per lifetime) aren't modelled here — they're qualitative programme limits, not a calculation input.
+  annualRate: 0.07
+  downPaymentFraction: 0.2
+  maxTermMonths: 300
+
+- id: halyk-construction
+  name: Halyk (новостройка)
+  description:
+    ru: Ипотека от Halyk Bank на жильё в стадии строительства от партнёра-застройщика. Ставка 1,5–18,0% (ГЭСВ 1,51–19,55%) — в модели используется верхняя граница диапазона, тот же консервативный подход, что и у остальных программ Halyk. Первый взнос не менее 20%, срок от 12 до 240 месяцев, залог — приобретаемое жильё, без комиссии за рассмотрение заявки и за выдачу.
+    en: A Halyk Bank mortgage for housing under construction from a partner developer. Rate 1.5–18.0% (AEIR 1.51–19.55%) — the model uses the top of the range, the same conservative approach as the other Halyk programmes. Down payment at least 20%, term 12 to 240 months, the property being purchased as collateral, no application-processing or origination fee.
+  annualRate: 0.18
+  downPaymentFraction: 0.2
+  maxTermMonths: 240
+
+- id: freedom-construction
+  name: Freedom (новостройка)
+  description:
+    ru: "Цифровая ипотека от Freedom Bank на квартиры в новостройках от партнёров банка. Ставка (номинал) 22%, ГЭСВ 24,5–24,9%. Срок от 5 до 20 лет, максимальная сумма займа 70 000 000 тг (в модели не учитывается — качественное ограничение программы, а не параметр расчёта). Первый взнос программа не указывает отдельно — в модели используется тот же порог 20%, что и у остальных банковских программ. Условие: получение зарплаты на карту или счёт Freedom Bank не менее 3 месяцев (в модели не учитывается — качественное требование к заёмщику, а не параметр расчёта)."
+    en: "A Freedom Bank digital mortgage for new-build apartments from partner developers. Rate (nominal) 22%, AEIR 24.5–24.9%. Term 5 to 20 years, max loan amount 70,000,000 KZT (not modelled — a qualitative programme limit, not a calculation input). The programme doesn't state a down payment separately — the model uses the same 20% floor as the other bank programmes. Condition: salary paid into a Freedom Bank card or account for at least 3 months (not modelled — a qualitative borrower requirement, not a calculation input)."
+  annualRate: 0.22
+  downPaymentFraction: 0.2
+  maxTermMonths: 240
+
+- id: freedom-secondary
+  name: Freedom (вторичное жильё)
+  description:
+    ru: "Цифровая ипотека от Freedom Bank на вторичное жильё — квартиры в любых многоквартирных домах. Те же условия, что и у ипотеки на новостройки: ставка (номинал) 22%, ГЭСВ 24,5–24,9%, срок от 5 до 20 лет, максимальная сумма займа 70 000 000 тг (в модели не учитывается — качественное ограничение программы, а не параметр расчёта). Первый взнос программа не указывает отдельно — в модели используется тот же порог 20%, что и у остальных банковских программ. Условие: получение зарплаты на карту или счёт Freedom Bank не менее 3 месяцев (в модели не учитывается — качественное требование к заёмщику, а не параметр расчёта)."
+    en: "A Freedom Bank digital mortgage for secondary-market housing — apartments in any apartment building. Same terms as the new-build mortgage: rate (nominal) 22%, AEIR 24.5–24.9%, term 5 to 20 years, max loan amount 70,000,000 KZT (not modelled — a qualitative programme limit, not a calculation input). The programme doesn't state a down payment separately — the model uses the same 20% floor as the other bank programmes. Condition: salary paid into a Freedom Bank card or account for at least 3 months (not modelled — a qualitative borrower requirement, not a calculation input)."
+  annualRate: 0.22
+  downPaymentFraction: 0.2
+  maxTermMonths: 240
+
+- id: freedom-7-20-25
+  name: Freedom 7-20-25
+  description:
+    ru: "Программа «7-20-25» через Freedom Bank — та же государственная льготная программа, что и у Halyk (см. halyk-7-20-25), но с параметрами конкретно этого банка. Ставка (номинал) 7%, ГЭСВ 7,2–7,8%, первый взнос не менее 20%, срок от 3 до 25 лет, максимальная сумма займа 24 000 000 тг (в модели не учитывается — качественное ограничение программы, а не параметр расчёта). Заёмщик и супруг(а) не должны владеть жильём в РК последние 18 месяцев — тоже не параметр расчёта. Условие: получение зарплаты на карту или счёт Freedom Bank не менее 3 месяцев (в модели не учитывается — качественное требование к заёмщику, а не параметр расчёта)."
+    en: "The «7-20-25» programme via Freedom Bank — the same state subsidised programme as Halyk's (see halyk-7-20-25), just with this bank's own parameters. Rate (nominal) 7%, AEIR 7.2–7.8%, down payment at least 20%, term 3 to 25 years, max loan amount 24,000,000 KZT (not modelled — a qualitative programme limit, not a calculation input). Borrower and spouse must not have owned housing in Kazakhstan for the last 18 months — also not a calculation input. Condition: salary paid into a Freedom Bank card or account for at least 3 months (not modelled — a qualitative borrower requirement, not a calculation input)."
+  annualRate: 0.07
+  downPaymentFraction: 0.2
+  maxTermMonths: 300
 
 - id: otbasy
   name: Otbasy

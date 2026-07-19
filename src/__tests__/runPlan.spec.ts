@@ -10,6 +10,23 @@ const GROWING: Inputs = {
   apartment: { ...DEFAULT_INPUTS.apartment, annualGrowthRate: 0.05 },
 }
 
+// The lump/never arbitrage tests below need a deposit that both beats the
+// Otbasy loan rate (8.5%) and locks for long enough that "lump" cannot yank
+// the balance out the moment it clears the loan — a custom product, not one
+// of the catalogue's, so the scenario does not drift if data/deposits.yml
+// changes.
+const LOCKED_HIGH_RATE_ID = 'locked-high-rate'
+const WITH_LOCKED_HIGH_RATE: Inputs = {
+  ...DEFAULT_INPUTS,
+  deposits: {
+    ...DEFAULT_INPUTS.deposits,
+    products: [
+      ...DEFAULT_INPUTS.deposits.products,
+      { id: LOCKED_HIGH_RATE_ID, name: 'Locked', annualRate: 0.184, payoutPeriodMonths: 6 },
+    ],
+  },
+}
+
 function plan(overrides: Partial<PurchasePlan>): PurchasePlan {
   return {
     id: 'test',
@@ -44,12 +61,22 @@ describe('runPlan built from the constructor', () => {
   // the whole reason the Otbasy plan repays lump.
   it('settles under either style; lump pays more interest but ends richer', () => {
     const monthly = runPlan(
-      DEFAULT_INPUTS,
-      plan({ loan: 'otbasy', buyWhen: 'otbasy-gates', repay: 'monthly' }),
+      WITH_LOCKED_HIGH_RATE,
+      plan({
+        loan: 'otbasy',
+        buyWhen: 'otbasy-gates',
+        repay: 'monthly',
+        savingsProductId: LOCKED_HIGH_RATE_ID,
+      }),
     )
     const lump = runPlan(
-      DEFAULT_INPUTS,
-      plan({ loan: 'otbasy', buyWhen: 'otbasy-gates', repay: 'lump' }),
+      WITH_LOCKED_HIGH_RATE,
+      plan({
+        loan: 'otbasy',
+        buyWhen: 'otbasy-gates',
+        repay: 'lump',
+        savingsProductId: LOCKED_HIGH_RATE_ID,
+      }),
     )
     expect(monthly.debtFreeMonth).not.toBeNull()
     expect(lump.debtFreeMonth).not.toBeNull()
@@ -65,12 +92,22 @@ describe('runPlan built from the constructor', () => {
   // beating the Otbasy loan rate (8.5%) is worth more than being debt-free.
   it('never repays early, so it settles no loan but banks the arbitrage', () => {
     const lump = runPlan(
-      DEFAULT_INPUTS,
-      plan({ loan: 'otbasy', buyWhen: 'otbasy-gates', repay: 'lump' }),
+      WITH_LOCKED_HIGH_RATE,
+      plan({
+        loan: 'otbasy',
+        buyWhen: 'otbasy-gates',
+        repay: 'lump',
+        savingsProductId: LOCKED_HIGH_RATE_ID,
+      }),
     )
     const never = runPlan(
-      DEFAULT_INPUTS,
-      plan({ loan: 'otbasy', buyWhen: 'otbasy-gates', repay: 'never' }),
+      WITH_LOCKED_HIGH_RATE,
+      plan({
+        loan: 'otbasy',
+        buyWhen: 'otbasy-gates',
+        repay: 'never',
+        savingsProductId: LOCKED_HIGH_RATE_ID,
+      }),
     )
     // The horizon ends before the term, so the loan never clears.
     expect(never.debtFreeMonth).toBeNull()

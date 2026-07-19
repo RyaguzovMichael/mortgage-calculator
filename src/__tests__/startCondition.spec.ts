@@ -65,8 +65,8 @@ describe('planMatchesStart', () => {
 
 describe('savingsProduct resolves a plan’s own deposit', () => {
   it('returns the catalogue entry named by id', () => {
-    expect(savingsProduct(DEFAULT_INPUTS, 'kaspi-savings').payoutPeriodMonths).toBe(1)
-    expect(savingsProduct(DEFAULT_INPUTS, 'kaspi-deposit').payoutPeriodMonths).toBe(6)
+    expect(savingsProduct(DEFAULT_INPUTS, 'kaspi-deposit').payoutPeriodMonths).toBe(1)
+    expect(savingsProduct(DEFAULT_INPUTS, 'kaspi-savings').payoutPeriodMonths).toBe(3)
   })
 
   it('throws on an id that is not in the catalogue', () => {

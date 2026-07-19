@@ -14,10 +14,14 @@ const { inputs, addLoanProduct, removeLoanProduct, canRemoveLoanProduct } = useI
 const { t } = useI18n()
 const { describeLoan, loanProductTerms } = useFormat()
 
-const halykMeta = computed(() => BUILT_IN_LOANS.find((loan) => loan.id === 'halyk')!)
 const otbasyMeta = computed(() => BUILT_IN_LOANS.find((loan) => loan.id === 'otbasy')!)
-const builtInProduct = computed(
-  () => inputs.loans.products.find((product) => isBuiltInLoanProduct(product.id))!,
+// Every built-in id but otbasy is a real LoanProduct — Halyk ships as two of
+// these (its no-fee and with-fee rate tiers), so this is a list, not a singular.
+const builtInProducts = computed(() =>
+  inputs.loans.products.filter((product) => isBuiltInLoanProduct(product.id)),
+)
+const builtInMeta = computed(
+  () => new Map(BUILT_IN_LOANS.map((meta) => [meta.id, meta] as const)),
 )
 const ownProducts = computed(() =>
   inputs.loans.products.filter((product) => !isBuiltInLoanProduct(product.id)),
@@ -28,10 +32,10 @@ const ownProducts = computed(() =>
   <section class="field-group">
     <h3>{{ t('loansTab.builtInTitle') }}</h3>
     <p class="note">{{ t('loansTab.builtInNote') }}</p>
-    <div class="built-in">
-      <span class="item-name">{{ halykMeta.name }}</span>
-      <span class="item-terms">{{ loanProductTerms(builtInProduct) }}</span>
-      <p class="note">{{ describeLoan(halykMeta) }}</p>
+    <div v-for="product in builtInProducts" :key="product.id" class="built-in">
+      <span class="item-name">{{ product.name }}</span>
+      <span class="item-terms">{{ loanProductTerms(product) }}</span>
+      <p class="note">{{ describeLoan(builtInMeta.get(product.id)!) }}</p>
     </div>
     <div class="built-in">
       <span class="item-name">{{ otbasyMeta.name }}</span>

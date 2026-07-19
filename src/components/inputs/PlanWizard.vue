@@ -195,6 +195,7 @@ const summary = computed(() => describePlan(draft, inputs.loans.products, inputs
 <template>
   <WizardShell
     modal
+    :wide="step === 'loan' || step === 'deposit'"
     :progress="progress"
     :title="t(`planWizard.steps.${step}.title`)"
     :instruction="t(`planWizard.steps.${step}.instruction`)"

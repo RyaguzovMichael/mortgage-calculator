@@ -1,13 +1,15 @@
 import type { HousingSituation, Inputs } from '@/engine/types/inputs'
 import { BUILT_IN_PRODUCTS, isBuiltInProduct } from './depositCatalogue'
-import { BUILT_IN_LOAN_PRODUCT, OTBASY_PARAM_DEFAULTS, isBuiltInLoanProduct } from './loanCatalogue'
+import { BUILT_IN_LOAN_PRODUCTS, OTBASY_PARAM_DEFAULTS, isBuiltInLoanProduct } from './loanCatalogue'
 
 // Bump when the Inputs shape changes — a stored blob from an older shape would
 // otherwise deserialize into a half-populated object and silently skew results.
 //
 // Exported so the specs cannot drift from it: they used to hard-code the key as a
 // string, and two of them went on passing for the wrong reason after a bump.
-export const STORAGE_KEY = 'mortgage:inputs:v14'
+export const STORAGE_KEY = 'mortgage:inputs:v15'
+// v15: Halyk split into two built-in loan products (halyk, halyk-fee) instead
+// of one with a rate baked in.
 
 // The deposit a plan falls back to when its own choice no longer resolves, and the
 // one a freshly added plan starts on. Also what the built-in plans name in the YAML.
@@ -59,7 +61,7 @@ export const DEFAULT_INPUTS: Inputs = {
   // the personal Otbasy account state below is a literal here: it is a fact about
   // this person, not the programme.
   loans: {
-    products: [BUILT_IN_LOAN_PRODUCT],
+    products: [...BUILT_IN_LOAN_PRODUCTS],
   },
   otbasy: {
     hasDeposit: true,
@@ -195,7 +197,7 @@ function withCatalogue(inputs: Inputs): Inputs {
     },
     loans: {
       ...inputs.loans,
-      products: [BUILT_IN_LOAN_PRODUCT, ...ownLoans],
+      products: [...BUILT_IN_LOAN_PRODUCTS, ...ownLoans],
     },
   }
 }

@@ -423,10 +423,10 @@ describe("month 0 consolidation of today's accounts", () => {
   ] as const)(
     '%s puts the lot in the savings deposit and opens no Otbasy account',
     (_id, result) => {
-      // Not exactly `total`: the savings deposit compounds monthly (18.4%) even
-      // though it only pays out every 6 months, so month 0's own interest
+      // Not exactly `total`: the savings deposit compounds monthly (14.1%) even
+      // though it only pays out once a month, so month 0's own interest
       // already shows in the balance by the time the row is written.
-      expect(result.rows[0]!.savingsBalance).toBeCloseTo(total * (1 + 0.184 / 12), 2)
+      expect(result.rows[0]!.savingsBalance).toBeCloseTo(total * (1 + 0.141 / 12), 2)
       for (const row of result.rows) {
         expect(row.otbasyBalance).toBe(0)
         expect(row.govBonus).toBe(0)
@@ -460,7 +460,7 @@ describe("month 0 consolidation of today's accounts", () => {
       otbasy: { ...noIncome.otbasy, hasDeposit: false },
     })
     const base = DEFAULT_INPUTS.deposits.savingsBalance
-    expect(without.rows[0]!.savingsBalance).toBeCloseTo(base * (1 + 0.184 / 12), 2)
+    expect(without.rows[0]!.savingsBalance).toBeCloseTo(base * (1 + 0.141 / 12), 2)
   })
 })
 
@@ -476,14 +476,16 @@ describe('one deposit for everything', () => {
     apartment: { ...DEFAULT_INPUTS.apartment, annualGrowthRate: 0.14 },
   }
 
-  // Runs the all-cash plan on the catalogue's monthly-payout deposit — the deposit
-  // is a plan decision now, so it is chosen on the plan by id, rather than
-  // restating its numbers here where they could drift from data/deposits.yml.
-  const allCashMonthly = (inputs: Inputs): VariantResult =>
+  // simulateAllCash already runs on the catalogue's default monthly-payout
+  // deposit (kaspi-deposit). This shim runs the same plan on the three-month
+  // restrictive one instead — the deposit is a plan decision now, so it is
+  // chosen on the plan by id, rather than restating its numbers here where
+  // they could drift from data/deposits.yml.
+  const allCashRestrictive = (inputs: Inputs): VariantResult =>
     runPlan(inputs, withDeposit(builtIn('all-cash'), 'kaspi-savings'))
 
-  it('a six-month deposit stops earning once every month needs a withdrawal', () => {
-    const rows = simulateAllCash(growing).rows
+  it('a three-month deposit stops earning once every month needs a withdrawal', () => {
+    const rows = allCashRestrictive(growing).rows
     // Withdrawing forfeits everything accrued since the last payout, so the cycle
     // restarts every month and never completes.
     for (const row of rows.slice(40)) {
@@ -491,17 +493,17 @@ describe('one deposit for everything', () => {
     }
   })
 
-  it('so the lower monthly-payout rate beats the higher six-month one', () => {
-    const sixMonth = simulateAllCash(growing).totals.depositInterestEarned
-    const monthly = allCashMonthly(growing).totals.depositInterestEarned
-    expect(monthly).toBeGreaterThan(sixMonth)
+  it('so the lower monthly-payout rate beats the higher three-month one', () => {
+    const restrictive = allCashRestrictive(growing).totals.depositInterestEarned
+    const monthly = simulateAllCash(growing).totals.depositInterestEarned
+    expect(monthly).toBeGreaterThan(restrictive)
   })
 
   it('while with no withdrawals at all the higher rate wins, as it should', () => {
     // Flat rent stays under the income, so nothing is ever taken out.
-    const sixMonth = simulateAllCash(DEFAULT_INPUTS).totals.depositInterestEarned
-    const monthly = allCashMonthly(DEFAULT_INPUTS).totals.depositInterestEarned
-    expect(sixMonth).toBeGreaterThan(monthly)
+    const restrictive = allCashRestrictive(DEFAULT_INPUTS).totals.depositInterestEarned
+    const monthly = simulateAllCash(DEFAULT_INPUTS).totals.depositInterestEarned
+    expect(restrictive).toBeGreaterThan(monthly)
   })
 })
 

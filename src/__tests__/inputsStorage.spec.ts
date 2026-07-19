@@ -11,7 +11,7 @@ import {
   STORAGE_KEY,
 } from '@/infrastructure/inputsStorage'
 import { BUILT_IN_PRODUCTS } from '@/infrastructure/depositCatalogue'
-import { BUILT_IN_LOAN_PRODUCT } from '@/infrastructure/loanCatalogue'
+import { BUILT_IN_LOAN_PRODUCTS } from '@/infrastructure/loanCatalogue'
 import type { DepositProduct, Inputs, LoanProduct } from '@/engine/types/inputs'
 
 // localStorage is not provided by this test environment, so back it with memory.
@@ -195,7 +195,7 @@ describe('the loan catalogue in storage', () => {
   function withOwnLoan(): Inputs {
     return {
       ...DEFAULT_INPUTS,
-      loans: { products: [...DEFAULT_INPUTS.loans.products, own] },
+      loans: { ...DEFAULT_INPUTS.loans, products: [...DEFAULT_INPUTS.loans.products, own] },
     }
   }
 
@@ -214,7 +214,7 @@ describe('the loan catalogue in storage', () => {
 
   it('puts Halyk back from the file on load', () => {
     saveInputs(withOwnLoan())
-    expect(loadInputs()!.loans.products).toEqual([BUILT_IN_LOAN_PRODUCT, own])
+    expect(loadInputs()!.loans.products).toEqual([...BUILT_IN_LOAN_PRODUCTS, own])
   })
 })
 
