@@ -25,6 +25,25 @@ const amount = computed({
 </script>
 
 <template>
-  <PercentField v-model="share" :label="percentLabel" :step="5" :hint="hint" />
-  <NumberField v-model="amount" :label="amountLabel" suffix="₸" :step="50000" />
+  <div class="side-by-side">
+    <PercentField v-model="share" :label="percentLabel" :step="5" />
+    <NumberField v-model="amount" :label="amountLabel" suffix="₸" :step="50000" />
+  </div>
+  <span v-if="hint" class="hint">{{ hint }}</span>
 </template>
+
+<style scoped>
+.side-by-side {
+  display: flex;
+  gap: 12px;
+}
+.side-by-side > * {
+  flex: 1;
+  min-width: 0;
+}
+.hint {
+  display: block;
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+}
+</style>

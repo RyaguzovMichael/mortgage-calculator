@@ -146,13 +146,15 @@ function useExample(): void {
     />
 
     <template v-else-if="step === 'growth'">
-      <PercentField
-        v-model="inputs.cashflow.annualIndexationRate"
-        :label="t('moneyTab.indexationLabel')"
-        :step="1"
-        :hint="t('moneyTab.indexationHint')"
-      />
-      <MonthSelect v-model="inputs.cashflow.raiseMonth" :label="t('moneyTab.raiseMonthLabel')" />
+      <div class="side-by-side">
+        <PercentField
+          v-model="inputs.cashflow.annualIndexationRate"
+          :label="t('moneyTab.indexationLabel')"
+          :step="1"
+        />
+        <MonthSelect v-model="inputs.cashflow.raiseMonth" :label="t('moneyTab.raiseMonthLabel')" />
+      </div>
+      <span class="hint">{{ t('moneyTab.indexationHint') }}</span>
     </template>
 
     <NumberField
@@ -213,6 +215,19 @@ function useExample(): void {
 </template>
 
 <style scoped>
+.side-by-side {
+  display: flex;
+  gap: 12px;
+}
+.side-by-side > * {
+  flex: 1;
+  min-width: 0;
+}
+.hint {
+  display: block;
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+}
 .example-btn {
   display: inline-flex;
   align-items: center;

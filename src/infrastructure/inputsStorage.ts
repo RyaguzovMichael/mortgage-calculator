@@ -105,7 +105,9 @@ export const BLANK_START_INPUTS: Inputs = {
     monthlySalary: 0,
     mortgageShare: 0,
     monthlyRent: 0,
-    annualIndexationRate: 0,
+    // Defaulted to the apartment's own growth rate rather than 0: with no reason to
+    // assume a raise, tracking the price growth is the least-arbitrary guess.
+    annualIndexationRate: DEFAULT_INPUTS.apartment.annualGrowthRate,
   },
   deposits: { ...structuredClone(DEFAULT_INPUTS.deposits), savingsBalance: 0 },
   otbasy: {
