@@ -101,11 +101,15 @@ export function planNeedsExistingApartment(plan: { situation: HousingSituation }
   return plan.situation === 'selling'
 }
 
-// Whether a plan can run against the current start condition: a selling plan
-// needs an owned flat, the others need none. The board shows a mismatch disabled
-// rather than running it against the wrong world.
+// Whether a plan can run against the current start condition. Only a 'selling'
+// plan constrains it — it needs an owned flat to sell, so selling with none owned
+// is shown disabled on the board rather than run against a flat that isn't there.
+// free/renting impose no requirement either way: living rent-free or renting is
+// possible whether or not you own a flat you're choosing not to sell. That is what
+// lets the generator offer an owner "keep the flat, don't sell" as a free/renting
+// plan — the situation is decoupled from ownership except for selling itself.
 export function planMatchesStart(inputs: Inputs, plan: { situation: HousingSituation }): boolean {
-  return planNeedsExistingApartment(plan) === inputs.existingApartment.owned
+  return !planNeedsExistingApartment(plan) || inputs.existingApartment.owned
 }
 
 export interface CashflowInputs {

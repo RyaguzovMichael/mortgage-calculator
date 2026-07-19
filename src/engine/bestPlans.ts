@@ -9,14 +9,30 @@ export type { BestCategoryId } from './types/plan'
 // winner of each category. Pure engine — no Vue, no persistence; the UI drives it
 // and paints the progress.
 
-// When a 'selling' plan sells its flat — its own search dimension, since selling
-// earlier brings the proceeds (and the move to rent) forward. Ignored by
-// free/renting plans, which have nothing to sell, so those use a single value.
-const SALE_MONTH_OFFSETS = [0, 3, 6, 12] as const
+// A 'selling' plan can sell earlier or later, which brings the proceeds (and the
+// move to rent) forward or back — its own search dimension. The user gives the
+// earliest month they can sell; the sweep starts there and steps every
+// SALE_MONTH_STEP months for a few points — a coarse sweep is enough to surface
+// "sell as soon as I can" vs "hold a little longer" without exploding the search.
+// Ignored by free/renting plans, which have nothing to sell, so those use one value.
+const SALE_MONTH_STEP = 2
+const SALE_MONTH_SWEEP_COUNT = 4
 const DEFAULT_SALE_MONTH = 3
 
-function saleMonthsFor(situation: HousingSituation): readonly number[] {
-  return situation === 'selling' ? SALE_MONTH_OFFSETS : [DEFAULT_SALE_MONTH]
+function saleMonthSweep(earliestSaleMonth: number): number[] {
+  const start = Math.max(0, Math.trunc(earliestSaleMonth))
+  return Array.from({ length: SALE_MONTH_SWEEP_COUNT }, (_, i) => start + i * SALE_MONTH_STEP)
+}
+
+// The facts the generator can't guess and asks the user for before a run (the
+// GeneratorDialog fills these in). Unlike the old auto-derivation from ownership,
+// the situation is a single explicit choice — a run targets one world — so an owner
+// who won't sell picks free/renting here. earliestSaleMonth seeds the sale sweep for
+// a selling run; maxMonths is the deadline a plan must finish within (see fitsWithin).
+export interface GeneratorOptions {
+  readonly situation: HousingSituation
+  readonly earliestSaleMonth: number
+  readonly maxMonths: number
 }
 
 // The "also try waiting" set: as well as buying as soon as affordable, try saving
@@ -40,13 +56,10 @@ const NON_OTBASY_TIMINGS: readonly Timing[] = [
   ...TIMING_DELAYS.map((saveMonths) => ({ buyWhen: 'after-months' as const, saveMonths })),
 ]
 
-// Every plan the search will try, given these conditions. The situation is pinned
-// to the start condition (a 'selling' plan needs an owned flat; 'free'/'renting'
-// need none), and each loan kind drops the dimensions that do not apply to it.
-export function enumeratePlans(inputs: Inputs): PurchasePlan[] {
-  const situations: HousingSituation[] = inputs.existingApartment.owned
-    ? ['selling']
-    : ['free', 'renting']
+// Every plan the search will try, given these conditions. The situation is the
+// user's single choice from the dialog (no longer derived from ownership), and each
+// loan kind drops the dimensions that do not apply to it.
+export function enumeratePlans(inputs: Inputs, options: GeneratorOptions): PurchasePlan[] {
   const deposits = inputs.deposits.products.map((product) => product.id)
   if (deposits.length === 0) return []
   // Where the deposit choice does not move the needle (repay: monthly prepays the
@@ -55,70 +68,75 @@ export function enumeratePlans(inputs: Inputs): PurchasePlan[] {
   const defaultDeposit = deposits[0]!
   const loanIds = inputs.loans.products.map((product) => product.id)
 
+  // Only a selling run sweeps the sale month; free/renting have nothing to sell, so
+  // one fixed (ignored) value keeps the loop below uniform.
+  const saleMonths =
+    options.situation === 'selling'
+      ? saleMonthSweep(options.earliestSaleMonth)
+      : [DEFAULT_SALE_MONTH]
+
   const plans: PurchasePlan[] = []
   const add = (fields: Omit<PurchasePlan, 'id' | 'name'>): void => {
     const id = `gen-${plans.length}`
     plans.push({ id, name: id, ...fields })
   }
 
-  for (const situation of situations) {
-    for (const saleMonthOffset of saleMonthsFor(situation)) {
-      const base = { situation, saleMonthOffset } as const
+  for (const saleMonthOffset of saleMonths) {
+    const base = { situation: options.situation, saleMonthOffset } as const
 
-      // Cash: no loan to size, repay, or term — but the deposit it saves into
-      // matters, since that is where the whole price accrues before the purchase.
+    // Cash: no loan to size, repay, or term — but the deposit it saves into
+    // matters, since that is where the whole price accrues before the purchase.
+    for (const timing of NON_OTBASY_TIMINGS) {
+      for (const deposit of deposits) {
+        add({
+          ...base,
+          loan: 'none',
+          buyWhen: timing.buyWhen,
+          saveMonths: timing.saveMonths,
+          borrow: 'max',
+          repay: 'monthly',
+          term: 'max',
+          savingsProductId: deposit,
+        })
+      }
+    }
+
+    // Otbasy: its trigger is its own gates, its term is its own contract, and it
+    // saves to its own account — only borrow and repay vary.
+    for (const borrow of BORROWS) {
+      for (const repay of REPAYS) {
+        add({
+          ...base,
+          loan: 'otbasy',
+          buyWhen: 'otbasy-gates',
+          saveMonths: null,
+          borrow,
+          repay,
+          term: 'max',
+          savingsProductId: defaultDeposit,
+        })
+      }
+    }
+
+    // Every ordinary credit, across timing × borrow × repay × term, and — only
+    // where it matters — every deposit.
+    for (const loan of loanIds) {
       for (const timing of NON_OTBASY_TIMINGS) {
-        for (const deposit of deposits) {
-          add({
-            ...base,
-            loan: 'none',
-            buyWhen: timing.buyWhen,
-            saveMonths: timing.saveMonths,
-            borrow: 'max',
-            repay: 'monthly',
-            term: 'max',
-            savingsProductId: deposit,
-          })
-        }
-      }
-
-      // Otbasy: its trigger is its own gates, its term is its own contract, and it
-      // saves to its own account — only borrow and repay vary.
-      for (const borrow of BORROWS) {
-        for (const repay of REPAYS) {
-          add({
-            ...base,
-            loan: 'otbasy',
-            buyWhen: 'otbasy-gates',
-            saveMonths: null,
-            borrow,
-            repay,
-            term: 'max',
-            savingsProductId: defaultDeposit,
-          })
-        }
-      }
-
-      // Every ordinary credit, across timing × borrow × repay × term, and — only
-      // where it matters — every deposit.
-      for (const loan of loanIds) {
-        for (const timing of NON_OTBASY_TIMINGS) {
-          for (const borrow of BORROWS) {
-            for (const repay of REPAYS) {
-              for (const term of TERMS) {
-                const depositsToTry = repay === 'monthly' ? [defaultDeposit] : deposits
-                for (const deposit of depositsToTry) {
-                  add({
-                    ...base,
-                    loan,
-                    buyWhen: timing.buyWhen,
-                    saveMonths: timing.saveMonths,
-                    borrow,
-                    repay,
-                    term,
-                    savingsProductId: deposit,
-                  })
-                }
+        for (const borrow of BORROWS) {
+          for (const repay of REPAYS) {
+            for (const term of TERMS) {
+              const depositsToTry = repay === 'monthly' ? [defaultDeposit] : deposits
+              for (const deposit of depositsToTry) {
+                add({
+                  ...base,
+                  loan,
+                  buyWhen: timing.buyWhen,
+                  saveMonths: timing.saveMonths,
+                  borrow,
+                  repay,
+                  term,
+                  savingsProductId: deposit,
+                })
               }
             }
           }
@@ -126,7 +144,6 @@ export function enumeratePlans(inputs: Inputs): PurchasePlan[] {
       }
     }
   }
-
   return plans
 }
 
@@ -169,6 +186,16 @@ function metricsOf(result: VariantResult, plan: PurchasePlan): PlanMetrics {
 // have a plan and want its headline numbers under the current conditions.
 export function evaluatePlan(inputs: Inputs, plan: PurchasePlan): PlanMetrics {
   return metricsOf(runPlan(inputs, plan), plan)
+}
+
+// Whether a plan finishes inside the user's deadline: it must own the flat with no
+// debt left by maxMonths. debtFreeMonth is that fully-settled month — the purchase
+// month for cash, the pay-off month for a mortgage — and is null when the plan never
+// gets there (it never buys, or takes a loan it never clears within the horizon), so
+// such a plan never fits. This is why a whole run can come back with no winners, and
+// the UI then tells the user to raise the limit.
+function fitsWithin(metrics: PlanMetrics, maxMonths: number): boolean {
+  return metrics.debtFreeMonth !== null && metrics.debtFreeMonth <= maxMonths
 }
 
 interface Category {
@@ -248,10 +275,11 @@ function consider(best: Map<BestCategoryId, Candidate>, candidate: Candidate): v
 // with the running count.
 export async function buildBestPlans(
   inputs: Inputs,
+  options: GeneratorOptions,
   onProgress?: (done: number, total: number) => void,
   batchSize = 200,
 ): Promise<BestPlansResult> {
-  const plans = enumeratePlans(inputs)
+  const plans = enumeratePlans(inputs, options)
   const total = plans.length
   const best = new Map<BestCategoryId, Candidate>()
 
@@ -260,7 +288,11 @@ export async function buildBestPlans(
     const end = Math.min(start + batchSize, total)
     for (let i = start; i < end; i += 1) {
       const plan = plans[i]!
-      consider(best, { plan, metrics: metricsOf(runPlan(inputs, plan), plan) })
+      const metrics = metricsOf(runPlan(inputs, plan), plan)
+      // The deadline is a hard filter: a plan that isn't fully settled by maxMonths is
+      // not a candidate for any category. Every plan is still run (so progress counts
+      // the whole search), only the ones that miss the deadline are set aside.
+      if (fitsWithin(metrics, options.maxMonths)) consider(best, { plan, metrics })
     }
     onProgress?.(end, total)
     if (end < total) await yieldToEventLoop()

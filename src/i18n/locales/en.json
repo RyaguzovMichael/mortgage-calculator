@@ -396,6 +396,7 @@
     "recalculate": "Recalculate",
     "progressTitle": "Calculating variants…",
     "progressCount": "{done} / {total} variants",
+    "noneFit": "No plan managed to settle within your time budget. Try raising the maximum time and building again.",
     "categories": {
       "earliest-move-in": "Earliest move-in",
       "shortest-rent": "Shortest renting",
@@ -410,6 +411,35 @@
       "price": "{amount} ₸ price",
       "loan": "debt-free at month {n}"
     }
+  },
+  "generatorDialog": {
+    "title": "Before we search",
+    "instruction": "A couple of facts we can't guess — they shape every plan we'll try.",
+    "sellTitle": "Your current apartment",
+    "sell": {
+      "label": "Sell it",
+      "desc": "Put the proceeds toward the new flat, then rent until you buy."
+    },
+    "keep": {
+      "label": "Keep it",
+      "desc": "Don't sell — choose below where you'll live meanwhile."
+    },
+    "saleMonthLabel": "Earliest month you can sell",
+    "saleMonthHint": "We start here and try selling every couple of months from this point.",
+    "housingTitle": "Where you'll live until you buy",
+    "free": {
+      "label": "Live for free",
+      "desc": "No rent to pay until the new flat is yours."
+    },
+    "renting": {
+      "label": "Rent",
+      "desc": "Pay rent from the start until you buy."
+    },
+    "timeTitle": "Time budget",
+    "maxYearsLabel": "Maximum time to settle",
+    "maxYearsHint": "A plan must own the flat with no debt left within this time, or it's dropped.",
+    "cancel": "Cancel",
+    "run": "Build plans"
   },
   "planDetails": {
     "title": "Plan details",

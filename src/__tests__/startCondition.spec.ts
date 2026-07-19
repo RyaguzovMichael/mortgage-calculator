@@ -51,12 +51,15 @@ describe('planMatchesStart', () => {
     expect(planNeedsExistingApartment({ situation: 'renting' })).toBe(false)
   })
 
+  // Only selling constrains the start condition — it needs an owned flat. free/renting
+  // run whether or not a flat is owned (an owner who won't sell picks one of them), so
+  // they match in both worlds.
   it.each([
     ['selling', true, true],
     ['selling', false, false],
-    ['free', true, false],
+    ['free', true, true],
     ['free', false, true],
-    ['renting', true, false],
+    ['renting', true, true],
     ['renting', false, true],
   ] as const)('%s plan with owned=%s matches=%s', (situation, owned, matches) => {
     expect(planMatchesStart(owning(owned), { situation })).toBe(matches)
@@ -83,10 +86,13 @@ describe('simulateAll filters incompatible plans off the comparison', () => {
     expect(report.bestVariant).toBeNull()
   })
 
-  it('runs a renting plan only when no apartment is owned', () => {
+  // Renting no longer requires *not* owning: an owner who won't sell can rent while
+  // saving for the new flat, so a renting plan runs in both worlds — only selling is
+  // gated on ownership.
+  it('runs a renting plan whether or not an apartment is owned', () => {
     const renter = { ...withSituation('all-cash', 'renting'), id: 'renter' }
     const inputs = (owned: boolean): Inputs => withBoard(owning(owned), [renter])
     expect(simulateAll(inputs(false)).variants.map((v) => v.id)).toEqual(['renter'])
-    expect(simulateAll(inputs(true)).variants).toEqual([])
+    expect(simulateAll(inputs(true)).variants.map((v) => v.id)).toEqual(['renter'])
   })
 })

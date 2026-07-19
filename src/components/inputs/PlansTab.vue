@@ -11,7 +11,7 @@ import {
 } from '@mdi/js'
 import { useInputs, MAX_SHOWN } from '@/app/useInputs'
 import { useFormat, money } from '@/app/useFormat'
-import type { PlanMetrics } from '@/engine/bestPlans'
+import type { GeneratorOptions, PlanMetrics } from '@/engine/bestPlans'
 import { planNeedsExistingApartment } from '@/engine/types/inputs'
 import type { BestCategoryId, PurchasePlan } from '@/engine/types/plan'
 import AppIcon from '@/components/AppIcon.vue'
@@ -19,6 +19,7 @@ import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import PlanDetailsDialog from '@/components/PlanDetailsDialog.vue'
 import PlanWizard from './PlanWizard.vue'
 import PlanEditorDialog from './PlanEditorDialog.vue'
+import GeneratorDialog from './GeneratorDialog.vue'
 
 const {
   inputs,
@@ -32,6 +33,7 @@ const {
   toggleShown,
   buildBestPlans,
   bestProgress,
+  noPlansFit,
   generatedDetails,
 } = useInputs()
 const { t } = useI18n()
@@ -83,8 +85,16 @@ function confirmRemove(): void {
 function categoryLabel(category: BestCategoryId): string {
   return t(`bestPlans.categories.${category}`)
 }
+// The run needs facts the app can't guess (sell or keep, when, where you live, the
+// time budget), so a build/recalculate first opens the dialog; it hands them back
+// and the search starts.
+const generatorOpen = ref(false)
 function onBuild(): void {
-  void buildBestPlans(categoryLabel)
+  generatorOpen.value = true
+}
+function onRun(options: GeneratorOptions): void {
+  generatorOpen.value = false
+  void buildBestPlans(options, categoryLabel)
 }
 const progressPct = computed(() =>
   bestProgress.total > 0 ? `${(bestProgress.done / bestProgress.total) * 100}%` : '0%',
@@ -173,6 +183,10 @@ function showTitle(plan: PurchasePlan): string {
         t('bestPlans.progressCount', { done: bestProgress.done, total: bestProgress.total })
       }}</span>
     </div>
+
+    <p v-if="noPlansFit && !bestProgress.running" class="none-fit" role="status">
+      {{ t('bestPlans.noneFit') }}
+    </p>
 
     <div v-for="detail in visibleGenerated" :key="detail.plan.id" class="built-in">
       <div class="row">
@@ -266,6 +280,7 @@ function showTitle(plan: PurchasePlan): string {
   />
   <PlanEditorDialog v-if="editing" :initial="editing" @save="onEditSave" @cancel="editing = null" />
   <PlanDetailsDialog v-if="details" :plan="details" @close="details = null" />
+  <GeneratorDialog v-if="generatorOpen" @run="onRun" @cancel="generatorOpen = false" />
 
   <ConfirmDialog
     v-if="deleting"
@@ -430,6 +445,17 @@ function showTitle(plan: PurchasePlan): string {
   font-family: var(--mono);
   font-size: var(--text-sm);
   color: var(--text-muted);
+}
+/* Shown when a run met the time budget with no surviving plan — a nudge, not an
+   error, so it reads in the warning colour rather than the destructive one. */
+.none-fit {
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  color: var(--text-secondary);
+  font-size: var(--text-md);
 }
 
 /* The filter tumbler: a native checkbox turned into a sliding switch. */

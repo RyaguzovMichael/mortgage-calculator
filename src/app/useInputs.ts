@@ -1,9 +1,14 @@
-import { computed, reactive, watch } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import { simulateAll, type SimulationReport } from '@/engine/simulate'
 import { planMatchesStart } from '@/engine/types/inputs'
 import type { DepositProduct, Inputs, LoanProduct } from '@/engine/types/inputs'
 import type { BestCategoryId, GeneratedPlan, PurchasePlan } from '@/engine/types/plan'
-import { buildBestPlans as runBestPlans, evaluatePlan, type PlanMetrics } from '@/engine/bestPlans'
+import {
+  buildBestPlans as runBestPlans,
+  evaluatePlan,
+  type GeneratorOptions,
+  type PlanMetrics,
+} from '@/engine/bestPlans'
 import { isBuiltInProduct } from '@/infrastructure/depositCatalogue'
 import { isBuiltInLoanProduct } from '@/infrastructure/loanCatalogue'
 import {
@@ -55,6 +60,7 @@ export function useInputs() {
     isGeneratedPlan,
     buildBestPlans,
     bestProgress,
+    noPlansFit,
     generatedDetails,
     planOutcome,
     isShown,
@@ -241,6 +247,11 @@ function planFingerprint(plan: PurchasePlan): string {
 // "done / total variants" count.
 const bestProgress = reactive({ running: false, done: 0, total: 0 })
 
+// Set true when the most recent run finished with no plan meeting the user's time
+// budget (every variant either never buys or clears too late), so the UI can tell
+// the user to raise the limit instead of leaving them staring at an empty result.
+const noPlansFit = ref(false)
+
 // The generated plans with their freshly-computed headline metrics, for the board's
 // generated section. Recomputed against the live inputs, so the numbers stay honest
 // when a condition changes after the last run (only a handful of plans, so cheap).
@@ -260,18 +271,23 @@ function planOutcome(plan: PurchasePlan): PlanMetrics {
   return evaluatePlan(toPlain(inputs), plan)
 }
 
-// Enumerate every plan the conditions allow, simulate them all (batched, so the
-// progress bar can paint), and put the category winners on the board as generated
-// plans. Replaces the previous generated set; leaves hand-built plans alone.
-// `labelFor` turns a category into the localized name a winning plan wears —
-// supplied by the caller so this composable stays out of i18n.
-async function buildBestPlans(labelFor: (category: BestCategoryId) => string): Promise<void> {
+// Enumerate every plan the chosen conditions allow, simulate them all (batched, so
+// the progress bar can paint), and put the category winners on the board as generated
+// plans. Replaces the previous generated set; leaves hand-built plans alone. `options`
+// carries the facts the pre-run dialog collected (situation, earliest sale month, the
+// time budget). `labelFor` turns a category into the localized name a winning plan
+// wears — supplied by the caller so this composable stays out of i18n.
+async function buildBestPlans(
+  options: GeneratorOptions,
+  labelFor: (category: BestCategoryId) => string,
+): Promise<void> {
   if (bestProgress.running) return
   bestProgress.running = true
   bestProgress.done = 0
   bestProgress.total = 0
+  noPlansFit.value = false
   try {
-    const result = await runBestPlans(toPlain(inputs), (done, total) => {
+    const result = await runBestPlans(toPlain(inputs), options, (done, total) => {
       bestProgress.done = done
       bestProgress.total = total
     })
@@ -304,6 +320,9 @@ async function buildBestPlans(labelFor: (category: BestCategoryId) => string): P
       if (inputs.plans.shown.length < MAX_SHOWN) inputs.plans.shown.push(id)
     }
     inputs.plans.generated = generated
+    // No winners means nothing met the deadline — flag it so the UI prompts for a
+    // larger budget rather than silently showing an empty generated section.
+    noPlansFit.value = generated.length === 0
   } finally {
     bestProgress.running = false
   }
