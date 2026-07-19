@@ -159,8 +159,9 @@ export interface PlanMetrics {
   // Net worth on the last horizon month — the same month for every candidate, so
   // ranking on it is a fair "who ends up richest".
   readonly netWorthAtHorizon: number
-  // Whether this is a mortgage that opened and cleared within the horizon (the
-  // eligibility for the shortest-loan category, which ranks on debtFreeMonth).
+  // Whether this is a mortgage that opened, actually carried debt for a while, and
+  // cleared within the horizon (the eligibility for the shortest-loan category,
+  // which ranks on debtFreeMonth).
   readonly hasLoan: boolean
 }
 
@@ -168,9 +169,17 @@ function metricsOf(result: VariantResult, plan: PurchasePlan): PlanMetrics {
   const last = result.rows[result.rows.length - 1]
   const monthsRenting = result.rows.reduce((n, row) => (row.rentPaid > 0 ? n + 1 : n), 0)
   const bought = result.purchaseMonth !== null
-  // A mortgage that actually opened and cleared within the horizon. Cash and a loan
-  // that never clears are not "with a mortgage that ends".
-  const hasLoan = plan.loan !== 'none' && bought && result.debtFreeMonth !== null
+  // A mortgage that actually opened and cleared within the horizon, and outlived
+  // its own purchase month. A 'lump' repay can borrow and pay the whole thing off
+  // the same month it buys — that clears debtFreeMonth but never really carried a
+  // loan, so it should not be able to win "shortest loan" purely by having paid
+  // interest for zero months while some other candidate's deposit choice happened
+  // to earn more.
+  const hasLoan =
+    plan.loan !== 'none' &&
+    bought &&
+    result.debtFreeMonth !== null &&
+    result.debtFreeMonth > result.purchaseMonth!
   return {
     bought,
     purchaseMonth: result.purchaseMonth,
@@ -196,6 +205,20 @@ export function evaluatePlan(inputs: Inputs, plan: PurchasePlan): PlanMetrics {
 // the UI then tells the user to raise the limit.
 function fitsWithin(metrics: PlanMetrics, maxMonths: number): boolean {
   return metrics.debtFreeMonth !== null && metrics.debtFreeMonth <= maxMonths
+}
+
+// A 'lump' repay can borrow and pay the whole loan off the same month it buys —
+// debtFreeMonth === purchaseMonth. That plan paid interest for a loan it never
+// actually carried, so it is not a real mortgage strategy worth surfacing under
+// any category (not just "shortest loan") — set it aside entirely, the same as a
+// plan that misses the deadline. Cash plans have no loan to be degenerate about.
+function hasDegenerateLoan(plan: PurchasePlan, metrics: PlanMetrics): boolean {
+  return (
+    plan.loan !== 'none' &&
+    metrics.purchaseMonth !== null &&
+    metrics.debtFreeMonth !== null &&
+    metrics.debtFreeMonth <= metrics.purchaseMonth
+  )
 }
 
 interface Category {
@@ -229,11 +252,6 @@ const CATEGORIES: readonly Category[] = [
     better: (a, b) => a.netWorthAtHorizon > b.netWorthAtHorizon,
   },
   {
-    id: 'lowest-price',
-    eligible: (m) => m.bought,
-    better: (a, b) => a.purchasePrice! < b.purchasePrice!,
-  },
-  {
     id: 'shortest-loan',
     eligible: (m) => m.hasLoan,
     better: (a, b) => a.debtFreeMonth! < b.debtFreeMonth!,
@@ -259,14 +277,28 @@ interface Candidate {
   readonly metrics: PlanMetrics
 }
 
-function consider(best: Map<BestCategoryId, Candidate>, candidate: Candidate): void {
-  for (const category of CATEGORIES) {
+function consider(
+  categories: readonly Category[],
+  best: Map<BestCategoryId, Candidate>,
+  candidate: Candidate,
+): void {
+  for (const category of categories) {
     if (!category.eligible(candidate.metrics)) continue
     const current = best.get(category.id)
     if (!current || category.better(candidate.metrics, current.metrics)) {
       best.set(category.id, candidate)
     }
   }
+}
+
+// 'shortest-rent' is meaningless for a 'free' run: nobody in the search ever pays
+// rent (planMatchesStart/rentDueAt never charge it for 'free'), so every candidate
+// would tie at zero months and the "winner" would just be whichever was enumerated
+// first. Drop it from the sweep rather than crown an arbitrary tie.
+function activeCategories(options: GeneratorOptions): readonly Category[] {
+  return options.situation === 'free'
+    ? CATEGORIES.filter((category) => category.id !== 'shortest-rent')
+    : CATEGORIES
 }
 
 // Runs every enumerated plan through the engine in batches, yielding to the event
@@ -281,6 +313,7 @@ export async function buildBestPlans(
 ): Promise<BestPlansResult> {
   const plans = enumeratePlans(inputs, options)
   const total = plans.length
+  const categories = activeCategories(options)
   const best = new Map<BestCategoryId, Candidate>()
 
   onProgress?.(0, total)
@@ -290,15 +323,25 @@ export async function buildBestPlans(
       const plan = plans[i]!
       const metrics = metricsOf(runPlan(inputs, plan), plan)
       // The deadline is a hard filter: a plan that isn't fully settled by maxMonths is
-      // not a candidate for any category. Every plan is still run (so progress counts
-      // the whole search), only the ones that miss the deadline are set aside.
-      if (fitsWithin(metrics, options.maxMonths)) consider(best, { plan, metrics })
+      // not a candidate for any category. A degenerate same-month loan is filtered the
+      // same way — not a real strategy, so it cannot win anything either. Every plan is
+      // still run (so progress counts the whole search), only these are set aside.
+      if (fitsWithin(metrics, options.maxMonths) && !hasDegenerateLoan(plan, metrics)) {
+        consider(categories, best, { plan, metrics })
+      }
     }
     onProgress?.(end, total)
     if (end < total) await yieldToEventLoop()
   }
 
-  const winners = CATEGORIES.flatMap((category) => {
+  // A mortgage beating cash on speed-to-debt-free is not interesting if cash still
+  // wins on net worth — the richest outcome does not carry a loan at all, so ranking
+  // mortgages against each other has nothing to add. Drop the category rather than
+  // crown a "fastest loan" nobody should prefer to paying cash.
+  const bestAssets = best.get('best-assets')
+  if (bestAssets && bestAssets.plan.loan === 'none') best.delete('shortest-loan')
+
+  const winners = categories.flatMap((category) => {
     const candidate = best.get(category.id)
     return candidate
       ? [{ category: category.id, plan: candidate.plan, metrics: candidate.metrics }]

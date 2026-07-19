@@ -19,6 +19,7 @@ import ChoiceCards, { type Choice } from './ChoiceCards.vue'
 // the sell/keep question (and, when selling, the earliest month it can go); not
 // owning — or owning but keeping — asks only where you live meanwhile. Every run also
 // has a time budget: a plan that isn't fully settled by then is dropped.
+const props = defineProps<{ initial?: GeneratorOptions | null }>()
 const emit = defineEmits<{ run: [options: GeneratorOptions]; cancel: [] }>()
 
 const { inputs } = useInputs()
@@ -26,19 +27,32 @@ const { t, tm, locale } = useI18n()
 
 const owned = computed(() => inputs.existingApartment.owned)
 
+// Reopening this dialog (to recalculate, say) should not throw away what was
+// answered last time — every field below seeds from `initial` when the caller has
+// one, falling back to the same defaults as a first-ever run.
+const initial = props.initial ?? null
+
 // 'sell' vs 'keep' is only meaningful for an owner; a non-owner has nothing to sell,
 // so the question is hidden and this stays at its default.
-const sellChoice = ref<'sell' | 'keep'>('sell')
-const earliestSaleMonth = ref(DEFAULT_PLAN_SALE_MONTH)
+const sellChoice = ref<'sell' | 'keep'>(
+  initial ? (initial.situation === 'selling' ? 'sell' : 'keep') : 'sell',
+)
+const earliestSaleMonth = ref(initial?.earliestSaleMonth ?? DEFAULT_PLAN_SALE_MONTH)
 // Where you live until you buy, for everyone who isn't selling — a non-owner, or an
 // owner who chose to keep the flat.
-const housing = ref<Exclude<HousingSituation, 'selling'>>('free')
+const housing = ref<Exclude<HousingSituation, 'selling'>>(
+  initial && initial.situation !== 'selling' ? initial.situation : 'free',
+)
 // The time budget is a whole-year slider, the same control (and scale) as the main
 // page's horizon — years are how people think about "how long am I willing for this
 // to take". Seeded with the full horizon, so by default nothing is filtered; the
 // user drags it down to constrain the search. Converted to months only on emit.
 const MAX_YEARS = 40
-const maxYears = ref(Math.min(MAX_YEARS, Math.max(1, Math.round(inputs.horizonMonths / 12))))
+const maxYears = ref(
+  initial
+    ? Math.min(MAX_YEARS, Math.max(1, Math.round(initial.maxMonths / 12)))
+    : Math.min(MAX_YEARS, Math.max(1, Math.round(inputs.horizonMonths / 12))),
+)
 
 function onMaxYearsInput(event: Event): void {
   maxYears.value = Number((event.target as HTMLInputElement).value)

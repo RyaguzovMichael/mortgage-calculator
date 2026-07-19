@@ -31,6 +31,25 @@ const inputs = reactive<Inputs>(structuredClone(loadInputs() ?? BLANK_START_INPU
 
 const report = computed<SimulationReport>(() => simulateAll(toPlain(inputs)))
 
+// A stable fingerprint of everything the generator's search depends on — every
+// field of Inputs except `plans` itself, which is the generator's *output* (the
+// board state), not one of its conditions. Used to tell whether the last "build
+// best plans" run is still fresh, so the recalculate button can nag only when it
+// actually needs to.
+function startConditionsHash(value: Inputs): string {
+  const { plans: _plans, ...conditions } = value
+  return fnv1a(JSON.stringify(conditions))
+}
+
+function fnv1a(text: string): string {
+  let hash = 0x811c9dc5
+  for (let i = 0; i < text.length; i++) {
+    hash ^= text.charCodeAt(i)
+    hash = Math.imul(hash, 0x01000193)
+  }
+  return (hash >>> 0).toString(16)
+}
+
 // Every plan on the board — the generator's winners plus the user's hand-built
 // ones. Used to look a plan up by id (for the board, the recap, and details).
 const allPlans = computed<readonly PurchasePlan[]>(() => [
@@ -61,6 +80,8 @@ export function useInputs() {
     buildBestPlans,
     bestProgress,
     noPlansFit,
+    conditionsChanged,
+    lastGeneratorOptions,
     generatedDetails,
     planOutcome,
     isShown,
@@ -252,6 +273,26 @@ const bestProgress = reactive({ running: false, done: 0, total: 0 })
 // the user to raise the limit instead of leaving them staring at an empty result.
 const noPlansFit = ref(false)
 
+// The start-conditions fingerprint as of the last successful "build best plans"
+// run. Seeded from the loaded inputs, so a page reload with an already-generated
+// board does not immediately read as "stale" just because nothing ran this
+// session yet.
+const lastBuildHash = ref<string | null>(
+  inputs.plans.generated.length > 0 ? startConditionsHash(toPlain(inputs)) : null,
+)
+
+// Whether the conditions the last run searched under have since moved — the
+// board's recalculate button reads this to decide between a quiet reminder and a
+// big "you need to redo this" call to action.
+const conditionsChanged = computed(
+  () => lastBuildHash.value !== null && startConditionsHash(toPlain(inputs)) !== lastBuildHash.value,
+)
+
+// The options chosen the last time the generator dialog ran, so reopening it
+// (to recalculate, or after a conditions change) starts from what was answered
+// before rather than resetting to blank defaults.
+const lastGeneratorOptions = ref<GeneratorOptions | null>(null)
+
 // The generated plans with their freshly-computed headline metrics, for the board's
 // generated section. Recomputed against the live inputs, so the numbers stay honest
 // when a condition changes after the last run (only a handful of plans, so cheap).
@@ -286,8 +327,10 @@ async function buildBestPlans(
   bestProgress.done = 0
   bestProgress.total = 0
   noPlansFit.value = false
+  lastGeneratorOptions.value = options
   try {
-    const result = await runBestPlans(toPlain(inputs), options, (done, total) => {
+    const plainInputs = toPlain(inputs)
+    const result = await runBestPlans(plainInputs, options, (done, total) => {
       bestProgress.done = done
       bestProgress.total = total
     })
@@ -323,6 +366,9 @@ async function buildBestPlans(
     // No winners means nothing met the deadline — flag it so the UI prompts for a
     // larger budget rather than silently showing an empty generated section.
     noPlansFit.value = generated.length === 0
+    // This run searched `plainInputs` — pin the fingerprint to that snapshot, not
+    // to whatever inputs looks like when the run finally lands.
+    lastBuildHash.value = startConditionsHash(plainInputs)
   } finally {
     bestProgress.running = false
   }

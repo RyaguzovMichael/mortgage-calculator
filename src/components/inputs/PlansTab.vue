@@ -34,6 +34,8 @@ const {
   buildBestPlans,
   bestProgress,
   noPlansFit,
+  conditionsChanged,
+  lastGeneratorOptions,
   generatedDetails,
 } = useInputs()
 const { t } = useI18n()
@@ -109,8 +111,6 @@ function metricFor(category: BestCategoryId, m: PlanMetrics): string {
       return t('bestPlans.metrics.rent', { n: m.monthsRenting, word: monthsWord(m.monthsRenting) })
     case 'best-assets':
       return t('bestPlans.metrics.assets', { amount: money(m.netWorthAtHorizon) })
-    case 'lowest-price':
-      return t('bestPlans.metrics.price', { amount: money(m.purchasePrice ?? 0) })
     case 'shortest-loan':
       return t('bestPlans.metrics.loan', { n: m.debtFreeMonth ?? 0 })
   }
@@ -155,7 +155,7 @@ function showTitle(plan: PurchasePlan): string {
     <header class="section-head">
       <h3>{{ t('bestPlans.title') }}</h3>
       <button
-        v-if="generatedDetails.length > 0 && !bestProgress.running"
+        v-if="generatedDetails.length > 0 && !conditionsChanged && !bestProgress.running"
         type="button"
         class="recalc"
         @click="onBuild"
@@ -175,6 +175,18 @@ function showTitle(plan: PurchasePlan): string {
       <AppIcon :path="mdiAutoFix" :size="18" />
       {{ t('bestPlans.button') }}
     </button>
+
+    <!-- A start condition moved since the last run: the small header button is not
+         enough of a nudge, since the board is now quietly showing stale winners. -->
+    <template v-if="generatedDetails.length > 0 && conditionsChanged && !bestProgress.running">
+      <p class="conditions-changed-hint" role="status">
+        {{ t('bestPlans.conditionsChangedHint') }}
+      </p>
+      <button type="button" class="build" @click="onBuild">
+        <AppIcon :path="mdiRefresh" :size="18" />
+        {{ t('bestPlans.recalculate') }}
+      </button>
+    </template>
 
     <div v-if="bestProgress.running" class="progress" role="status" aria-live="polite">
       <span class="progress-label">{{ t('bestPlans.progressTitle') }}</span>
@@ -280,7 +292,12 @@ function showTitle(plan: PurchasePlan): string {
   />
   <PlanEditorDialog v-if="editing" :initial="editing" @save="onEditSave" @cancel="editing = null" />
   <PlanDetailsDialog v-if="details" :plan="details" @close="details = null" />
-  <GeneratorDialog v-if="generatorOpen" @run="onRun" @cancel="generatorOpen = false" />
+  <GeneratorDialog
+    v-if="generatorOpen"
+    :initial="lastGeneratorOptions"
+    @run="onRun"
+    @cancel="generatorOpen = false"
+  />
 
   <ConfirmDialog
     v-if="deleting"
@@ -446,6 +463,19 @@ function showTitle(plan: PurchasePlan): string {
   font-size: var(--text-sm);
   color: var(--text-muted);
 }
+/* Shown when a start condition has moved since the generated plans were built —
+   the accent colour on both text and border, matching the big button under it, so
+   the two read as one call to action rather than an error state. */
+.conditions-changed-hint {
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  color: var(--accent);
+  font-size: var(--text-md);
+}
+
 /* Shown when a run met the time budget with no surviving plan — a nudge, not an
    error, so it reads in the warning colour rather than the destructive one. */
 .none-fit {

@@ -16,6 +16,11 @@ const RENTING: GeneratorOptions = {
   earliestSaleMonth: 0,
   maxMonths: 1_000_000,
 }
+const FREE: GeneratorOptions = {
+  situation: 'free',
+  earliestSaleMonth: 0,
+  maxMonths: 1_000_000,
+}
 
 describe('enumeratePlans', () => {
   it('produces plans, all in the chosen situation', () => {
@@ -74,13 +79,7 @@ describe('buildBestPlans', () => {
     const result = await buildBestPlans(DEFAULT_INPUTS, SELLING, undefined, ONE_BATCH)
     const categories = result.winners.map((winner) => winner.category)
     expect(new Set(categories).size).toBe(categories.length)
-    const known = new Set([
-      'earliest-move-in',
-      'shortest-rent',
-      'best-assets',
-      'lowest-price',
-      'shortest-loan',
-    ])
+    const known = new Set(['earliest-move-in', 'shortest-rent', 'best-assets', 'shortest-loan'])
     for (const category of categories) expect(known.has(category)).toBe(true)
   })
 
@@ -90,6 +89,41 @@ describe('buildBestPlans', () => {
     expect(
       loanWinners.every((winner) => winner.plan.loan !== 'none' && winner.metrics.hasLoan),
     ).toBe(true)
+  })
+
+  // A 'lump' repay can borrow and pay the whole loan off the same month it buys —
+  // debtFreeMonth === purchaseMonth. That plan paid interest for a loan it never
+  // really carried, so it is set aside entirely and cannot win any category, not
+  // just "shortest loan" (it could otherwise still sneak a "best assets" win).
+  it('never lets a loan paid off the same month it opened win any category', async () => {
+    const result = await buildBestPlans(DEFAULT_INPUTS, SELLING, undefined, ONE_BATCH)
+    expect(
+      result.winners.every(
+        (winner) =>
+          winner.plan.loan === 'none' ||
+          winner.metrics.debtFreeMonth === null ||
+          winner.metrics.purchaseMonth === null ||
+          winner.metrics.debtFreeMonth > winner.metrics.purchaseMonth,
+      ),
+    ).toBe(true)
+  })
+
+  // 'free' never rents (see planMatchesStart/rentDueAt), so every candidate would
+  // tie at zero months renting — a meaningless "winner". The category is dropped
+  // for that situation instead of crowning an arbitrary tie.
+  it('drops shortest-rent for a free run', async () => {
+    const result = await buildBestPlans(DEFAULT_INPUTS, FREE, undefined, ONE_BATCH)
+    expect(result.winners.some((winner) => winner.category === 'shortest-rent')).toBe(false)
+  })
+
+  // If cash wins on net worth, no mortgage is worth ranking by payoff speed — the
+  // richest outcome carries no loan at all.
+  it('drops shortest-loan when a cash plan wins best-assets', async () => {
+    const result = await buildBestPlans(DEFAULT_INPUTS, SELLING, undefined, ONE_BATCH)
+    const bestAssets = result.winners.find((winner) => winner.category === 'best-assets')
+    const hasShortestLoan = result.winners.some((winner) => winner.category === 'shortest-loan')
+    const cashWinsAssets = bestAssets?.plan.loan === 'none'
+    expect(cashWinsAssets && hasShortestLoan).toBe(false)
   })
 
   // The time budget is a hard filter: with an impossibly tight deadline no plan can

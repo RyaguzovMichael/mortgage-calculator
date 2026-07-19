@@ -394,6 +394,7 @@
     "note": "Try every plan your conditions allow and keep the winner of each category. You can disable, copy, or recalculate them — but not edit or delete.",
     "button": "Build best plans for me",
     "recalculate": "Recalculate",
+    "conditionsChangedHint": "Your conditions changed since these plans were built — recalculate to see up-to-date winners.",
     "progressTitle": "Calculating variants…",
     "progressCount": "{done} / {total} variants",
     "noneFit": "No plan managed to settle within your time budget. Try raising the maximum time and building again.",
@@ -401,14 +402,12 @@
       "earliest-move-in": "Earliest move-in",
       "shortest-rent": "Shortest renting",
       "best-assets": "Best total assets",
-      "lowest-price": "Lowest purchase price",
       "shortest-loan": "Shortest loan"
     },
     "metrics": {
       "move": "buys at month {n}",
       "rent": "{n} {word} renting",
       "assets": "{amount} ₸ net worth",
-      "price": "{amount} ₸ price",
       "loan": "debt-free at month {n}"
     }
   },

@@ -86,12 +86,7 @@ export interface PurchasePlan {
 // The categories the "build best plans" generator ranks on. Lives here (not in
 // bestPlans.ts) so GeneratedPlan and the persisted Inputs shape can reference it
 // without importing the generator, which reaches back across the engine.
-export type BestCategoryId =
-  | 'earliest-move-in'
-  | 'shortest-rent'
-  | 'best-assets'
-  | 'lowest-price'
-  | 'shortest-loan'
+export type BestCategoryId = 'earliest-move-in' | 'shortest-rent' | 'best-assets' | 'shortest-loan'
 
 // A plan the generator produced, carrying the categories it won so the board can
 // group it under them. It is a PurchasePlan in every other respect — the engine
