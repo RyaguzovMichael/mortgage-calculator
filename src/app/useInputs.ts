@@ -2,10 +2,10 @@ import { computed, reactive, watch } from 'vue'
 import { simulateAll, type SimulationReport } from '@/engine/simulate'
 import { planMatchesStart } from '@/engine/types/inputs'
 import type { DepositProduct, Inputs, LoanProduct } from '@/engine/types/inputs'
-import type { PurchasePlan } from '@/engine/types/plan'
+import type { BestCategoryId, GeneratedPlan, PurchasePlan } from '@/engine/types/plan'
+import { buildBestPlans as runBestPlans, evaluatePlan, type PlanMetrics } from '@/engine/bestPlans'
 import { isBuiltInProduct } from '@/infrastructure/depositCatalogue'
 import { isBuiltInLoanProduct } from '@/infrastructure/loanCatalogue'
-import { BUILT_IN_PLANS, isBuiltInPlan } from '@/infrastructure/planCatalogue'
 import {
   BLANK_START_INPUTS,
   DEFAULT_PLAN_SALE_MONTH,
@@ -24,12 +24,12 @@ export const MAX_SHOWN = 8
 // page and one model, so this is a plain composable rather than a store.
 const inputs = reactive<Inputs>(structuredClone(loadInputs() ?? BLANK_START_INPUTS))
 
-const report = computed<SimulationReport>(() => simulateAll(toPlain(inputs), BUILT_IN_PLANS))
+const report = computed<SimulationReport>(() => simulateAll(toPlain(inputs)))
 
-// Built-in definitions come from the file; the user's own are appended. This is the
-// list the plans tab shows, each row read-only or editable by whether it is built in.
+// Every plan on the board — the generator's winners plus the user's hand-built
+// ones. Used to look a plan up by id (for the board, the recap, and details).
 const allPlans = computed<readonly PurchasePlan[]>(() => [
-  ...BUILT_IN_PLANS,
+  ...inputs.plans.generated,
   ...inputs.plans.custom,
 ])
 
@@ -52,7 +52,11 @@ export function useInputs() {
     duplicatePlan,
     removePlan,
     canRemovePlan,
-    isPlanBuiltIn: isBuiltInPlan,
+    isGeneratedPlan,
+    buildBestPlans,
+    bestProgress,
+    generatedDetails,
+    planOutcome,
     isShown,
     canShow,
     isCompatible,
@@ -156,6 +160,7 @@ function newPlanDraft(): PurchasePlan {
     saveMonths: null,
     borrow: 'max',
     repay: 'monthly',
+    term: 'max',
     situation: 'selling',
     saleMonthOffset: DEFAULT_PLAN_SALE_MONTH,
     savingsProductId: DEFAULT_SAVINGS_PRODUCT_ID,
@@ -171,19 +176,23 @@ function upsertPlan(plan: PurchasePlan): void {
   else inputs.plans.custom.push(plan)
 }
 
-// Clones any plan — built-in or custom — into a new custom plan, so tweaking
-// "Halyk, but with a bigger down payment" starts from Halyk's own terms instead
-// of the blank draft newPlanDraft() hands the wizard. Not auto-shown, same as a
-// brand-new plan: copying one must not shove something else off the board.
+// Clones any plan — generated or custom — into a new custom plan, so tweaking a
+// winning strategy (or "Halyk, but with a bigger down payment") starts from its
+// terms instead of the blank draft newPlanDraft() hands the wizard. This is the only
+// way to edit a generated plan: copy it, then the copy is an ordinary custom plan.
+// Not auto-shown, same as a brand-new plan: copying one must not shove something
+// else off the board.
 function duplicatePlan(id: string, name: string): PurchasePlan {
   const source = allPlans.value.find((candidate) => candidate.id === id)
   if (!source) throw new Error(`Unknown plan: ${id}`)
   nextPlanId = Math.max(nextPlanId, highestPlanId(inputs.plans.custom)) + 1
-  // structuredClone can't clone a Vue reactive Proxy — a custom plan is one, a
-  // built-in isn't, so this only broke on copying your own plans. JSON round-trip
-  // instead, same as toPlain() below.
+  // structuredClone can't clone a Vue reactive Proxy — inputs plans are reactive —
+  // so JSON round-trip instead, same as toPlain() below. `categories` is dropped: a
+  // copy is a plain custom plan, not a generated one.
+  const clone = JSON.parse(JSON.stringify(source)) as Record<string, unknown>
+  delete clone.categories
   const copy: PurchasePlan = {
-    ...(JSON.parse(JSON.stringify(source)) as PurchasePlan),
+    ...(clone as unknown as PurchasePlan),
     id: `plan-${nextPlanId}`,
     name,
   }
@@ -200,9 +209,104 @@ function removePlan(id: string): void {
   if (shownAt >= 0) inputs.plans.shown.splice(shownAt, 1)
 }
 
-// Only the user's own plans can be deleted; the built-ins belong to the file.
+// Only hand-built plans can be deleted. A generated plan cannot — it is replaced by
+// a re-run, or copied to a custom plan the user then owns.
 function canRemovePlan(id: string): boolean {
-  return !isBuiltInPlan(id)
+  return !isGeneratedPlan(id)
+}
+
+// "Generated" is membership in the generated array, not a name convention — the same
+// reasoning the deposit/loan catalogues use for "built-in".
+function isGeneratedPlan(id: string): boolean {
+  return inputs.plans.generated.some((plan) => plan.id === id)
+}
+
+// Just the decisions, so two winners that are the same strategy collapse to one
+// board line instead of drawing the same curve twice.
+function planFingerprint(plan: PurchasePlan): string {
+  return JSON.stringify([
+    plan.loan,
+    plan.buyWhen,
+    plan.saveMonths,
+    plan.borrow,
+    plan.repay,
+    plan.term,
+    plan.situation,
+    plan.saleMonthOffset,
+    plan.savingsProductId,
+  ])
+}
+
+// Progress the "build best plans" run publishes so the UI can draw a bar and a live
+// "done / total variants" count.
+const bestProgress = reactive({ running: false, done: 0, total: 0 })
+
+// The generated plans with their freshly-computed headline metrics, for the board's
+// generated section. Recomputed against the live inputs, so the numbers stay honest
+// when a condition changes after the last run (only a handful of plans, so cheap).
+export interface GeneratedDetail {
+  readonly plan: GeneratedPlan
+  readonly metrics: PlanMetrics
+}
+const generatedDetails = computed<readonly GeneratedDetail[]>(() => {
+  const plain = toPlain(inputs)
+  return inputs.plans.generated.map((plan) => ({ plan, metrics: evaluatePlan(plain, plan) }))
+})
+
+// The headline outcomes of any single plan under the live conditions, for the
+// read-only details dialog. One fresh run — cheap, and always in step with the
+// current inputs.
+function planOutcome(plan: PurchasePlan): PlanMetrics {
+  return evaluatePlan(toPlain(inputs), plan)
+}
+
+// Enumerate every plan the conditions allow, simulate them all (batched, so the
+// progress bar can paint), and put the category winners on the board as generated
+// plans. Replaces the previous generated set; leaves hand-built plans alone.
+// `labelFor` turns a category into the localized name a winning plan wears —
+// supplied by the caller so this composable stays out of i18n.
+async function buildBestPlans(labelFor: (category: BestCategoryId) => string): Promise<void> {
+  if (bestProgress.running) return
+  bestProgress.running = true
+  bestProgress.done = 0
+  bestProgress.total = 0
+  try {
+    const result = await runBestPlans(toPlain(inputs), (done, total) => {
+      bestProgress.done = done
+      bestProgress.total = total
+    })
+
+    // Drop the previous generated set from the board.
+    const previous = new Set(inputs.plans.generated.map((plan) => plan.id))
+    inputs.plans.shown = inputs.plans.shown.filter((id) => !previous.has(id))
+
+    // Collapse winners that are the same strategy into one plan wearing every
+    // category it won.
+    const groups = new Map<string, { categories: BestCategoryId[]; plan: PurchasePlan }>()
+    for (const winner of result.winners) {
+      const key = planFingerprint(winner.plan)
+      const group = groups.get(key)
+      if (group) group.categories.push(winner.category)
+      else groups.set(key, { categories: [winner.category], plan: winner.plan })
+    }
+
+    const generated: GeneratedPlan[] = []
+    let index = 0
+    for (const group of groups.values()) {
+      const id = `best-${index}`
+      index += 1
+      generated.push({
+        ...group.plan,
+        id,
+        name: group.categories.map(labelFor).join(' · '),
+        categories: group.categories,
+      })
+      if (inputs.plans.shown.length < MAX_SHOWN) inputs.plans.shown.push(id)
+    }
+    inputs.plans.generated = generated
+  } finally {
+    bestProgress.running = false
+  }
 }
 
 function highestPlanId(plans: readonly PurchasePlan[]): number {

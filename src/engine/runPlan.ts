@@ -1,11 +1,12 @@
 import { createLoan, type Loan } from './loan'
-import { annuityPayment } from './money'
+import { annuityPayment, shortestTerm } from './money'
 import { createWallet, type Wallet } from './wallet'
 import { summarize } from './summary'
 import {
   apartmentPriceAt,
   effectiveHousing,
   loanProduct,
+  maxServiceablePayment,
   rentDueAt,
   targetLoan,
   type HousingInputs,
@@ -37,7 +38,9 @@ export function runPlan(inputs: Inputs, plan: PurchasePlan): VariantResult {
   // Halyk or a user's own credit) — 'none' never reaches this branch's fields.
   const product = !useOtbasy && plan.loan !== 'none' ? loanProduct(inputs, plan.loan) : null
   const rate = useOtbasy ? inputs.otbasy.loanAnnualRate : (product?.annualRate ?? 0)
-  const term = useOtbasy ? inputs.otbasy.maxTermMonths : (product?.maxTermMonths ?? 0)
+  // The contract's longest term. The term the loan actually opens at is decided at
+  // purchase (effectiveTerm): a 'shortest' plan may take less.
+  const maxTerm = useOtbasy ? inputs.otbasy.maxTermMonths : (product?.maxTermMonths ?? 0)
 
   let loan: Loan | null = null
   let owned = false
@@ -60,14 +63,19 @@ export function runPlan(inputs: Inputs, plan: PurchasePlan): VariantResult {
 
     if (!owned && buyNow(inputs, housing, plan, month.index, wallet, target)) {
       const price = apartmentPriceAt(inputs, month.index)
+      // The most this month's income can service, capped by the 50%-of-salary
+      // lending ceiling — the number both the affordability gate and the shortest
+      // term solve against.
+      const cap = maxServiceablePayment(inputs, month.index)
+      const term = effectiveTerm(inputs, plan, wallet, price, rate, maxTerm, cap)
       // Timing is not enough — the down payment has to be real money. borrow-min
       // always affords it (it puts down whatever there is); the others wait. A bank
-      // also would not issue a loan whose annuity the borrower cannot service —
+      // also would not issue a loan whose annuity exceeds the ceiling —
       // canAffordPayment defers the purchase until an indexed raise closes the gap,
       // same as affordsPurchase does for the down payment.
       if (
         affordsPurchase(inputs, plan, wallet, price) &&
-        canAffordPayment(inputs, plan, wallet, price, rate, term, month.freeCash)
+        canAffordPayment(inputs, plan, wallet, price, rate, term, cap)
       ) {
         loan = buy(inputs, plan, wallet, price, rate, term)
         owned = true
@@ -238,9 +246,27 @@ function plannedPrincipal(
   return maxLoan(inputs, plan)
 }
 
+// The term the loan opens at. Otbasy and a max-term plan take the contract's full
+// term; a 'shortest' plan takes the least term whose annuity still fits under the
+// cap (this month's serviceable payment). Cash has no loan and no term.
+function effectiveTerm(
+  inputs: Inputs,
+  plan: PurchasePlan,
+  wallet: Wallet,
+  price: number,
+  rate: number,
+  maxTerm: number,
+  cap: number,
+): number {
+  if (plan.loan === 'none') return 0
+  if (plan.loan === 'otbasy' || plan.term !== 'shortest') return maxTerm
+  return shortestTerm(plannedPrincipal(inputs, plan, wallet, price), rate, cap, maxTerm)
+}
+
 // A bank checks the annuity against the borrower's income before it checks
-// anything else about the down payment. Cash purchases have no annuity and are
-// gated by affordsPurchase alone.
+// anything else about the down payment, and will not lend past the cap (the
+// smaller of the borrower's budget and the 50%-of-salary ceiling). Cash purchases
+// have no annuity and are gated by affordsPurchase alone.
 function canAffordPayment(
   inputs: Inputs,
   plan: PurchasePlan,
@@ -248,11 +274,11 @@ function canAffordPayment(
   price: number,
   rate: number,
   term: number,
-  freeCash: number,
+  cap: number,
 ): boolean {
   if (plan.loan === 'none') return true
   const principal = plannedPrincipal(inputs, plan, wallet, price)
-  return principal <= 0 || annuityPayment(principal, rate, term) <= freeCash
+  return principal <= 0 || annuityPayment(principal, rate, term) <= cap
 }
 
 // Whether a borrow-max / all-cash plan can afford its down payment yet. borrow-min

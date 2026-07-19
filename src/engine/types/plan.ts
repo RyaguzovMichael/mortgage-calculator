@@ -60,6 +60,14 @@ export interface PurchasePlan {
   //             the loan runs its full term while the cash keeps compounding.
   //             Best when the loan rate stays below the deposit rate (Otbasy).
   readonly repay: 'monthly' | 'lump' | 'never'
+  //   max      — the longest term the contract allows: the lowest monthly payment,
+  //              the loan runs its full length.
+  //   shortest — the least term whose annuity the borrower can still support (up to
+  //              the 50%-of-salary lending ceiling): a higher monthly payment, the
+  //              loan finishes soonest. Solved at purchase from the principal and
+  //              that month's salary. Ignored for cash ('none') and for Otbasy,
+  //              which keeps its own contract term.
+  readonly term: 'max' | 'shortest'
   // Where you live until you buy — and, through 'selling', whether this plan
   // requires the existing-apartment start condition. How much the flat fetches is a
   // global start condition (Inputs.existingApartment.price); the situation and the
@@ -73,6 +81,24 @@ export interface PurchasePlan {
   // A plan decision: two plans can compare different deposits. The Otbasy variant
   // routes savings to its own account instead, so this is unused there.
   readonly savingsProductId: string
+}
+
+// The categories the "build best plans" generator ranks on. Lives here (not in
+// bestPlans.ts) so GeneratedPlan and the persisted Inputs shape can reference it
+// without importing the generator, which reaches back across the engine.
+export type BestCategoryId =
+  | 'earliest-move-in'
+  | 'shortest-rent'
+  | 'best-assets'
+  | 'lowest-price'
+  | 'shortest-loan'
+
+// A plan the generator produced, carrying the categories it won so the board can
+// group it under them. It is a PurchasePlan in every other respect — the engine
+// runs it exactly like a hand-built one. Unlike a custom plan it cannot be edited or
+// deleted, only disabled, copied to a custom plan, or replaced by a fresh run.
+export interface GeneratedPlan extends PurchasePlan {
+  readonly categories: readonly BestCategoryId[]
 }
 
 // pre-sale: living in the flat you will sell. free-housing: living rent-free

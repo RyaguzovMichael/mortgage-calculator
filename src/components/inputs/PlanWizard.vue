@@ -14,6 +14,7 @@ import {
   DEPOSIT_ICON,
   HOUSING_ICONS,
   REPAY_ICONS,
+  TERM_ICONS,
   loanIcon,
 } from './planIcons'
 
@@ -33,6 +34,7 @@ const {
   BUY_WHEN_LABELS,
   BORROW_LABELS,
   REPAY_LABELS,
+  TERM_LABELS,
   HOUSING_LABELS,
 } = useFormat()
 
@@ -73,11 +75,14 @@ watch(
 // trigger is pinned to the programme's own gates, not a choice); borrow/repay
 // vanish for cash (no loan to size or repay); the deposit screen vanishes for
 // Otbasy (it saves to its own account, not a deposit). The rest are always asked. ---
-type StepId = 'name' | 'loan' | 'buyWhen' | 'borrow' | 'repay' | 'situation' | 'deposit'
+type StepId = 'name' | 'loan' | 'buyWhen' | 'borrow' | 'repay' | 'term' | 'situation' | 'deposit'
 const steps = computed<StepId[]>(() => {
   const list: StepId[] = ['name', 'loan']
   if (draft.loan !== 'otbasy') list.push('buyWhen')
   if (draft.loan !== 'none') list.push('borrow', 'repay')
+  // Term is a real choice only for an ordinary credit — Otbasy runs its own
+  // contract term, cash has none.
+  if (draft.loan !== 'none' && draft.loan !== 'otbasy') list.push('term')
   list.push('situation')
   if (draft.loan !== 'otbasy') list.push('deposit')
   return list
@@ -152,6 +157,14 @@ const repayOptions = computed<Choice<PurchasePlan['repay']>[]>(() =>
     label: REPAY_LABELS.value[value],
     description: t(`planWizard.desc.repay.${value}`),
     icon: REPAY_ICONS[value],
+  })),
+)
+const termOptions = computed<Choice<PurchasePlan['term']>[]>(() =>
+  (['max', 'shortest'] as const).map((value) => ({
+    value,
+    label: TERM_LABELS.value[value],
+    description: t(`planWizard.desc.term.${value}`),
+    icon: TERM_ICONS[value],
   })),
 )
 const situationOptions = computed<Choice<HousingSituation>[]>(() =>
@@ -252,6 +265,13 @@ const summary = computed(() => describePlan(draft, inputs.loans.products, inputs
       v-model="draft.repay"
       :options="repayOptions"
       :aria-label="t('planWizard.steps.repay.title')"
+    />
+
+    <ChoiceCards
+      v-else-if="step === 'term'"
+      v-model="draft.term"
+      :options="termOptions"
+      :aria-label="t('planWizard.steps.term.title')"
     />
 
     <template v-else-if="step === 'situation'">

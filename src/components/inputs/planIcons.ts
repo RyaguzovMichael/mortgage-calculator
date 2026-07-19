@@ -9,6 +9,8 @@ import {
   mdiCalendarClock,
   mdiCalendarSync,
   mdiCash,
+  mdiClockFast,
+  mdiClockOutline,
   mdiCreditCardOutline,
   mdiHomeCityOutline,
   mdiHomeExportOutline,
@@ -37,6 +39,11 @@ export const REPAY_ICONS: Record<PurchasePlan['repay'], string> = {
   monthly: mdiCalendarSync,
   lump: mdiPiggyBank,
   never: mdiInfinity,
+}
+
+export const TERM_ICONS: Record<PurchasePlan['term'], string> = {
+  max: mdiClockOutline,
+  shortest: mdiClockFast,
 }
 
 export const HOUSING_ICONS: Record<HousingSituation, string> = {

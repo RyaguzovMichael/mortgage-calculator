@@ -8,7 +8,7 @@ import {
   type Inputs,
 } from '@/engine/types/inputs'
 import { simulateAll } from '@/engine/simulate'
-import { BUILT_IN_PLANS } from '@/infrastructure/planCatalogue'
+import { TEST_PLANS, testPlan, withBoard } from './plans.fixtures'
 import { DEFAULT_INPUTS } from '@/infrastructure/inputsStorage'
 import type { PurchasePlan } from '@/engine/types/plan'
 
@@ -21,7 +21,7 @@ const owning = (owned: boolean): Inputs => ({
 })
 
 const withSituation = (id: string, situation: HousingSituation): PurchasePlan => ({
-  ...BUILT_IN_PLANS.find((plan) => plan.id === id)!,
+  ...testPlan(id),
   situation,
 })
 
@@ -75,21 +75,18 @@ describe('savingsProduct resolves a plan’s own deposit', () => {
 })
 
 describe('simulateAll filters incompatible plans off the comparison', () => {
-  // Every built-in is a selling plan, so turning ownership off leaves nothing to
+  // Every fixture plan is a selling plan, so turning ownership off leaves nothing to
   // compare — even though the board still lists them as shown.
   it('drops selling plans when no apartment is owned', () => {
-    const report = simulateAll(owning(false), BUILT_IN_PLANS)
+    const report = simulateAll(withBoard(owning(false), TEST_PLANS))
     expect(report.variants).toEqual([])
     expect(report.bestVariant).toBeNull()
   })
 
   it('runs a renting plan only when no apartment is owned', () => {
-    const renter = withSituation('all-cash', 'renting')
-    const inputs = (owned: boolean): Inputs => ({
-      ...owning(owned),
-      plans: { custom: [{ ...renter, id: 'renter' }], shown: ['renter'] },
-    })
-    expect(simulateAll(inputs(false), BUILT_IN_PLANS).variants.map((v) => v.id)).toEqual(['renter'])
-    expect(simulateAll(inputs(true), BUILT_IN_PLANS).variants).toEqual([])
+    const renter = { ...withSituation('all-cash', 'renting'), id: 'renter' }
+    const inputs = (owned: boolean): Inputs => withBoard(owning(owned), [renter])
+    expect(simulateAll(inputs(false)).variants.map((v) => v.id)).toEqual(['renter'])
+    expect(simulateAll(inputs(true)).variants).toEqual([])
   })
 })

@@ -6,16 +6,21 @@ import { useInputs } from '@/app/useInputs'
 import { money, colorForIndex, useFormat } from '@/app/useFormat'
 import AppIcon from '@/components/AppIcon.vue'
 import PlanEditorDialog from '@/components/inputs/PlanEditorDialog.vue'
+import PlanDetailsDialog from '@/components/PlanDetailsDialog.vue'
 import type { PurchasePlan } from '@/engine/types/plan'
 
-const { inputs, allPlans, isPlanBuiltIn, upsertPlan } = useInputs()
+const { inputs, allPlans, upsertPlan, isGeneratedPlan } = useInputs()
 const { t, tm, rt } = useI18n()
 const { describePlan } = useFormat()
 
-// Editing a custom plan straight from the recap — same all-in-one dialog the
-// Plans page's "Edit" uses — so tweaking a shown plan doesn't need a trip there.
-// Built-in plans have no edit affordance: they cannot be changed.
+// Editing a plan straight from the recap — same all-in-one dialog the Plans page's
+// "Edit" uses — so tweaking a shown plan doesn't need a trip there. Generated plans
+// are not editable (the same rule as the Plans page), so they get no action here —
+// copy or recalculate them from the Plans tab.
 const editing = ref<PurchasePlan | null>(null)
+// Clicking a plan's name opens a read-only details view — same affordance as on the
+// Plans tab.
+const details = ref<PurchasePlan | null>(null)
 function openEdit(plan: PurchasePlan): void {
   editing.value = plan
 }
@@ -116,13 +121,15 @@ const shownPlans = computed(() =>
       <div v-for="entry in shownPlans" :key="entry.plan.id" class="variant">
         <span class="dot" :style="{ background: colorForIndex(entry.index) }"></span>
         <div class="variant-text">
-          <span class="item-name">{{ entry.plan.name }}</span>
+          <button type="button" class="name-link" @click="details = entry.plan">
+            {{ entry.plan.name }}
+          </button>
           <span class="item-terms">{{
             describePlan(entry.plan, inputs.loans.products, inputs.deposits.products)
           }}</span>
         </div>
         <button
-          v-if="!isPlanBuiltIn(entry.plan.id)"
+          v-if="!isGeneratedPlan(entry.plan.id)"
           type="button"
           class="edit-btn"
           :title="t('plansTab.editTitle')"
@@ -135,6 +142,7 @@ const shownPlans = computed(() =>
   </aside>
 
   <PlanEditorDialog v-if="editing" :initial="editing" @save="onEditSave" @cancel="editing = null" />
+  <PlanDetailsDialog v-if="details" :plan="details" @close="details = null" />
 </template>
 
 <style scoped>
@@ -218,5 +226,22 @@ const shownPlans = computed(() =>
   flex-direction: column;
   gap: 2px;
   min-width: 0;
+}
+/* The plan name reads as text but is a button — click it for the details dialog. */
+.name-link {
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-align: left;
+  cursor: pointer;
+  border-bottom: 1px dotted transparent;
+  transition: color var(--transition);
+}
+.name-link:hover {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
 }
 </style>

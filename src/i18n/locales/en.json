@@ -181,7 +181,7 @@
     "builtInNote": "Preset plans. They cannot be changed or removed. Check which ones to show on the chart and in the summary.",
     "ownTitle": "Your plans",
     "addButton": "Add",
-    "ownEmpty": "Nothing yet. Build your own plan out of four decisions — e.g. “Halyk, but with a 50% down payment” — and compare it against the built-ins.",
+    "ownEmpty": "Nothing yet. Build a plan out of a few decisions — e.g. “Halyk, but with a 50% down payment” — or let “Build best plans for me” do it.",
     "nameAriaLabel": "Plan name {id}",
     "removeTitle": "Remove plan",
     "removeButton": "Remove",
@@ -208,7 +208,8 @@
     "showAllLabel": "Show unavailable plans",
     "editTitle": "Edit plan",
     "duplicateTitle": "Duplicate plan",
-    "copyName": "{name}-Copy"
+    "copyName": "{name}-Copy",
+    "termLabel": "Loan term"
   },
   "runControls": {
     "startLabel": "Start",
@@ -304,7 +305,11 @@
       "owned": "own"
     },
     "describePlanAfterMonths": "after {n} {word}",
-    "describePlanOtbasyWait": "wait like Otbasy"
+    "describePlanOtbasyWait": "wait like Otbasy",
+    "termLabels": {
+      "max": "longest term",
+      "shortest": "shortest term"
+    }
   },
   "planEditor": {
     "title": "Edit plan",
@@ -348,6 +353,10 @@
       "deposit": {
         "title": "Deposit for savings",
         "instruction": "Where this plan stores money until it buys. Add your own in the “Deposits” tab."
+      },
+      "term": {
+        "title": "Loan term",
+        "instruction": "A longer term means a smaller monthly payment; the shortest term you can afford means a bigger payment but a faster finish."
       }
     },
     "desc": {
@@ -373,7 +382,45 @@
         "selling": "Sell the flat I own now, then rent.",
         "free": "Live for free, nothing to sell.",
         "renting": "Rent a place from the very start."
+      },
+      "term": {
+        "max": "The longest term the bank allows — the smallest monthly payment.",
+        "shortest": "The shortest term you can still afford — a bigger payment, paid off sooner."
       }
     }
+  },
+  "bestPlans": {
+    "title": "Best plans",
+    "note": "Try every plan your conditions allow and keep the winner of each category. You can disable, copy, or recalculate them — but not edit or delete.",
+    "button": "Build best plans for me",
+    "recalculate": "Recalculate",
+    "progressTitle": "Calculating variants…",
+    "progressCount": "{done} / {total} variants",
+    "categories": {
+      "earliest-move-in": "Earliest move-in",
+      "shortest-rent": "Shortest renting",
+      "best-assets": "Best total assets",
+      "lowest-price": "Lowest purchase price",
+      "shortest-loan": "Shortest loan"
+    },
+    "metrics": {
+      "move": "buys at month {n}",
+      "rent": "{n} {word} renting",
+      "assets": "{amount} ₸ net worth",
+      "price": "{amount} ₸ price",
+      "loan": "debt-free at month {n}"
+    }
+  },
+  "planDetails": {
+    "title": "Plan details",
+    "decisions": "Decisions",
+    "outcomes": "Outcomes",
+    "purchaseMonth": "Buys at month",
+    "debtFree": "Debt-free at month",
+    "netWorth": "Net worth at end",
+    "notBought": "Never buys under these conditions",
+    "notCleared": "Loan not cleared within the horizon",
+    "close": "Close",
+    "purchasePrice": "Purchase price"
   }
 }

@@ -15,6 +15,7 @@ import {
   DEPOSIT_ICON,
   HOUSING_ICONS,
   REPAY_ICONS,
+  TERM_ICONS,
   loanIcon,
 } from './planIcons'
 
@@ -34,6 +35,7 @@ const {
   BUY_WHEN_LABELS,
   BORROW_LABELS,
   REPAY_LABELS,
+  TERM_LABELS,
   HOUSING_LABELS,
 } = useFormat()
 
@@ -62,6 +64,8 @@ watch(
 // consulted as booleans instead of building a navigable list out of them.
 const showBuyWhen = computed(() => draft.loan !== 'otbasy')
 const showLoanSizing = computed(() => draft.loan !== 'none')
+// Term is a lever only for an ordinary credit — Otbasy keeps its own contract term.
+const showTerm = computed(() => draft.loan !== 'none' && draft.loan !== 'otbasy')
 const showDeposit = computed(() => draft.loan !== 'otbasy')
 
 const loanOptions = computed<Choice<string>[]>(() => [
@@ -108,6 +112,14 @@ const repayOptions = computed<Choice<PurchasePlan['repay']>[]>(() =>
     icon: REPAY_ICONS[value],
   })),
 )
+const termOptions = computed<Choice<PurchasePlan['term']>[]>(() =>
+  (['max', 'shortest'] as const).map((value) => ({
+    value,
+    label: TERM_LABELS.value[value],
+    description: t(`planWizard.desc.term.${value}`),
+    icon: TERM_ICONS[value],
+  })),
+)
 const situationOptions = computed<Choice<HousingSituation>[]>(() =>
   (['selling', 'free', 'renting'] as const)
     .filter((value) => value !== 'selling' || canSell.value)
@@ -152,7 +164,12 @@ function save(): void {
     <section class="dialog card" role="dialog" aria-modal="true">
       <header class="head">
         <h2>{{ t('planEditor.title') }}</h2>
-        <button type="button" class="icon-btn" :title="t('planWizard.cancel')" @click="emit('cancel')">
+        <button
+          type="button"
+          class="icon-btn"
+          :title="t('planWizard.cancel')"
+          @click="emit('cancel')"
+        >
           <AppIcon :path="mdiClose" :size="20" />
         </button>
       </header>
@@ -161,13 +178,21 @@ function save(): void {
         <section class="group">
           <label class="name-field">
             <span>{{ t('planWizard.nameLabel') }}</span>
-            <input v-model="draft.name" type="text" :placeholder="t('planWizard.namePlaceholder')" />
+            <input
+              v-model="draft.name"
+              type="text"
+              :placeholder="t('planWizard.namePlaceholder')"
+            />
           </label>
         </section>
 
         <section class="group">
           <h3>{{ t('planWizard.steps.loan.title') }}</h3>
-          <ChoiceCards v-model="draft.loan" :options="loanOptions" :aria-label="t('planWizard.steps.loan.title')" />
+          <ChoiceCards
+            v-model="draft.loan"
+            :options="loanOptions"
+            :aria-label="t('planWizard.steps.loan.title')"
+          />
         </section>
 
         <section v-if="showBuyWhen" class="group">
@@ -205,6 +230,15 @@ function save(): void {
             v-model="draft.repay"
             :options="repayOptions"
             :aria-label="t('planWizard.steps.repay.title')"
+          />
+        </section>
+
+        <section v-if="showTerm" class="group">
+          <h3>{{ t('planWizard.steps.term.title') }}</h3>
+          <ChoiceCards
+            v-model="draft.term"
+            :options="termOptions"
+            :aria-label="t('planWizard.steps.term.title')"
           />
         </section>
 

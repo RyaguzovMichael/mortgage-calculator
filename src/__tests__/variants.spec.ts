@@ -1,16 +1,16 @@
 import { describe, it, expect } from 'vitest'
 import { runPlan } from '@/engine/runPlan'
-import { BUILT_IN_PLANS } from '@/infrastructure/planCatalogue'
+import { testPlan } from './plans.fixtures'
 import { DEFAULT_INPUTS } from '@/infrastructure/inputsStorage'
 import { startingMoney, type HousingInputs, type Inputs } from '@/engine/types/inputs'
 import type { PurchasePlan, VariantResult } from '@/engine/types/plan'
 
-// The three built-ins now live in data/plans.yml and run through the shared
-// driver. These shims keep the per-variant behaviour tests reading the same as
-// before. Housing is now split: `situation` is a plan decision, while the sale
+// The plans these behaviour tests run against used to be built-ins; they are
+// fixtures now (plans.fixtures.ts) and run through the shared driver. These shims
+// keep the per-variant behaviour tests reading the same as before. Housing is now split: `situation` is a plan decision, while the sale
 // price and month are the global existing-apartment start condition. A shim that
 // varies any of the three takes an override and applies each to the right place.
-const builtIn = (id: string): PurchasePlan => BUILT_IN_PLANS.find((plan) => plan.id === id)!
+const builtIn = (id: string): PurchasePlan => testPlan(id)
 type HousingOverride = Partial<
   Pick<HousingInputs, 'situation' | 'saleProceeds' | 'saleMonthOffset'>
 >
@@ -65,6 +65,7 @@ const simulateHalykDelayed = (inputs: Inputs, savingMonths: number): VariantResu
     saveMonths: savingMonths,
     borrow: 'min',
     repay: 'monthly',
+    term: 'max',
     situation: builtIn('halyk').situation,
     saleMonthOffset: builtIn('halyk').saleMonthOffset,
     savingsProductId: builtIn('halyk').savingsProductId,

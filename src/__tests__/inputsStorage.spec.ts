@@ -151,6 +151,7 @@ describe('the deposit catalogue in storage', () => {
       saveMonths: null,
       borrow: 'max',
       repay: 'monthly',
+      term: 'max',
       situation: 'selling',
       saleMonthOffset: 3,
       savingsProductId: 'deposit-that-went-away',
@@ -158,7 +159,7 @@ describe('the deposit catalogue in storage', () => {
     saveInputs({
       ...DEFAULT_INPUTS,
       horizonMonths: 42,
-      plans: { custom: [{ ...plan }], shown: [] },
+      plans: { custom: [{ ...plan }], generated: [], shown: [] },
     })
     const loaded = loadInputs()!
     expect(loaded.plans.custom[0]!.savingsProductId).toBe(DEFAULT_SAVINGS_PRODUCT_ID)
@@ -174,11 +175,12 @@ describe('the deposit catalogue in storage', () => {
       saveMonths: null,
       borrow: 'max',
       repay: 'monthly',
+      term: 'max',
       situation: 'selling',
       saleMonthOffset: 3,
       savingsProductId: 'custom-1',
     } as const
-    saveInputs({ ...withOwnDeposit(), plans: { custom: [{ ...plan }], shown: [] } })
+    saveInputs({ ...withOwnDeposit(), plans: { custom: [{ ...plan }], generated: [], shown: [] } })
     expect(loadInputs()!.plans.custom[0]!.savingsProductId).toBe('custom-1')
   })
 })
@@ -227,6 +229,7 @@ describe('the plan catalogue in storage', () => {
     saveMonths: 12,
     borrow: 'min',
     repay: 'monthly',
+    term: 'max',
     situation: 'selling',
     saleMonthOffset: 3,
     savingsProductId: 'kaspi-deposit',
@@ -235,7 +238,7 @@ describe('the plan catalogue in storage', () => {
   function withOwnPlan(): Inputs {
     return {
       ...DEFAULT_INPUTS,
-      plans: { custom: [{ ...mine }], shown: ['halyk', 'plan-1'] },
+      plans: { custom: [{ ...mine }], generated: [], shown: ['halyk', 'plan-1'] },
     }
   }
 

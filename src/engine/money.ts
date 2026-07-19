@@ -24,3 +24,23 @@ export function annuityPayment(principal: number, annualRate: number, termMonths
   const growth = (1 + rate) ** termMonths
   return (principal * rate * growth) / (growth - 1)
 }
+
+// The shortest term whose annuity the borrower can still support: pay more each
+// month, finish sooner. The smallest integer term in [1, maxTermMonths] whose
+// payment is <= maxPayment. Falls back to maxTermMonths when even the longest term
+// does not fit under the cap — the purchase then fails the affordability gate and
+// defers, exactly as a max-term loan that is too big to service would. A linear
+// scan up from 1: maxTermMonths is a few hundred at most, and this is exact where
+// inverting the annuity formula would flirt with off-by-one float error.
+export function shortestTerm(
+  principal: number,
+  annualRate: number,
+  maxPayment: number,
+  maxTermMonths: number,
+): number {
+  if (principal <= 0) return 1
+  for (let term = 1; term < maxTermMonths; term += 1) {
+    if (annuityPayment(principal, annualRate, term) <= maxPayment) return term
+  }
+  return maxTermMonths
+}

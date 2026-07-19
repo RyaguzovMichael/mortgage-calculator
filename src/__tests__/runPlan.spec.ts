@@ -36,6 +36,7 @@ function plan(overrides: Partial<PurchasePlan>): PurchasePlan {
     saveMonths: null,
     borrow: 'max',
     repay: 'monthly',
+    term: 'max',
     situation: 'selling',
     saleMonthOffset: 3,
     savingsProductId: 'kaspi-deposit',
@@ -196,5 +197,58 @@ describe("purchase readiness uses withdrawable money, not the deposit's display 
     // month — if it did, the purchase would be funded with money that was
     // never actually collected.
     expect(cashPaidDown).toBeLessThanOrEqual(9_800_000 * (1 + 1.0 / 12) ** 6 + 1)
+  })
+})
+
+describe('the 50%-of-salary lending cap', () => {
+  // No flat to sell, so the target loan is the whole price; huge savings so the
+  // down payment never binds and only the annuity-vs-income gate can defer a buy.
+  // Share is 1.0, so a pure "annuity <= free cash" gate would allow a payment up to
+  // the full salary — the 50% cap is what actually holds it to half.
+  const rich = (price: number): Inputs => ({
+    ...DEFAULT_INPUTS,
+    apartment: { ...DEFAULT_INPUTS.apartment, price, annualGrowthRate: 0 },
+    existingApartment: { owned: false, price: 0 },
+    cashflow: {
+      ...DEFAULT_INPUTS.cashflow,
+      monthlySalary: 1_000_000,
+      mortgageShare: 1,
+      annualIndexationRate: 0,
+    },
+    deposits: { ...DEFAULT_INPUTS.deposits, savingsBalance: 50_000_000 },
+  })
+  const freePlan = plan({ loan: 'halyk', borrow: 'max', situation: 'free' })
+
+  it('buys when the annuity is under half the salary', () => {
+    // 25M price → 20M loan → ~403k/mo, under the 500k ceiling.
+    expect(runPlan(rich(25_000_000), freePlan).purchaseMonth).toBe(0)
+  })
+
+  it('refuses the loan when the annuity exceeds half the salary', () => {
+    // 40M price → 32M loan → ~645k/mo. The borrower is willing (share 1.0, free
+    // cash 1,000,000) and can cover the down payment, but the bank will not lend
+    // past 500k, so the purchase never happens.
+    expect(runPlan(rich(40_000_000), freePlan).purchaseMonth).toBeNull()
+  })
+})
+
+describe('shortest-term plans', () => {
+  // repay: never so the term itself drives the payoff (monthly would prepay the
+  // surplus regardless of term). Same plan, only term differs.
+  const hold = (term: 'max' | 'shortest'): Inputs['plans']['custom'][number] =>
+    plan({ loan: 'halyk', borrow: 'max', repay: 'never', term })
+
+  it('opens a shorter, higher-paying loan than its max-term twin', () => {
+    const max = runPlan(DEFAULT_INPUTS, hold('max'))
+    const shortest = runPlan(DEFAULT_INPUTS, hold('shortest'))
+
+    // A month both variants own the flat (purchase lands on the sale month, 3).
+    const paymentAt = (result: typeof max, month: number): number => result.rows[month]!.loanPayment
+    expect(paymentAt(shortest, 12)).toBeGreaterThan(paymentAt(max, 12))
+
+    // The max-term loan (240 months) cannot clear inside the 60-month horizon;
+    // the shortest one is sized to finish far sooner.
+    expect(max.debtFreeMonth).toBeNull()
+    expect(shortest.debtFreeMonth).not.toBeNull()
   })
 })

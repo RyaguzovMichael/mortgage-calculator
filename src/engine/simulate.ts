@@ -29,19 +29,16 @@ export interface SimulationReport {
 // rank that as a real option.
 const DROP = Symbol('drop')
 
-// The built-in plans come from data/plans.yml (parsed in infrastructure); the
-// engine cannot import that file without reaching across its own boundary, so they
-// are handed in. The user's own plans it reads straight off inputs.
-export function simulateAll(
-  inputs: Inputs,
-  builtInPlans: readonly PurchasePlan[],
-): SimulationReport {
+// Every plan is the user's own now (the built-in catalogue is gone). Plans come
+// from the "build best plans" generator (inputs.plans.generated) and the manual
+// builder (inputs.plans.custom); both run through here identically.
+export function simulateAll(inputs: Inputs): SimulationReport {
   // A plan whose situation does not match the existing-apartment start condition
   // (a 'selling' plan with no owned flat, or a 'free'/'renting' plan while one is
   // owned) is not compared at all — the board disables it, and running it against
   // the wrong world would invent a comparison nobody asked for. Filtered up front
   // so the Otbasy chain below also ignores an incompatible Otbasy plan.
-  const catalogue = [...builtInPlans, ...inputs.plans.custom].filter((plan) =>
+  const catalogue = [...inputs.plans.generated, ...inputs.plans.custom].filter((plan) =>
     planMatchesStart(inputs, plan),
   )
 

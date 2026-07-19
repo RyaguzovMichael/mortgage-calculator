@@ -1,20 +1,27 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { mdiContentCopy, mdiPencilOutline, mdiPlus, mdiTrashCanOutline } from '@mdi/js'
+import {
+  mdiAutoFix,
+  mdiContentCopy,
+  mdiPencilOutline,
+  mdiPlus,
+  mdiRefresh,
+  mdiTrashCanOutline,
+} from '@mdi/js'
 import { useInputs, MAX_SHOWN } from '@/app/useInputs'
-import { useFormat } from '@/app/useFormat'
-import { BUILT_IN_PLANS } from '@/infrastructure/planCatalogue'
+import { useFormat, money } from '@/app/useFormat'
+import type { PlanMetrics } from '@/engine/bestPlans'
 import { planNeedsExistingApartment } from '@/engine/types/inputs'
-import type { PurchasePlan } from '@/engine/types/plan'
+import type { BestCategoryId, PurchasePlan } from '@/engine/types/plan'
 import AppIcon from '@/components/AppIcon.vue'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
+import PlanDetailsDialog from '@/components/PlanDetailsDialog.vue'
 import PlanWizard from './PlanWizard.vue'
 import PlanEditorDialog from './PlanEditorDialog.vue'
 
 const {
   inputs,
-  allPlans,
   newPlanDraft,
   upsertPlan,
   duplicatePlan,
@@ -23,21 +30,23 @@ const {
   canShow,
   isCompatible,
   toggleShown,
+  buildBestPlans,
+  bestProgress,
+  generatedDetails,
 } = useInputs()
 const { t } = useI18n()
-const { describePlan } = useFormat()
+const { describePlan, monthsWord } = useFormat()
 
 // "+ Add" opens the stepped wizard (one decision per screen — better for a plan
 // built from scratch); "Edit" opens the all-in-one dialog instead, since an
 // existing plan just needs a few fields nudged, not walked through again.
 const creating = ref<PurchasePlan | null>(null)
 const editing = ref<PurchasePlan | null>(null)
+// Clicking any plan name opens this read-only look at the plan — no editing.
+const details = ref<PurchasePlan | null>(null)
 
 function openCreate(): void {
   creating.value = newPlanDraft()
-}
-function openEdit(plan: PurchasePlan): void {
-  editing.value = plan
 }
 function onCreateSave(plan: PurchasePlan): void {
   upsertPlan(plan)
@@ -48,16 +57,16 @@ function onEditSave(plan: PurchasePlan): void {
   editing.value = null
 }
 
-// Duplicate is instant, not a trip through a dialog: the new row lands in "Your
-// plans" right away, named after its source, ready to rename or tweak with the
-// same Edit button every other custom plan gets.
+// Duplicate is instant, not a trip through a dialog. It is also the only way to
+// "edit" a generated plan: the copy lands in "Your plans" as an ordinary custom
+// plan, safe from the next recalculation.
 function onDuplicate(plan: PurchasePlan): void {
   duplicatePlan(plan.id, t('plansTab.copyName', { name: plan.name }))
 }
 
-// Deleting a plan is irreversible (there's no undo, and it also drops the plan
-// off the board if it was shown) — same reasoning as Reset on the conditions
-// page, so it gets the same confirm-first treatment.
+// Deleting a plan is irreversible (there's no undo, and it also drops the plan off
+// the board if it was shown) — same reasoning as Reset on the conditions page, so
+// it gets the same confirm-first treatment. Only custom plans can be deleted.
 const deleting = ref<PurchasePlan | null>(null)
 function requestRemove(plan: PurchasePlan): void {
   deleting.value = plan
@@ -67,20 +76,58 @@ function confirmRemove(): void {
   deleting.value = null
 }
 
+// --- "Build best plans for me": enumerate every plan the conditions allow, run
+// them all, and put the category winners on the board as generated plans. The name
+// a winner wears is its localized category label(s), supplied here so useInputs
+// stays out of i18n. ---
+function categoryLabel(category: BestCategoryId): string {
+  return t(`bestPlans.categories.${category}`)
+}
+function onBuild(): void {
+  void buildBestPlans(categoryLabel)
+}
+const progressPct = computed(() =>
+  bestProgress.total > 0 ? `${(bestProgress.done / bestProgress.total) * 100}%` : '0%',
+)
+
+// The one-line headline a plan earned in a given category, formatted from its metric.
+function metricFor(category: BestCategoryId, m: PlanMetrics): string {
+  switch (category) {
+    case 'earliest-move-in':
+      return t('bestPlans.metrics.move', { n: m.purchaseMonth ?? 0 })
+    case 'shortest-rent':
+      return t('bestPlans.metrics.rent', { n: m.monthsRenting, word: monthsWord(m.monthsRenting) })
+    case 'best-assets':
+      return t('bestPlans.metrics.assets', { amount: money(m.netWorthAtHorizon) })
+    case 'lowest-price':
+      return t('bestPlans.metrics.price', { amount: money(m.purchasePrice ?? 0) })
+    case 'shortest-loan':
+      return t('bestPlans.metrics.loan', { n: m.debtFreeMonth ?? 0 })
+  }
+}
+
 // A plan is "unavailable" when its housing situation does not match the start
 // condition (a selling plan with no owned flat, say) — it cannot go on the board.
 // Those are hidden by default so the list shows only what you can actually compare;
 // the filter reveals them. A plan already on the board is always shown, so one that
 // became incompatible after a conditions change can still be taken off.
 const showAll = ref(false)
+const allBoardPlans = computed<readonly PurchasePlan[]>(() => [
+  ...inputs.plans.generated,
+  ...inputs.plans.custom,
+])
 const hasHidden = computed(() =>
-  allPlans.value.some((plan) => !isCompatible(plan.id) && !isShown(plan.id)),
+  allBoardPlans.value.some((plan) => !isCompatible(plan.id) && !isShown(plan.id)),
 )
 function visible(plans: readonly PurchasePlan[]): PurchasePlan[] {
   return plans.filter((plan) => showAll.value || isCompatible(plan.id) || isShown(plan.id))
 }
-const visibleBuiltIns = computed(() => visible(BUILT_IN_PLANS))
 const visibleCustom = computed(() => visible(inputs.plans.custom))
+const visibleGenerated = computed(() =>
+  generatedDetails.value.filter(
+    (detail) => showAll.value || isCompatible(detail.plan.id) || isShown(detail.plan.id),
+  ),
+)
 
 function showTitle(plan: PurchasePlan): string {
   if (isShown(plan.id)) return t('plansTab.showRemove')
@@ -94,6 +141,74 @@ function showTitle(plan: PurchasePlan): string {
 </script>
 
 <template>
+  <section class="field-group builder">
+    <header class="section-head">
+      <h3>{{ t('bestPlans.title') }}</h3>
+      <button
+        v-if="generatedDetails.length > 0 && !bestProgress.running"
+        type="button"
+        class="recalc"
+        @click="onBuild"
+      >
+        <AppIcon :path="mdiRefresh" :size="16" />
+        {{ t('bestPlans.recalculate') }}
+      </button>
+    </header>
+    <p class="note">{{ t('bestPlans.note') }}</p>
+
+    <button
+      v-if="generatedDetails.length === 0 && !bestProgress.running"
+      type="button"
+      class="build"
+      @click="onBuild"
+    >
+      <AppIcon :path="mdiAutoFix" :size="18" />
+      {{ t('bestPlans.button') }}
+    </button>
+
+    <div v-if="bestProgress.running" class="progress" role="status" aria-live="polite">
+      <span class="progress-label">{{ t('bestPlans.progressTitle') }}</span>
+      <div class="bar"><div class="fill" :style="{ width: progressPct }" /></div>
+      <span class="progress-count">{{
+        t('bestPlans.progressCount', { done: bestProgress.done, total: bestProgress.total })
+      }}</span>
+    </div>
+
+    <div v-for="detail in visibleGenerated" :key="detail.plan.id" class="built-in">
+      <div class="row">
+        <div class="show">
+          <input
+            type="checkbox"
+            :checked="isShown(detail.plan.id)"
+            :disabled="!canShow(detail.plan.id)"
+            :title="showTitle(detail.plan)"
+            @change="toggleShown(detail.plan.id)"
+          />
+          <button type="button" class="name-link" @click="details = detail.plan">
+            {{ detail.plan.name }}
+          </button>
+        </div>
+        <div class="actions">
+          <button
+            type="button"
+            :title="t('plansTab.duplicateTitle')"
+            @click="onDuplicate(detail.plan)"
+          >
+            <AppIcon :path="mdiContentCopy" :size="18" />
+          </button>
+        </div>
+      </div>
+      <span class="item-terms">{{
+        describePlan(detail.plan, inputs.loans.products, inputs.deposits.products)
+      }}</span>
+      <div class="badges">
+        <span v-for="category in detail.plan.categories" :key="category" class="badge">
+          {{ categoryLabel(category) }} · {{ metricFor(category, detail.metrics) }}
+        </span>
+      </div>
+    </div>
+  </section>
+
   <div v-if="hasHidden" class="filter">
     <label class="switch">
       <input v-model="showAll" type="checkbox" />
@@ -101,33 +216,6 @@ function showTitle(plan: PurchasePlan): string {
       <span>{{ t('plansTab.showAllLabel') }}</span>
     </label>
   </div>
-
-  <section class="field-group">
-    <h3>{{ t('plansTab.builtInTitle') }}</h3>
-    <p class="note">{{ t('plansTab.builtInNote') }}</p>
-    <div v-for="plan in visibleBuiltIns" :key="plan.id" class="built-in">
-      <div class="row">
-        <label class="show">
-          <input
-            type="checkbox"
-            :checked="isShown(plan.id)"
-            :disabled="!canShow(plan.id)"
-            :title="showTitle(plan)"
-            @change="toggleShown(plan.id)"
-          />
-          <span class="item-name">{{ plan.name }}</span>
-        </label>
-        <div class="actions">
-          <button type="button" :title="t('plansTab.duplicateTitle')" @click="onDuplicate(plan)">
-            <AppIcon :path="mdiContentCopy" :size="18" />
-          </button>
-        </div>
-      </div>
-      <span class="item-terms">{{
-        describePlan(plan, inputs.loans.products, inputs.deposits.products)
-      }}</span>
-    </div>
-  </section>
 
   <section class="field-group">
     <header class="section-head">
@@ -141,7 +229,7 @@ function showTitle(plan: PurchasePlan): string {
 
     <div v-for="plan in visibleCustom" :key="plan.id" class="built-in">
       <div class="row">
-        <label class="show">
+        <div class="show">
           <input
             type="checkbox"
             :checked="isShown(plan.id)"
@@ -149,13 +237,13 @@ function showTitle(plan: PurchasePlan): string {
             :title="showTitle(plan)"
             @change="toggleShown(plan.id)"
           />
-          <span class="item-name">{{ plan.name }}</span>
-        </label>
+          <button type="button" class="name-link" @click="details = plan">{{ plan.name }}</button>
+        </div>
         <div class="actions">
           <button type="button" :title="t('plansTab.duplicateTitle')" @click="onDuplicate(plan)">
             <AppIcon :path="mdiContentCopy" :size="18" />
           </button>
-          <button type="button" :title="t('plansTab.editTitle')" @click="openEdit(plan)">
+          <button type="button" :title="t('plansTab.editTitle')" @click="editing = plan">
             <AppIcon :path="mdiPencilOutline" :size="18" />
           </button>
           <button type="button" :title="t('plansTab.removeTitle')" @click="requestRemove(plan)">
@@ -177,6 +265,7 @@ function showTitle(plan: PurchasePlan): string {
     @cancel="creating = null"
   />
   <PlanEditorDialog v-if="editing" :initial="editing" @save="onEditSave" @cancel="editing = null" />
+  <PlanDetailsDialog v-if="details" :plan="details" @close="details = null" />
 
   <ConfirmDialog
     v-if="deleting"
@@ -192,18 +281,36 @@ function showTitle(plan: PurchasePlan): string {
 <style scoped>
 /* Most row/name/terms styling comes from assets/forms.css (.field-group, .note,
    .section-head, .built-in, .item-name, .item-terms). Only the show-checkbox row,
-   the edit/delete actions, and the filter switch are specific to this tab. */
+   the action buttons, the filter switch, and the build/progress/generated block are
+   specific to this tab. */
 .show {
   display: flex;
   align-items: center;
   gap: 8px;
-  cursor: pointer;
 }
 .show input {
   accent-color: var(--accent);
+  cursor: pointer;
 }
 .show input:disabled {
   cursor: not-allowed;
+}
+/* The plan name reads as text but is a button — click it for the details dialog. */
+.name-link {
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-align: left;
+  cursor: pointer;
+  border-bottom: 1px dotted transparent;
+  transition: color var(--transition);
+}
+.name-link:hover {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
 }
 .row {
   display: flex;
@@ -231,10 +338,98 @@ function showTitle(plan: PurchasePlan): string {
   color: var(--text-primary);
   border-color: var(--accent);
 }
-.add {
+.add,
+.recalc {
   display: flex;
   align-items: center;
   gap: 3px;
+}
+.recalc {
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text-secondary);
+  border-radius: var(--radius-sm);
+  padding: 5px 10px;
+  font: inherit;
+  font-size: var(--text-sm);
+  cursor: pointer;
+  transition:
+    color var(--transition),
+    border-color var(--transition);
+}
+.recalc:hover {
+  color: var(--text-primary);
+  border-color: var(--accent);
+}
+
+/* The category badges under a generated plan: what it won, and by how much. */
+.badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+.badge {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 2px 10px;
+}
+
+/* The "build best plans" call to action and its progress bar. */
+.build {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 11px 16px;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  background: var(--accent-gradient);
+  color: var(--accent-contrast);
+  font: inherit;
+  font-size: var(--text-md);
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 14px var(--accent-glow);
+  transition:
+    box-shadow var(--transition),
+    transform var(--transition);
+}
+.build:hover {
+  box-shadow: 0 6px 20px var(--accent-glow);
+  transform: var(--lift);
+}
+.progress {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.progress-label {
+  font-size: var(--text-md);
+  color: var(--text-secondary);
+}
+.bar {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+.fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--accent-gradient);
+  transition: width 0.15s linear;
+}
+.progress-count {
+  align-self: flex-end;
+  font-family: var(--mono);
+  font-size: var(--text-sm);
+  color: var(--text-muted);
 }
 
 /* The filter tumbler: a native checkbox turned into a sliding switch. */

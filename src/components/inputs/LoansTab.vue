@@ -20,9 +20,7 @@ const otbasyMeta = computed(() => BUILT_IN_LOANS.find((loan) => loan.id === 'otb
 const builtInProducts = computed(() =>
   inputs.loans.products.filter((product) => isBuiltInLoanProduct(product.id)),
 )
-const builtInMeta = computed(
-  () => new Map(BUILT_IN_LOANS.map((meta) => [meta.id, meta] as const)),
-)
+const builtInMeta = computed(() => new Map(BUILT_IN_LOANS.map((meta) => [meta.id, meta] as const)))
 const ownProducts = computed(() =>
   inputs.loans.products.filter((product) => !isBuiltInLoanProduct(product.id)),
 )

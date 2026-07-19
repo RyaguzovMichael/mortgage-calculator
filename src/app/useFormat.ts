@@ -116,6 +116,10 @@ export function useFormat() {
     lump: t('format.repayLabels.lump'),
     never: t('format.repayLabels.never'),
   }))
+  const TERM_LABELS = computed<Record<PurchasePlan['term'], string>>(() => ({
+    max: t('format.termLabels.max'),
+    shortest: t('format.termLabels.shortest'),
+  }))
   const HOUSING_LABELS = computed<Record<HousingSituation, string>>(() => ({
     selling: t('format.housingLabels.selling'),
     free: t('format.housingLabels.free'),
@@ -147,8 +151,12 @@ export function useFormat() {
           ? t('format.describePlanOtbasyWait')
           : BUY_WHEN_LABELS.value[plan.buyWhen]
     const parts = [loanLabel(plan.loan, loanProducts), when]
-    if (plan.loan !== 'none')
+    if (plan.loan !== 'none') {
       parts.push(BORROW_LABELS.value[plan.borrow], REPAY_LABELS.value[plan.repay])
+      // Term is a choice only for an ordinary credit; Otbasy always runs its own
+      // contract term, so naming it there would imply a lever that isn't offered.
+      if (plan.loan !== 'otbasy') parts.push(TERM_LABELS.value[plan.term])
+    }
     parts.push(HOUSING_LABELS.value[plan.situation])
     if (plan.loan !== 'otbasy') {
       const deposit = depositProducts.find((product) => product.id === plan.savingsProductId)
@@ -168,6 +176,7 @@ export function useFormat() {
     BUY_WHEN_LABELS,
     BORROW_LABELS,
     REPAY_LABELS,
+    TERM_LABELS,
     HOUSING_LABELS,
     PHASE_LABELS,
   }

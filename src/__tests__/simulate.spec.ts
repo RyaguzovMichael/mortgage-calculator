@@ -1,17 +1,27 @@
 import { describe, it, expect } from 'vitest'
 import { simulateAll } from '@/engine/simulate'
 import { runPlan } from '@/engine/runPlan'
-import { BUILT_IN_PLANS } from '@/infrastructure/planCatalogue'
+import { TEST_PLANS } from './plans.fixtures'
 import { DEFAULT_INPUTS } from '@/infrastructure/inputsStorage'
 import type { Inputs } from '@/engine/types/inputs'
 import type { PurchasePlan, VariantResult } from '@/engine/types/plan'
 
-// simulateAll now takes the built-in catalogue; the app hands it data/plans.yml.
-function report(inputs: Inputs) {
-  return simulateAll(inputs, BUILT_IN_PLANS)
+// The built-in catalogue is gone; simulateAll reads every plan off inputs.plans now.
+// These helpers put the fixture plans on the board so the windowing/best/dropping
+// tests read as they did before.
+const ALL_IDS = TEST_PLANS.map((plan) => plan.id)
+const DEFAULT_SHOWN = ['halyk', 'otbasy', 'all-cash']
+
+function boarded(inputs: Inputs, shown: string[], extraCustom: PurchasePlan[] = []): Inputs {
+  return {
+    ...inputs,
+    plans: { custom: [...TEST_PLANS, ...extraCustom], generated: [], shown },
+  }
 }
 
-const builtIn = (id: string): PurchasePlan => BUILT_IN_PLANS.find((plan) => plan.id === id)!
+function report(inputs: Inputs, shown: string[] = DEFAULT_SHOWN, extraCustom: PurchasePlan[] = []) {
+  return simulateAll(boarded(inputs, shown, extraCustom))
+}
 
 // "Halyk отложенно" is no longer a built-in — the after-months/min-down/chained
 // shape it used to demonstrate (and the window-chaining machinery it exercised)
@@ -25,9 +35,10 @@ function delayedPlan(saveMonths: number | null = null): PurchasePlan {
     saveMonths,
     borrow: 'min',
     repay: 'monthly',
-    situation: builtIn('halyk').situation,
-    saleMonthOffset: builtIn('halyk').saleMonthOffset,
-    savingsProductId: builtIn('halyk').savingsProductId,
+    term: 'max',
+    situation: 'selling',
+    saleMonthOffset: 3,
+    savingsProductId: 'kaspi-deposit',
   }
 }
 
@@ -35,18 +46,10 @@ function simulateHalykDelayed(inputs: Inputs, savingMonths: number): VariantResu
   return runPlan(inputs, delayedPlan(savingMonths))
 }
 
-// Puts the delayed custom plan on the board alongside every built-in.
+// The delayed custom plan on the board alongside every fixture plan.
 function withDelayed(inputs: Inputs, saveMonths: number | null = null): Inputs {
   const plan = delayedPlan(saveMonths)
-  return {
-    ...inputs,
-    plans: { custom: [plan], shown: [...BUILT_IN_PLANS.map((p) => p.id), plan.id] },
-  }
-}
-
-// Show every built-in, so tests that assert on the full field see all three.
-function showingAll(inputs: Inputs): Inputs {
-  return { ...inputs, plans: { ...inputs.plans, shown: BUILT_IN_PLANS.map((plan) => plan.id) } }
+  return boarded(inputs, [...ALL_IDS, plan.id], [plan])
 }
 
 describe('simulateAll', () => {
@@ -62,8 +65,8 @@ describe('simulateAll', () => {
     ])
   })
 
-  it('shows every built-in when the board asks for them', () => {
-    expect(report(showingAll(DEFAULT_INPUTS)).variants.map((variant) => variant.id)).toEqual([
+  it('shows every plan when the board asks for them', () => {
+    expect(report(DEFAULT_INPUTS, ALL_IDS).variants.map((variant) => variant.id)).toEqual([
       'halyk',
       'otbasy',
       'otbasy-hold',
@@ -71,7 +74,7 @@ describe('simulateAll', () => {
     ])
   })
 
-  it('runs a custom plan added to the catalogue and board', () => {
+  it('runs a custom plan added to the board', () => {
     const mine: PurchasePlan = {
       id: 'mine',
       name: 'Мой',
@@ -80,15 +83,16 @@ describe('simulateAll', () => {
       saveMonths: null,
       borrow: 'min',
       repay: 'monthly',
+      term: 'max',
       situation: 'selling',
       saleMonthOffset: 3,
       savingsProductId: 'kaspi-deposit',
     }
     const inputs: Inputs = {
       ...DEFAULT_INPUTS,
-      plans: { custom: [mine], shown: ['mine'] },
+      plans: { custom: [mine], generated: [], shown: ['mine'] },
     }
-    expect(report(inputs).variants.map((variant) => variant.id)).toEqual(['mine'])
+    expect(simulateAll(inputs).variants.map((variant) => variant.id)).toEqual(['mine'])
   })
 
   describe('delayed Halyk without an Otbasy purchase', () => {
@@ -97,7 +101,7 @@ describe('simulateAll', () => {
     const tooShort = withDelayed({ ...DEFAULT_INPUTS, horizonMonths: 6 })
 
     it('is dropped: there is no window to chain to', () => {
-      const r = report(tooShort)
+      const r = simulateAll(tooShort)
       expect(r.variants.find((variant) => variant.id === 'otbasy')!.purchaseMonth).toBeNull()
       expect(r.variants.map((variant) => variant.id)).toEqual([
         'halyk',
@@ -110,12 +114,12 @@ describe('simulateAll', () => {
     // A shown plan that got dropped is named, so the board can say why it is gone
     // rather than letting it vanish.
     it('names the dropped shown plan', () => {
-      expect(report(tooShort).droppedShown).toContain('Halyk отложенно (test)')
+      expect(simulateAll(tooShort).droppedShown).toContain('Halyk отложенно (test)')
     })
 
     it('is kept when the window is set by hand, which needs no Otbasy', () => {
       const explicit = { ...tooShort, delayedSavingMonths: 3 }
-      expect(report(explicit).variants.map((variant) => variant.id)).toEqual([
+      expect(simulateAll(explicit).variants.map((variant) => variant.id)).toEqual([
         'halyk',
         'otbasy',
         'otbasy-hold',
@@ -134,8 +138,7 @@ describe('simulateAll', () => {
   })
 
   it('has no best and an empty board when nothing is shown', () => {
-    const hidden: Inputs = { ...DEFAULT_INPUTS, plans: { ...DEFAULT_INPUTS.plans, shown: [] } }
-    const r = report(hidden)
+    const r = report(DEFAULT_INPUTS, [])
     expect(r.variants).toEqual([])
     expect(r.bestVariant).toBeNull()
   })
@@ -143,11 +146,7 @@ describe('simulateAll', () => {
   // bestVariant is chosen over the shown plans only: a hidden plan cannot win a
   // comparison the user did not ask for.
   it('ranks over the shown plans, not the hidden ones', () => {
-    const onlyCash: Inputs = {
-      ...DEFAULT_INPUTS,
-      plans: { ...DEFAULT_INPUTS.plans, shown: ['all-cash'] },
-    }
-    expect(report(onlyCash).bestVariant).toBe('all-cash')
+    expect(report(DEFAULT_INPUTS, ['all-cash']).bestVariant).toBe('all-cash')
   })
 
   describe('comparison window', () => {
@@ -180,8 +179,7 @@ describe('simulateAll', () => {
     // Nothing to cut back to: the window has to fall back on the horizon rather
     // than on some variant's null debt-free month.
     it('runs to the horizon when a shown variant never gets out of debt', () => {
-      const short = { ...DEFAULT_INPUTS, horizonMonths: 6 }
-      const r = report(short)
+      const r = report({ ...DEFAULT_INPUTS, horizonMonths: 6 })
       expect(r.variants.some((variant) => variant.debtFreeMonth === null)).toBe(true)
       expect(r.comparisonMonths).toBe(6)
     })
@@ -197,7 +195,7 @@ describe('simulateAll', () => {
   }
 
   it('chains the delayed-Halyk window to Otbasy purchase month by default', () => {
-    const r = report(withDelayed(DEFAULT_INPUTS))
+    const r = simulateAll(withDelayed(DEFAULT_INPUTS))
     const otbasy = r.variants.find((variant) => variant.id === 'otbasy')!
     const delayed = r.variants.find((variant) => variant.id === 'halyk-delayed-test')!
     expectSameRun(
@@ -209,7 +207,7 @@ describe('simulateAll', () => {
 
   it('honours an explicit savings window over the chain', () => {
     const inputs = { ...withDelayed(DEFAULT_INPUTS), delayedSavingMonths: 24 }
-    const r = report(inputs)
+    const r = simulateAll(inputs)
     const delayed = r.variants.find((variant) => variant.id === 'halyk-delayed-test')!
     expectSameRun(delayed, simulateHalykDelayed(inputs, 24), r.comparisonMonths)
   })

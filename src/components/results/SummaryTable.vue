@@ -3,10 +3,17 @@ import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useInputs } from '@/app/useInputs'
 import { colorForIndex, money } from '@/app/useFormat'
-import type { VariantId, VariantResult } from '@/engine/types/plan'
+import type { PurchasePlan, VariantId, VariantResult } from '@/engine/types/plan'
+import PlanDetailsDialog from '@/components/PlanDetailsDialog.vue'
 
-const { inputs, report } = useInputs()
+const { inputs, report, allPlans } = useInputs()
 const { t } = useI18n()
+
+// Clicking a plan's name in the first column opens its read-only details.
+const details = ref<PurchasePlan | null>(null)
+function openDetails(id: VariantId): void {
+  details.value = allPlans.value.find((plan) => plan.id === id) ?? null
+}
 
 // Rows sort every which way, so colour cannot come from row order — it is keyed
 // on id and fixed by the variant's position in the report (its slot among the
@@ -189,11 +196,13 @@ function classesFor(column: Column, variant: VariantResult): Record<string, bool
             :class="{ best: variant.id === report.bestVariant }"
           >
             <td v-for="column in COLUMNS" :key="column.key" :class="classesFor(column, variant)">
-              <span
-                v-if="column.key === 'variant'"
-                class="swatch"
-                :style="{ background: colorOf[variant.id] }"
-              />{{ column.cell(variant) }}
+              <template v-if="column.key === 'variant'">
+                <span class="swatch" :style="{ background: colorOf[variant.id] }" />
+                <button type="button" class="name-link" @click="openDetails(variant.id)">
+                  {{ column.cell(variant) }}
+                </button>
+              </template>
+              <template v-else>{{ column.cell(variant) }}</template>
             </td>
           </tr>
         </tbody>
@@ -203,6 +212,8 @@ function classesFor(column: Column, variant: VariantResult): Record<string, bool
     <p v-if="droppedShown.length > 0" class="warning">
       {{ t('summaryTable.dropped', { list: droppedShown.join(', ') }) }}
     </p>
+
+    <PlanDetailsDialog v-if="details" :plan="details" @close="details = null" />
   </section>
 </template>
 
@@ -294,6 +305,23 @@ td.left {
   height: 9px;
   border-radius: 2px;
   margin-right: 7px;
+}
+/* The plan name is a button — click it for the details dialog. */
+.name-link {
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  border-bottom: 1px dotted transparent;
+  transition:
+    color var(--transition),
+    border-color var(--transition);
+}
+.name-link:hover {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
 }
 .warning {
   font-size: var(--text-md);

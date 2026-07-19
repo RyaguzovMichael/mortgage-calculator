@@ -3,10 +3,17 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useInputs } from '@/app/useInputs'
 import { colorForIndex, millions, money, monthLabel } from '@/app/useFormat'
-import type { VariantId } from '@/engine/types/plan'
+import type { PurchasePlan, VariantId } from '@/engine/types/plan'
+import PlanDetailsDialog from '@/components/PlanDetailsDialog.vue'
 
-const { report } = useInputs()
+const { report, allPlans } = useInputs()
 const { t } = useI18n()
+
+// Clicking a legend name opens the plan's read-only details.
+const details = ref<PurchasePlan | null>(null)
+function openDetails(id: VariantId): void {
+  details.value = allPlans.value.find((plan) => plan.id === id) ?? null
+}
 
 // Colour and label are looked up by id off the shown variants: colour by their
 // order (the palette's fixed slots), the name straight off the plan. The chart's
@@ -212,7 +219,9 @@ const tooltip = computed(() => {
     <ul class="legend">
       <li v-for="variant in report.variants" :key="variant.id">
         <span class="swatch" :style="{ background: colorOf[variant.id] }" />
-        {{ nameOf[variant.id] }}
+        <button type="button" class="name-link" @click="openDetails(variant.id)">
+          {{ nameOf[variant.id] }}
+        </button>
       </li>
       <li class="marks">
         <svg width="11" height="11" viewBox="0 0 11 11" aria-hidden="true">
@@ -368,6 +377,8 @@ const tooltip = computed(() => {
         </p>
       </div>
     </div>
+
+    <PlanDetailsDialog v-if="details" :plan="details" @close="details = null" />
   </section>
 </template>
 
@@ -405,6 +416,23 @@ h2 {
   display: flex;
   align-items: center;
   gap: 6px;
+}
+/* Legend names are buttons — click for the plan details dialog. */
+.name-link {
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  border-bottom: 1px dotted transparent;
+  transition:
+    color var(--transition),
+    border-color var(--transition);
+}
+.name-link:hover {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
 }
 /* The event marks carry shape, not identity, so they sit in muted ink and are
    pushed away from the series keys. `:first-of-type` matched by element, not

@@ -171,7 +171,13 @@ describe('parseLoans', () => {
   it('accepts a well-formed list', () => {
     const parsed = parseLoans([halykEntry(), halykFeeEntry(), otbasyEntry()])
     expect(parsed.products).toEqual([
-      { id: 'halyk', name: 'Halyk', annualRate: 0.24, downPaymentFraction: 0.2, maxTermMonths: 240 },
+      {
+        id: 'halyk',
+        name: 'Halyk',
+        annualRate: 0.24,
+        downPaymentFraction: 0.2,
+        maxTermMonths: 240,
+      },
       {
         id: 'halyk-fee',
         name: 'Halyk (с комиссией)',
@@ -198,7 +204,11 @@ describe('parseLoans', () => {
       [halykEntry({ description: { ru: 'только ру' } }), otbasyEntry()],
       /description: en/,
     ],
-    ['a rate written as a string', [halykEntry({ annualRate: '0.24' }), otbasyEntry()], /annualRate/],
+    [
+      'a rate written as a string',
+      [halykEntry({ annualRate: '0.24' }), otbasyEntry()],
+      /annualRate/,
+    ],
     [
       'a fractional maxTermMonths',
       [halykEntry({ maxTermMonths: 240.5 }), otbasyEntry()],

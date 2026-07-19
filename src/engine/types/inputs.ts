@@ -1,5 +1,5 @@
 import { annualGrowthFactor } from '../money'
-import type { PurchasePlan } from './plan'
+import type { GeneratedPlan, PurchasePlan } from './plan'
 import type { YearMonth } from './yearMonth'
 
 // Every parameter of the model. See MODEL.md for what each one means and which
@@ -20,16 +20,21 @@ export interface Inputs {
   readonly delayedSavingMonths: number | null
 }
 
-// The user's own plans plus which plans go on the board. Built-in plan
-// definitions are NOT here — they live in data/plans.yml and are read-only; only
-// these two, the user's own creations and their board choices, are persisted.
+// The user's own plans plus which plans go on the board. Every plan is the user's
+// own now — hand-built or produced by the "build best plans" generator; both, plus
+// the board choices, are persisted.
 export interface PlansInputs {
   // Mutable for the same reason the deposit catalogue is: the panel does CRUD on
   // it. The engine only ever reads it.
   custom: PurchasePlan[]
-  // Ids of the plans shown on the board, built-in and custom alike. A preference,
-  // so it is stored rather than derived — which plans to compare is exactly what
-  // the human is choosing. Capped at eight by the UI (one per palette slot).
+  // The last "build best plans" run's winners, one per strategy, each tagged with
+  // the categories it won. Replaced wholesale by a re-run; the user cannot edit or
+  // delete them, only disable, copy to a custom plan, or recalculate. Persisted so
+  // they survive a reload.
+  generated: GeneratedPlan[]
+  // Ids of the plans shown on the board. A preference, so it is stored rather than
+  // derived — which plans to compare is exactly what the human is choosing. Capped
+  // at eight by the UI (one per palette slot).
   shown: string[]
 }
 
@@ -264,16 +269,38 @@ export function rentAt(inputs: Inputs, monthIndex: number): number {
   )
 }
 
-// Income steps, it does not drift: the raise lands once a year in raiseMonth. So
-// this one is not annualGrowthFactor either — it counts whole raises, and between
-// two raises the income is flat. The free cash is salary × share; income flows
-// from month 0 (there is no start-offset gate anymore).
-export function freeCashAt(inputs: Inputs, monthIndex: number): number {
+// A bank will not issue a loan whose monthly annuity exceeds this share of gross
+// salary, however much of their income the borrower is willing to commit. This is a
+// hard approval rule (a payment-to-income ceiling), distinct from mortgageShare,
+// which is the borrower's own budget choice. maxServiceablePayment takes the
+// smaller of the two.
+export const MAX_PAYMENT_TO_INCOME = 0.5
+
+// Indexed gross salary this month. Income steps, it does not drift: the raise lands
+// once a year in raiseMonth, so this is not annualGrowthFactor either — it counts
+// whole raises, and between two raises the income is flat. Income flows from month 0
+// (there is no start-offset gate anymore).
+export function salaryAt(inputs: Inputs, monthIndex: number): number {
   return (
     inputs.cashflow.monthlySalary *
-    inputs.cashflow.mortgageShare *
     (1 + inputs.cashflow.annualIndexationRate) **
       raisesBy(inputs.start, inputs.cashflow.raiseMonth, monthIndex)
+  )
+}
+
+// The free cash the borrower directs at housing: salary × the share they chose.
+export function freeCashAt(inputs: Inputs, monthIndex: number): number {
+  return salaryAt(inputs, monthIndex) * inputs.cashflow.mortgageShare
+}
+
+// The most a mortgage payment may be this month: the smaller of what the borrower
+// chose to spend (freeCash) and what the bank will approve (50% of gross salary).
+// The purchase affordability gate and the shortest-term solver both measure against
+// this one number, so the 50% ceiling is honoured in exactly one place.
+export function maxServiceablePayment(inputs: Inputs, monthIndex: number): number {
+  return Math.min(
+    freeCashAt(inputs, monthIndex),
+    MAX_PAYMENT_TO_INCOME * salaryAt(inputs, monthIndex),
   )
 }
 

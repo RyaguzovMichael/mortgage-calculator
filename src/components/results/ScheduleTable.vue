@@ -8,11 +8,19 @@ import type { MonthRow, VariantId } from '@/engine/types/plan'
 const { report } = useInputs()
 const { t } = useI18n()
 const { PHASE_LABELS } = useFormat()
-const active = ref<VariantId>('halyk')
+// No fixed default id any more (the built-in 'halyk' is gone): the selected tab
+// falls back to the first shown variant until the user picks one.
+const active = ref<VariantId | null>(null)
+const activeId = computed<VariantId | null>(() => {
+  const ids = report.value.variants.map((entry) => entry.id)
+  return active.value !== null && ids.includes(active.value)
+    ? active.value
+    : (report.value.variants[0]?.id ?? null)
+})
 
 const variant = computed(
   () =>
-    report.value.variants.find((entry) => entry.id === active.value) ?? report.value.variants[0],
+    report.value.variants.find((entry) => entry.id === activeId.value) ?? report.value.variants[0],
 )
 
 interface Column {
@@ -113,8 +121,8 @@ function cell(column: Column, row: MonthRow): string {
           :key="entry.id"
           type="button"
           role="tab"
-          :aria-selected="entry.id === active"
-          :class="{ on: entry.id === active }"
+          :aria-selected="entry.id === activeId"
+          :class="{ on: entry.id === activeId }"
           @click="active = entry.id"
         >
           <span class="swatch" :style="{ background: colorForIndex(index) }" />
