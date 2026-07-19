@@ -60,18 +60,22 @@ function onBlur(): void {
 input {
   flex: 1;
   min-width: 0;
-  padding: 6px 8px;
+  padding: 7px 9px;
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   background: var(--surface-1);
   color: var(--text-primary);
   font: inherit;
   font-family: var(--mono);
   font-size: var(--text-lg);
+  transition:
+    border-color var(--transition),
+    box-shadow var(--transition);
 }
 input:focus-visible {
-  outline: 2px solid var(--series-1);
-  outline-offset: -1px;
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow);
 }
 .suffix {
   color: var(--text-muted);

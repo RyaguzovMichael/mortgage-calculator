@@ -77,15 +77,21 @@ button {
   /* Sits on the container's border so the selected tab's line covers it. */
   margin-bottom: -1px;
 }
+button {
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  transition:
+    color var(--transition),
+    border-color var(--transition);
+}
 button:hover {
-  color: var(--text-secondary);
+  color: var(--text-primary);
 }
 button.on {
-  color: var(--text-primary);
-  border-bottom-color: var(--series-1);
+  color: var(--accent);
+  border-bottom-color: var(--accent);
 }
 button:focus-visible {
-  outline: 2px solid var(--series-1);
+  outline: 2px solid var(--accent);
   outline-offset: -2px;
 }
 </style>

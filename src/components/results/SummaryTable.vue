@@ -261,7 +261,7 @@ th button:hover {
   color: var(--text-primary);
 }
 th button:focus-visible {
-  outline: 2px solid var(--series-1);
+  outline: 2px solid var(--accent);
   outline-offset: -2px;
 }
 th.on {
@@ -283,7 +283,10 @@ td.left {
   color: var(--critical);
 }
 .best td {
-  background: color-mix(in srgb, var(--good) 10%, transparent);
+  background: color-mix(in srgb, var(--good) 12%, transparent);
+}
+.best td:first-child {
+  box-shadow: inset 3px 0 0 var(--good);
 }
 .swatch {
   display: inline-block;

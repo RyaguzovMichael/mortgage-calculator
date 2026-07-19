@@ -152,7 +152,7 @@ function showTitle(plan: PurchasePlan): string {
   cursor: pointer;
 }
 .show input {
-  accent-color: var(--series-1);
+  accent-color: var(--accent);
 }
 .show input:disabled {
   cursor: not-allowed;

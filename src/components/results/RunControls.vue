@@ -156,18 +156,22 @@ const yearsWord = computed<string>(() => {
 }
 .growth-input {
   width: 70px;
-  padding: 6px 8px;
+  padding: 7px 9px;
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   background: var(--surface-1);
   color: var(--text-primary);
   font: inherit;
   font-family: var(--mono);
   font-size: var(--text-lg);
+  transition:
+    border-color var(--transition),
+    box-shadow var(--transition);
 }
 .growth-input:focus-visible {
-  outline: 2px solid var(--series-1);
-  outline-offset: -1px;
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow);
 }
 .growth-field .suffix {
   color: var(--text-muted);
@@ -194,22 +198,26 @@ const yearsWord = computed<string>(() => {
 }
 input[type='month'] {
   margin-top: 10px;
-  padding: 6px 8px;
+  padding: 7px 9px;
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   background: var(--surface-1);
   color: var(--text-primary);
   font: inherit;
   font-family: var(--mono);
   font-size: var(--text-lg);
+  transition:
+    border-color var(--transition),
+    box-shadow var(--transition);
 }
 input[type='month']:focus-visible {
-  outline: 2px solid var(--series-1);
-  outline-offset: -1px;
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow);
 }
 .slider {
   width: 100%;
-  accent-color: var(--series-1);
+  accent-color: var(--accent);
   cursor: pointer;
 }
 </style>

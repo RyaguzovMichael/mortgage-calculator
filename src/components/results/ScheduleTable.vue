@@ -185,15 +185,24 @@ button {
   border: 1px solid var(--border);
   background: var(--surface-2);
   color: var(--text-secondary);
-  border-radius: 6px;
-  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  padding: 5px 11px;
   font: inherit;
   font-size: var(--text-md);
   cursor: pointer;
+  transition:
+    color var(--transition),
+    border-color var(--transition),
+    background var(--transition);
+}
+button:hover {
+  color: var(--text-primary);
+  border-color: var(--accent);
 }
 button.on {
-  color: var(--text-primary);
-  border-color: var(--text-muted);
+  color: var(--accent);
+  border-color: var(--accent);
+  background: var(--accent-soft);
 }
 .swatch {
   width: 9px;

@@ -224,12 +224,17 @@ h1 {
   margin-top: 8px;
 }
 button {
-  border-radius: 6px;
-  padding: 8px 18px;
+  border-radius: var(--radius-sm);
+  padding: 9px 20px;
   font: inherit;
   font-size: var(--text-md);
   cursor: pointer;
   border: 1px solid var(--border);
+  transition:
+    color var(--transition),
+    border-color var(--transition),
+    box-shadow var(--transition),
+    transform var(--transition);
 }
 button:disabled {
   opacity: 0.5;
@@ -241,10 +246,17 @@ button:disabled {
 }
 .secondary:hover:not(:disabled) {
   color: var(--text-primary);
+  border-color: var(--accent);
 }
 .primary {
-  background: var(--series-1);
-  color: var(--surface-1);
-  border-color: var(--series-1);
+  background: var(--accent-gradient);
+  color: var(--accent-contrast);
+  border-color: transparent;
+  font-weight: 600;
+  box-shadow: 0 4px 14px var(--accent-glow);
+}
+.primary:hover:not(:disabled) {
+  box-shadow: 0 6px 20px var(--accent-glow);
+  transform: var(--lift);
 }
 </style>

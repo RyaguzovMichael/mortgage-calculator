@@ -76,9 +76,19 @@ function themeLabel(value: ThemeOverride): string {
   justify-content: space-between;
   gap: 14px;
   flex-wrap: wrap;
-  padding: 10px 14px;
-  background: var(--surface-1);
+  padding: 11px 16px;
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: var(--glass-solid);
   border-bottom: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+}
+@supports (backdrop-filter: blur(1px)) {
+  .navbar {
+    background: var(--glass-bg);
+    backdrop-filter: blur(14px) saturate(150%);
+  }
 }
 .left {
   display: flex;
@@ -87,9 +97,13 @@ function themeLabel(value: ThemeOverride): string {
 }
 .brand {
   font-size: var(--text-xl);
-  font-weight: 600;
-  color: var(--text-primary);
+  font-weight: 700;
   white-space: nowrap;
+  background: var(--accent-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  letter-spacing: -0.01em;
 }
 .nav-links {
   display: flex;
@@ -99,18 +113,23 @@ function themeLabel(value: ThemeOverride): string {
   border: none;
   background: none;
   color: var(--text-muted);
-  padding: 6px 6px;
+  padding: 6px 10px;
   font: inherit;
   font-size: var(--text-md);
   cursor: pointer;
-  border-bottom: 2px solid transparent;
+  border-radius: var(--radius-sm);
+  transition:
+    color var(--transition),
+    background var(--transition);
 }
 .nav-link:hover {
-  color: var(--text-secondary);
+  color: var(--text-primary);
+  background: color-mix(in srgb, var(--surface-2) 70%, transparent);
 }
 .nav-link.on {
-  color: var(--text-primary);
-  border-bottom-color: var(--series-1);
+  color: var(--accent);
+  background: var(--accent-soft);
+  font-weight: 600;
 }
 .right {
   display: flex;
@@ -121,17 +140,22 @@ function themeLabel(value: ThemeOverride): string {
 .segmented {
   display: flex;
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   overflow: hidden;
+  background: var(--surface-2);
+  box-shadow: var(--shadow-sm);
 }
 .segmented button {
   border: none;
-  background: var(--surface-2);
+  background: none;
   color: var(--text-secondary);
-  padding: 4px 10px;
+  padding: 5px 11px;
   font: inherit;
   font-size: var(--text-md);
   cursor: pointer;
+  transition:
+    color var(--transition),
+    background var(--transition);
 }
 .segmented button + button {
   border-left: 1px solid var(--border);
@@ -140,8 +164,8 @@ function themeLabel(value: ThemeOverride): string {
   color: var(--text-primary);
 }
 .segmented button.on {
-  background: var(--surface-1);
-  color: var(--text-primary);
+  background: var(--accent-gradient);
+  color: var(--accent-contrast);
   font-weight: 600;
 }
 </style>
