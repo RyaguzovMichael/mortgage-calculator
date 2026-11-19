@@ -1,0 +1,11 @@
+# Кредиты России. ЗАГЛУШКА: единственная запись-плейсхолдер — парсер требует
+# минимум один не-otbasy кредит. Замените на реальные ипотечные программы.
+# Отбасы в России нет (meta.yml: otbasy: false), поэтому записи otbasy здесь нет.
+- id: placeholder-mortgage
+  name: Ипотека (заглушка)
+  description:
+    ru: Заглушка — замените на реальную ипотечную программу
+    en: Placeholder — replace with a real mortgage product
+  annualRate: 0.2
+  downPaymentFraction: 0.2
+  maxTermMonths: 360

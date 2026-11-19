@@ -1,0 +1,37 @@
+# Метаданные страны: всё, что нужно приложению, чтобы поднять «базу данных»
+# этой страны. Список доступных стран на сайте строится по списку папок в
+# public/db/ на фазе сборки — meta.yml каждой страны читается и валидируется
+# там же (см. build/countries.mjs).
+#
+# code            код страны; обязан совпадать с именем папки
+# name            отображаемое имя для ru/en
+# currencySymbol  символ валюты, подставляется вместо захардкоженных «₸»
+# otbasy          включать ли программу «Отбасы» (только Казахстан): секция в
+#                 «Деньгах», шаг визарда, пункт в планах, генератор планов
+# defaults        стартовые числа страны (горизонт, рост цен, индексация,
+#                 месяц повышения). Личных данных здесь нет — они собираются
+#                 визардом. Дата старта расчёта всегда текущая, не из файла.
+# example         личные числа для кнопки «посмотреть пример» в визарде
+#                 (необязательно; без них кнопка скрыта)
+code: kz
+name:
+  ru: Казахстан
+  en: Kazakhstan
+currencySymbol: ₸
+otbasy: true
+defaults:
+  horizonMonths: 60
+  apartmentAnnualGrowthRate: 0.05
+  annualIndexationRate: 0.05
+  raiseMonth: 6
+example:
+  annualIndexationRate: 0
+  apartmentPrice: 45000000
+  existingApartmentOwned: true
+  existingApartmentPrice: 35000000
+  monthlySalary: 1000000
+  mortgageShare: 0.5
+  monthlyRent: 400000
+  savingsBalance: 1378522.88
+  otbasyHasDeposit: true
+  otbasyBalance: 648509.26

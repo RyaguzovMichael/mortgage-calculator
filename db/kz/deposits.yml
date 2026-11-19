@@ -1,0 +1,96 @@
+# Встроенные вклады. Источник правды: правка этого файла доезжает и до тех, у кого
+# уже есть сохранённые данные — встроенные вклады не хранятся в localStorage.
+#
+# Эти вклады нельзя изменить или удалить из интерфейса. Свои вклады создаются во
+# вкладке «Вклады» и лежат в localStorage рядом с остальными исходными данными.
+#
+# payoutPeriodMonths — через сколько месяцев банк выплачивает проценты. Это не
+# косметика: до выплаты проценты не входят в баланс, а любое снятие сжигает весь
+# накопленный период. Поэтому 1 означает «снял когда угодно, ничего не потерял», и
+# поэтому 14,1% с ежемесячной выплатой обыгрывают 18,4% раз в полгода, если с
+# вклада приходится снимать каждый месяц. Подробнее — MODEL.md.
+
+- id: kaspi-deposit
+  name: Kaspi Депозит
+  annualRate: 0.141
+  payoutPeriodMonths: 1
+
+- id: kaspi-savings
+  name: Накопительный Kaspi Депозит
+  annualRate: 0.184
+  payoutPeriodMonths: 3
+
+- id: halyk-universal-6m
+  name: Halyk Универсальный (6 мес)
+  annualRate: 0.1432
+  payoutPeriodMonths: 1
+
+- id: halyk-universal-12m
+  name: Halyk Универсальный (12 мес)
+  annualRate: 0.1406
+  payoutPeriodMonths: 1
+
+- id: halyk-maximum-3m
+  name: Halyk Максимальный (3 мес)
+  annualRate: 0.1667
+  payoutPeriodMonths: 3
+
+- id: halyk-maximum-6m
+  name: Halyk Максимальный (6 мес)
+  annualRate: 0.158
+  payoutPeriodMonths: 6
+
+- id: halyk-maximum-12m
+  name: Halyk Максимальный (12 мес)
+  annualRate: 0.1493
+  payoutPeriodMonths: 12
+
+- id: halyk-maximum-24m
+  name: Halyk Максимальный (24 мес)
+  annualRate: 0.1215
+  payoutPeriodMonths: 24
+
+- id: freedom-kopilka-6m
+  name: Freedom Копилка (6 мес)
+  annualRate: 0.138
+  payoutPeriodMonths: 1
+
+- id: freedom-kopilka-12m
+  name: Freedom Копилка (12 мес)
+  annualRate: 0.149
+  payoutPeriodMonths: 1
+
+- id: freedom-kopilka-13m
+  name: Freedom Копилка (13 мес)
+  annualRate: 0.156
+  payoutPeriodMonths: 1
+
+- id: freedom-kopilka-24m
+  name: Freedom Копилка (24 мес)
+  annualRate: 0.0979
+  payoutPeriodMonths: 1
+
+- id: freedom-kopilka-36m
+  name: Freedom Копилка (36 мес)
+  annualRate: 0.098
+  payoutPeriodMonths: 1
+
+- id: freedom-strategy-3m
+  name: Freedom Стратегия (3 мес)
+  annualRate: 0.1808
+  payoutPeriodMonths: 3
+
+- id: freedom-strategy-6m
+  name: Freedom Стратегия (6 мес)
+  annualRate: 0.164
+  payoutPeriodMonths: 6
+
+- id: freedom-strategy-12m
+  name: Freedom Стратегия (12 мес)
+  annualRate: 0.136
+  payoutPeriodMonths: 12
+
+- id: freedom-strategy-24m
+  name: Freedom Стратегия (24 мес)
+  annualRate: 0.0795
+  payoutPeriodMonths: 24
