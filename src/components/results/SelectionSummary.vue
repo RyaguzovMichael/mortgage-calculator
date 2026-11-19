@@ -3,6 +3,7 @@ import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { mdiPencilOutline } from '@mdi/js'
 import { useInputs } from '@/app/useInputs'
+import { useCountry } from '@/app/useCountry'
 import { money, colorForIndex, useFormat } from '@/app/useFormat'
 import AppIcon from '@/components/AppIcon.vue'
 import PlanEditorDialog from '@/components/inputs/PlanEditorDialog.vue'
@@ -12,6 +13,7 @@ import type { PurchasePlan } from '@/engine/types/plan'
 const { inputs, allPlans, upsertPlan, isGeneratedPlan } = useInputs()
 const { t, tm, rt } = useI18n()
 const { describePlan } = useFormat()
+const { currencySymbol: currency, otbasyEnabled } = useCountry()
 
 // Editing a plan straight from the recap — same all-in-one dialog the Plans page's
 // "Edit" uses — so tweaking a shown plan doesn't need a trip there. Generated plans
@@ -61,7 +63,7 @@ const shownPlans = computed(() =>
       <dl class="rows">
         <div class="row">
           <dt>{{ t('apartmentTab.priceLabel') }}</dt>
-          <dd>{{ money(inputs.apartment.price) }} ₸</dd>
+          <dd>{{ money(inputs.apartment.price) }} {{ currency }}</dd>
         </div>
         <div class="row">
           <dt>{{ t('apartmentTab.growthLabel') }}</dt>
@@ -69,17 +71,17 @@ const shownPlans = computed(() =>
         </div>
         <div v-if="inputs.existingApartment.owned" class="row">
           <dt>{{ t('apartmentTab.ownedToggle') }}</dt>
-          <dd>{{ money(inputs.existingApartment.price) }} ₸</dd>
+          <dd>{{ money(inputs.existingApartment.price) }} {{ currency }}</dd>
         </div>
         <hr class="divider" />
         <div class="row">
           <dt>{{ t('moneyTab.salaryLabel') }}</dt>
-          <dd>{{ money(inputs.cashflow.monthlySalary) }} ₸</dd>
+          <dd>{{ money(inputs.cashflow.monthlySalary) }} {{ currency }}</dd>
         </div>
         <div class="row">
           <dt>{{ t('moneyTab.mortgageShareLabel') }}</dt>
           <dd>
-            {{ money(inputs.cashflow.monthlySalary * inputs.cashflow.mortgageShare) }} ₸ ({{
+            {{ money(inputs.cashflow.monthlySalary * inputs.cashflow.mortgageShare) }} {{ currency }} ({{
               percent(inputs.cashflow.mortgageShare)
             }})
           </dd>
@@ -94,16 +96,16 @@ const shownPlans = computed(() =>
         </div>
         <div class="row">
           <dt>{{ t('moneyTab.rentLabel') }}</dt>
-          <dd>{{ money(inputs.cashflow.monthlyRent) }} ₸</dd>
+          <dd>{{ money(inputs.cashflow.monthlyRent) }} {{ currency }}</dd>
         </div>
         <hr class="divider" />
         <div class="row">
           <dt>{{ t('moneyTab.savingsLabel') }}</dt>
-          <dd>{{ money(inputs.deposits.savingsBalance) }} ₸</dd>
+          <dd>{{ money(inputs.deposits.savingsBalance) }} {{ currency }}</dd>
         </div>
-        <div v-if="inputs.otbasy.hasDeposit" class="row">
+        <div v-if="otbasyEnabled && inputs.otbasy.hasDeposit" class="row">
           <dt>{{ t('moneyTab.otbasyToggle') }}</dt>
-          <dd>{{ money(inputs.otbasy.balance) }} ₸</dd>
+          <dd>{{ money(inputs.otbasy.balance) }} {{ currency }}</dd>
         </div>
       </dl>
     </section>

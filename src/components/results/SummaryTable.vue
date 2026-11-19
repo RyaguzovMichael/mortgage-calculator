@@ -2,12 +2,14 @@
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useInputs } from '@/app/useInputs'
+import { useCountry } from '@/app/useCountry'
 import { colorForIndex, money } from '@/app/useFormat'
 import type { PurchasePlan, VariantId, VariantResult } from '@/engine/types/plan'
 import PlanDetailsDialog from '@/components/PlanDetailsDialog.vue'
 
 const { inputs, report, allPlans } = useInputs()
 const { t } = useI18n()
+const { currencySymbol } = useCountry()
 
 // Clicking a plan's name in the first column opens its read-only details.
 const details = ref<PurchasePlan | null>(null)
@@ -159,6 +161,7 @@ function classesFor(column: Column, variant: VariantResult): Record<string, bool
           t('summaryTable.subtitle', {
             loan: money(report.targetLoan),
             months: report.comparisonMonths,
+            currency: currencySymbol,
           })
         }}
       </p>

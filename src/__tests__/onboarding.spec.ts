@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest'
 import { isOnboarded, markOnboarded, clearOnboarded } from '@/infrastructure/onboardingPersistence'
-import { BLANK_START_INPUTS, DEFAULT_INPUTS } from '@/infrastructure/inputsStorage'
+import { BLANK_START_INPUTS, DEFAULT_INPUTS } from './fixtures'
 
 // localStorage is not provided by this test environment, so back it with memory.
 class MemoryStorage {

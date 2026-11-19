@@ -1,5 +1,4 @@
 import type { LoanProduct, OtbasyInputs } from '@/engine/types/inputs'
-import loansFile from '../../data/loans.yml'
 
 export interface LocalizedText {
   readonly ru: string
@@ -14,8 +13,7 @@ export interface LoanMeta {
 
 // The product-parameter subset of OtbasyInputs — everything except the personal
 // account state (hasDeposit, balance, accruedInterest, monthsOpen), which is a
-// fact about the person, not the programme, and stays a literal in
-// inputsStorage.ts.
+// fact about the person, not the programme, and stays out of the shipped data.
 export type OtbasyLoanParams = Omit<
   OtbasyInputs,
   'hasDeposit' | 'balance' | 'accruedInterest' | 'monthsOpen'
@@ -24,34 +22,43 @@ export type OtbasyLoanParams = Omit<
 export interface ParsedLoans {
   readonly meta: readonly LoanMeta[]
   readonly products: readonly LoanProduct[]
-  readonly otbasy: OtbasyLoanParams
+  // null when the country ships no otbasy programme (meta.otbasy === false and
+  // no otbasy entry in loans.yml). Callers that need the parameters must handle
+  // it; BUILT_IN helpers treat it as "programme disabled".
+  readonly otbasy: OtbasyLoanParams | null
 }
 
-// The built-in loans, from data/loans.yml. 'otbasy' is the one reserved id — a
-// fixed state programme, edited nowhere in the UI, its parameters just sourced
-// from here. Everything else is a LoanProduct like any custom credit the user
-// adds — it just happens to ship built in and be non-removable
-// (isBuiltInLoanProduct). Halyk ships as two such entries (its no-fee and
-// with-fee rate tiers), because that's the natural way to let a plan pick
-// between two rates for the same bank: two catalogue entries, not a toggle.
-const PARSED: ParsedLoans = parseLoans(loansFile)
+// The loans of the country currently selected, from public/db/<code>/loans.yml.
+// 'otbasy' is a reserved id — a fixed state programme, edited nowhere in the UI,
+// its parameters sourced from the file. Everything else is a LoanProduct like any
+// custom credit the user adds — it just happens to ship with the country.
+// Set once at startup by setLoanCatalogue (see currentCountry.ts).
+export let BUILT_IN_LOANS: readonly LoanMeta[] = []
+export let BUILT_IN_LOAN_PRODUCTS: readonly LoanProduct[] = []
+export let OTBASY_PARAM_DEFAULTS: OtbasyLoanParams | null = null
 
-export const BUILT_IN_LOANS: readonly LoanMeta[] = PARSED.meta
-export const BUILT_IN_LOAN_PRODUCTS: readonly LoanProduct[] = PARSED.products
-export const OTBASY_PARAM_DEFAULTS: OtbasyLoanParams = PARSED.otbasy
+let builtInLoanProductIds: ReadonlySet<string> = new Set()
 
-const BUILT_IN_LOAN_PRODUCT_IDS = new Set(BUILT_IN_LOAN_PRODUCTS.map((product) => product.id))
+export function setLoanCatalogue(parsed: ParsedLoans): void {
+  BUILT_IN_LOANS = parsed.meta
+  BUILT_IN_LOAN_PRODUCTS = parsed.products
+  OTBASY_PARAM_DEFAULTS = parsed.otbasy
+  builtInLoanProductIds = new Set(parsed.products.map((product) => product.id))
+}
 
-// Derived from the file, not stored as a flag — same reasoning as
+// Derived from the data, not stored as a flag — same reasoning as
 // isBuiltInProduct in depositCatalogue.ts.
 export function isBuiltInLoanProduct(id: string): boolean {
-  return BUILT_IN_LOAN_PRODUCT_IDS.has(id)
+  return builtInLoanProductIds.has(id)
 }
 
 // Throws rather than skipping bad entries: this is data we ship, so a typo is a
 // programmer error and should stop the app at startup, not silently compute the
 // mortgage at a rate nobody chose.
-export function parseLoans(raw: unknown): ParsedLoans {
+//
+// requireOtbasy: Kazakhstan ships the programme and its entry is mandatory there;
+// other countries may ship no otbasy entry at all, in which case otbasy is null.
+export function parseLoans(raw: unknown, { requireOtbasy = true }: { requireOtbasy?: boolean } = {}): ParsedLoans {
   if (!Array.isArray(raw)) {
     throw new Error('loans.yml: ожидался список кредитов')
   }
@@ -66,7 +73,9 @@ export function parseLoans(raw: unknown): ParsedLoans {
   }
 
   const otbasyEntry = entries.find((entry) => entry.meta.id === 'otbasy')
-  if (!otbasyEntry) throw new Error('loans.yml: отсутствует запись otbasy')
+  if (!otbasyEntry && requireOtbasy) {
+    throw new Error('loans.yml: отсутствует запись otbasy')
+  }
 
   const loanEntries = entries.filter((entry) => entry.meta.id !== 'otbasy')
   if (loanEntries.length === 0) {
@@ -76,7 +85,7 @@ export function parseLoans(raw: unknown): ParsedLoans {
   return {
     meta: entries.map((entry) => entry.meta),
     products: loanEntries.map((entry) => entry.loan!),
-    otbasy: otbasyEntry.otbasy!,
+    otbasy: otbasyEntry?.otbasy ?? null,
   }
 }
 

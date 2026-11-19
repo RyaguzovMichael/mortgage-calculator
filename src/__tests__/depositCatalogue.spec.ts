@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest'
+import './fixtures'
 import {
   BUILT_IN_PRODUCTS,
   isBuiltInProduct,
@@ -12,7 +13,7 @@ function product(overrides: Record<string, unknown> = {}): Record<string, unknow
 // This one also proves the YAML plugin works end to end: if the file were not
 // being parsed at build time, there would be nothing here to assert on.
 describe('BUILT_IN_PRODUCTS', () => {
-  it('comes from data/deposits.yml', () => {
+  it('comes from public/db/kz/deposits.yml', () => {
     expect(BUILT_IN_PRODUCTS.map((entry) => entry.id)).toEqual([
       'kaspi-deposit',
       'kaspi-savings',

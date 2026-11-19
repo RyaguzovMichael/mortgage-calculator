@@ -1,10 +1,13 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useCountry } from '@/app/useCountry'
 import NumberField from './NumberField.vue'
 import PercentField from './PercentField.vue'
 
+const { currencySymbol: currency } = useCountry()
+
 // Two views of the same underlying `mortgageShare` fraction: a percentage and the
-// absolute tenge it works out to. Editing either recomputes the other, since both
+// absolute amount it works out to. Editing either recomputes the other, since both
 // are just this one number times (or divided by) the salary.
 const props = defineProps<{
   salary: number
@@ -27,7 +30,7 @@ const amount = computed({
 <template>
   <div class="side-by-side">
     <PercentField v-model="share" :label="percentLabel" :step="5" />
-    <NumberField v-model="amount" :label="amountLabel" suffix="₸" :step="50000" />
+    <NumberField v-model="amount" :label="amountLabel" :suffix="currency" :step="50000" />
   </div>
   <span v-if="hint" class="hint">{{ hint }}</span>
 </template>

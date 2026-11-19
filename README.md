@@ -15,11 +15,12 @@ your browser's local storage.
 
 ## Status
 
-The calculator currently ships with a fixed set of banks, programs, and rate
-conventions. The goal going forward is to make it **agnostic and configurable** —
-so that deposits, loan programs, taxes, and growth assumptions for any country, city,
-or bank can be set up rather than hard-coded. Contributions and ideas toward that
-direction are welcome.
+The calculator is **multi-country**: each country ships its own deposits/loans
+catalogues, currency and programme flags as static files under `public/db/<code>/`,
+validated at build time and fetched when you pick the country (on first visit, or
+any time from the navbar). Kazakhstan ships today; adding another country is a
+folder, not a fork — see [docs/countries.md](docs/countries.md). Your data is
+stored per country, so switching back and forth loses nothing.
 
 ## Development
 

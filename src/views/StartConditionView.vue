@@ -4,8 +4,9 @@ import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { mdiFlashOutline } from '@mdi/js'
 import { useInputs } from '@/app/useInputs'
+import { useCountry } from '@/app/useCountry'
 import { markOnboarded } from '@/infrastructure/onboardingPersistence'
-import { DEFAULT_INPUTS } from '@/infrastructure/inputsStorage'
+import { buildDefaultInputs, hasExampleInputs } from '@/infrastructure/inputsStorage'
 import {
   clearWizardStep,
   loadWizardStep,
@@ -21,10 +22,12 @@ import AppIcon from '@/components/AppIcon.vue'
 
 const { inputs } = useInputs()
 const { t } = useI18n()
+const { currencySymbol: currency, otbasyEnabled } = useCountry()
 const router = useRouter()
 
 // One id per screen; the wizard walks them in order. The body for each id is a
 // v-if branch below, so field state survives Back/Next (it lives in `inputs`).
+// The otbasy screen is skipped entirely in countries without the programme.
 const STEPS = [
   'apartment',
   'appreciation',
@@ -40,20 +43,21 @@ const STEPS = [
   'plans',
 ] as const
 type Step = (typeof STEPS)[number]
+const steps = (otbasyEnabled.value ? STEPS : STEPS.filter((step) => step !== 'otbasy')) as readonly Step[]
 
 // Resume where a returning visitor left off — closing the tab mid-wizard (or the
 // router guard bouncing them back to /start) used to always restart at screen 1,
 // even though every field already typed in was sitting there, prefilled. Clamped
 // in case a step was removed/reordered since the number was stored.
 const savedStep = loadWizardStep()
-const index = ref(savedStep !== null ? Math.min(savedStep, STEPS.length - 1) : 0)
+const index = ref(savedStep !== null ? Math.min(savedStep, steps.length - 1) : 0)
 watch(index, (value) => saveWizardStep(value))
 
-const step = computed<Step>(() => STEPS[index.value]!)
+const step = computed<Step>(() => steps[index.value]!)
 const isFirst = computed(() => index.value === 0)
-const isLast = computed(() => index.value === STEPS.length - 1)
+const isLast = computed(() => index.value === steps.length - 1)
 const progress = computed(() =>
-  t('startCondition.progress', { current: index.value + 1, total: STEPS.length }),
+  t('startCondition.progress', { current: index.value + 1, total: steps.length }),
 )
 
 function back(): void {
@@ -74,11 +78,12 @@ function finish(): void {
 }
 
 // A shortcut off the first screen for someone who just wants to see what the tool
-// does before typing in their own numbers: load the shipped example figures (the
-// same ones DEFAULT_INPUTS ships with) and jump straight to the results, skipping
-// the other 8 screens entirely.
+// does before typing in their own numbers: load the shipped example figures and
+// jump straight to the results, skipping the other screens. Only offered when the
+// country ships an example in its meta.yml.
+const exampleAvailable = hasExampleInputs()
 function useExample(): void {
-  Object.assign(inputs, structuredClone(DEFAULT_INPUTS))
+  Object.assign(inputs, structuredClone(buildDefaultInputs()))
   finish()
 }
 </script>
@@ -101,7 +106,7 @@ function useExample(): void {
       v-if="step === 'apartment'"
       v-model="inputs.apartment.price"
       :label="t('apartmentTab.priceLabel')"
-      suffix="₸"
+      :suffix="currency"
       :step="500000"
     />
 
@@ -122,7 +127,7 @@ function useExample(): void {
         v-if="inputs.existingApartment.owned"
         v-model="inputs.existingApartment.price"
         :label="t('apartmentTab.existingPriceLabel')"
-        suffix="₸"
+        :suffix="currency"
         :step="500000"
         :hint="t('apartmentTab.existingPriceHint')"
       />
@@ -132,7 +137,7 @@ function useExample(): void {
       v-else-if="step === 'salary'"
       v-model="inputs.cashflow.monthlySalary"
       :label="t('moneyTab.salaryLabel')"
-      suffix="₸"
+      :suffix="currency"
       :step="50000"
     />
 
@@ -161,7 +166,7 @@ function useExample(): void {
       v-else-if="step === 'savings'"
       v-model="inputs.deposits.savingsBalance"
       :label="t('moneyTab.savingsLabel')"
-      suffix="₸"
+      :suffix="currency"
       :step="10000"
       :hint="t('moneyTab.savingsHint')"
     />
@@ -175,13 +180,13 @@ function useExample(): void {
         <NumberField
           v-model="inputs.otbasy.balance"
           :label="t('moneyTab.otbasyBalanceLabel')"
-          suffix="₸"
+          :suffix="currency"
           :step="10000"
         />
         <NumberField
           v-model="inputs.otbasy.accruedInterest"
           :label="t('moneyTab.otbasyAccruedLabel')"
-          suffix="₸"
+          :suffix="currency"
           :step="1000"
           :hint="t('moneyTab.otbasyAccruedHint')"
         />
@@ -198,14 +203,14 @@ function useExample(): void {
       v-else-if="step === 'rent'"
       v-model="inputs.cashflow.monthlyRent"
       :label="t('moneyTab.rentLabel')"
-      suffix="₸"
+      :suffix="currency"
       :step="50000"
       :hint="t('moneyTab.rentHint')"
     />
 
     <PlansTab v-else-if="step === 'plans'" />
 
-    <template v-if="isFirst" #after-body>
+    <template v-if="isFirst && exampleAvailable" #after-body>
       <button type="button" class="example-btn" @click="useExample">
         <AppIcon :path="mdiFlashOutline" :size="16" />
         {{ t('startCondition.useExample') }}

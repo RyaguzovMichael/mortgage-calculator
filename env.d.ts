@@ -1,9 +1,13 @@
 /// <reference types="vite/client" />
 
-// Typed as `unknown` on purpose: nothing checks the contents of a YAML file, so
-// every import has to go through a validator before it is trusted. See
-// src/infrastructure/depositCatalogue.ts.
-declare module '*.yml' {
-  const data: unknown
-  export default data
-}
+// The validated list of countries, inlined from public/db/ by vite.config.ts
+// (see build/countries.mjs). Empty only in a misconfigured build, which cannot
+// happen: the build fails before this is reached.
+declare const __DB_COUNTRIES__: ReadonlyArray<{
+  readonly code: string
+  readonly name: { readonly ru: string; readonly en: string }
+  readonly currencySymbol: string
+  readonly otbasy: boolean
+  readonly defaults: Readonly<Record<string, number>>
+  readonly example?: Readonly<Record<string, number | boolean>>
+}>

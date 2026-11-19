@@ -15,7 +15,7 @@ const monthNames = tm('common.monthNames') as unknown[]
 <template>
   <label class="field">
     <span class="label">{{ label }}</span>
-    <select v-model.number="month">
+    <select v-model.number="month" class="select">
       <option v-for="(name, index) in monthNames" :key="index" :value="index + 1">
         {{ rt(name as string) }}
       </option>
@@ -33,23 +33,6 @@ const monthNames = tm('common.monthNames') as unknown[]
 .label {
   color: var(--text-secondary);
   font-size: var(--text-md);
-}
-select {
-  padding: 7px 9px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  background: var(--surface-1);
-  color: var(--text-primary);
-  font: inherit;
-  font-size: var(--text-lg);
-  transition:
-    border-color var(--transition),
-    box-shadow var(--transition);
-}
-select:focus-visible {
-  outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-glow);
 }
 .hint {
   color: var(--text-muted);

@@ -33,6 +33,9 @@ export interface GeneratorOptions {
   readonly situation: HousingSituation
   readonly earliestSaleMonth: number
   readonly maxMonths: number
+  // Whether the country ships the Otbasy programme. Defaults to true so existing
+  // callers and specs keep their behaviour; the UI passes the country's flag.
+  readonly includeOtbasy?: boolean
 }
 
 // The "also try waiting" set: as well as buying as soon as affordable, try saving
@@ -102,19 +105,22 @@ export function enumeratePlans(inputs: Inputs, options: GeneratorOptions): Purch
     }
 
     // Otbasy: its trigger is its own gates, its term is its own contract, and it
-    // saves to its own account — only borrow and repay vary.
-    for (const borrow of BORROWS) {
-      for (const repay of REPAYS) {
-        add({
-          ...base,
-          loan: 'otbasy',
-          buyWhen: 'otbasy-gates',
-          saveMonths: null,
-          borrow,
-          repay,
-          term: 'max',
-          savingsProductId: defaultDeposit,
-        })
+    // saves to its own account — only borrow and repay vary. Skipped entirely in
+    // countries without the programme.
+    if (options.includeOtbasy !== false) {
+      for (const borrow of BORROWS) {
+        for (const repay of REPAYS) {
+          add({
+            ...base,
+            loan: 'otbasy',
+            buyWhen: 'otbasy-gates',
+            saveMonths: null,
+            borrow,
+            repay,
+            term: 'max',
+            savingsProductId: defaultDeposit,
+          })
+        }
       }
     }
 

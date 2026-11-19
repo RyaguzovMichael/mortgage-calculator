@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useInputs } from '@/app/useInputs'
+import { useCountry } from '@/app/useCountry'
 import { money } from '@/app/useFormat'
 import { startingMoney } from '@/engine/types/inputs'
 import NumberField from './NumberField.vue'
@@ -11,6 +12,7 @@ import MortgageShareField from './MortgageShareField.vue'
 
 const { inputs } = useInputs()
 const { t } = useI18n()
+const { currencySymbol: currency, otbasyEnabled } = useCountry()
 
 // The one figure the model takes from the accounts, shown so the sum is visible
 // without adding the fields up by hand.
@@ -23,7 +25,7 @@ const existingTotal = computed(() => startingMoney(inputs))
     <NumberField
       v-model="inputs.cashflow.monthlySalary"
       :label="t('moneyTab.salaryLabel')"
-      suffix="₸"
+      :suffix="currency"
       :step="50000"
     />
     <MortgageShareField
@@ -43,39 +45,39 @@ const existingTotal = computed(() => startingMoney(inputs))
     <NumberField
       v-model="inputs.cashflow.monthlyRent"
       :label="t('moneyTab.rentLabel')"
-      suffix="₸"
+      :suffix="currency"
       :step="50000"
       :hint="t('moneyTab.rentHint')"
     />
   </section>
 
   <section class="field-group">
-    <h3>{{ t('moneyTab.existingTitle', { amount: money(existingTotal) }) }}</h3>
+    <h3>{{ t('moneyTab.existingTitle', { amount: money(existingTotal), currency }) }}</h3>
     <p class="note">{{ t('moneyTab.existingNote') }}</p>
     <NumberField
       v-model="inputs.deposits.savingsBalance"
       :label="t('moneyTab.savingsLabel')"
-      suffix="₸"
+      :suffix="currency"
       :step="10000"
       :hint="t('moneyTab.savingsHint')"
     />
 
-    <label class="toggle">
+    <label v-if="otbasyEnabled" class="toggle">
       <input v-model="inputs.otbasy.hasDeposit" type="checkbox" />
       <span>{{ t('moneyTab.otbasyToggle') }}</span>
     </label>
 
-    <template v-if="inputs.otbasy.hasDeposit">
+    <template v-if="otbasyEnabled && inputs.otbasy.hasDeposit">
       <NumberField
         v-model="inputs.otbasy.balance"
         :label="t('moneyTab.otbasyBalanceLabel')"
-        suffix="₸"
+        :suffix="currency"
         :step="10000"
       />
       <NumberField
         v-model="inputs.otbasy.accruedInterest"
         :label="t('moneyTab.otbasyAccruedLabel')"
-        suffix="₸"
+        :suffix="currency"
         :step="1000"
         :hint="t('moneyTab.otbasyAccruedHint')"
       />

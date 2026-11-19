@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
 import { useInputs } from '@/app/useInputs'
+import { useCountry } from '@/app/useCountry'
 import NumberField from './NumberField.vue'
 import PercentField from './PercentField.vue'
 
 const { inputs } = useInputs()
 const { t } = useI18n()
+const { currencySymbol: currency } = useCountry()
 </script>
 
 <template>
@@ -14,7 +16,7 @@ const { t } = useI18n()
     <NumberField
       v-model="inputs.apartment.price"
       :label="t('apartmentTab.priceLabel')"
-      suffix="₸"
+      :suffix="currency"
       :step="500000"
     />
     <p class="note">{{ t('apartmentTab.note') }}</p>
@@ -39,7 +41,7 @@ const { t } = useI18n()
       v-if="inputs.existingApartment.owned"
       v-model="inputs.existingApartment.price"
       :label="t('apartmentTab.existingPriceLabel')"
-      suffix="₸"
+      :suffix="currency"
       :step="500000"
       :hint="t('apartmentTab.existingPriceHint')"
     />

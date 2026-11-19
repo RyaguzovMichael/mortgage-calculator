@@ -10,6 +10,7 @@ import {
   mdiTrashCanOutline,
 } from '@mdi/js'
 import { useInputs, MAX_SHOWN } from '@/app/useInputs'
+import { useCountry } from '@/app/useCountry'
 import { useFormat, money } from '@/app/useFormat'
 import type { GeneratorOptions, PlanMetrics } from '@/engine/bestPlans'
 import { planNeedsExistingApartment } from '@/engine/types/inputs'
@@ -39,6 +40,7 @@ const {
   generatedDetails,
 } = useInputs()
 const { t } = useI18n()
+const { currencySymbol, otbasyEnabled } = useCountry()
 const { describePlan, monthsWord } = useFormat()
 
 // "+ Add" opens the stepped wizard (one decision per screen — better for a plan
@@ -110,7 +112,10 @@ function metricFor(category: BestCategoryId, m: PlanMetrics): string {
     case 'shortest-rent':
       return t('bestPlans.metrics.rent', { n: m.monthsRenting, word: monthsWord(m.monthsRenting) })
     case 'best-assets':
-      return t('bestPlans.metrics.assets', { amount: money(m.netWorthAtHorizon) })
+      return t('bestPlans.metrics.assets', {
+        amount: money(m.netWorthAtHorizon),
+        currency: currencySymbol.value,
+      })
     case 'shortest-loan':
       return t('bestPlans.metrics.loan', { n: m.debtFreeMonth ?? 0 })
   }
@@ -130,7 +135,10 @@ const hasHidden = computed(() =>
   allBoardPlans.value.some((plan) => !isCompatible(plan.id) && !isShown(plan.id)),
 )
 function visible(plans: readonly PurchasePlan[]): PurchasePlan[] {
-  return plans.filter((plan) => showAll.value || isCompatible(plan.id) || isShown(plan.id))
+  // In a country without the programme, stored otbasy plans stay on disk but are
+  // not offered or shown anywhere.
+  const usable = otbasyEnabled.value ? plans : plans.filter((plan) => plan.loan !== 'otbasy')
+  return usable.filter((plan) => showAll.value || isCompatible(plan.id) || isShown(plan.id))
 }
 const visibleCustom = computed(() => visible(inputs.plans.custom))
 const visibleGenerated = computed(() =>

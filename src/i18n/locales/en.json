@@ -30,7 +30,17 @@
     "locale": {
       "ru": "RU",
       "en": "EN"
-    }
+    },
+    "countryLabel": "Country",
+    "themeLabel": "Theme",
+    "localeLabel": "Language"
+  },
+  "countryGate": {
+    "title": "Where do you live?",
+    "lead": "Deposit and loan rates differ between countries — pick yours and we will load its data. You can switch countries later in the header; your data is kept separately for each country.",
+    "errorTitle": "Could not load the data",
+    "errorLead": "The database for the selected country could not be fetched. Check your connection and try again.",
+    "retry": "Try again"
   },
   "footer": {
     "disclaimer": "This site is not financial advice. It is a personal, informational tool only — always verify real terms with your bank, lender, or a qualified financial advisor before making any decision.",
@@ -136,7 +146,7 @@
     "raiseMonthLabel": "Raise month",
     "rentLabel": "Rent per month",
     "rentHint": "Paid only while the apartment is sold and a new one is not yet bought. Indexed at the apartment growth rate — it is the price of the same market, and has no rate of its own.",
-    "existingTitle": "Savings today — {amount} ₸",
+    "existingTitle": "Savings today — {amount} {currency}",
     "existingNote": "In month 0 everything merges into one deposit — the one each plan picks in the “Plans” tab, or the Otbasy account for the Otbasy plan. So only the total matters, not which bank holds it today. Only Otbasy stands apart: it has its own rate and its own CC.",
     "savingsLabel": "Free savings",
     "savingsHint": "Everything not on the Otbasy account, as one sum.",
@@ -220,7 +230,7 @@
   },
   "summaryTable": {
     "title": "Comparing the options",
-    "subtitle": "Target loan {loan} ₸ · compared over {months} months (up to the month the last option clears its debt)",
+    "subtitle": "Target loan {loan} {currency} · compared over {months} months (up to the month the last option clears its debt)",
     "columns": {
       "variant": "Option",
       "purchaseMonth": "Purchase",
@@ -407,7 +417,7 @@
     "metrics": {
       "move": "buys at month {n}",
       "rent": "{n} {word} renting",
-      "assets": "{amount} ₸ net worth",
+      "assets": "{amount} {currency} net worth",
       "loan": "debt-free at month {n}"
     }
   },

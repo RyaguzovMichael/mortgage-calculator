@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { runPlan } from '@/engine/runPlan'
 import { testPlan } from './plans.fixtures'
-import { DEFAULT_INPUTS } from '@/infrastructure/inputsStorage'
+import { DEFAULT_INPUTS } from './fixtures'
 import { startingMoney, type HousingInputs, type Inputs } from '@/engine/types/inputs'
 import type { PurchasePlan, VariantResult } from '@/engine/types/plan'
 
@@ -481,7 +481,7 @@ describe('one deposit for everything', () => {
   // deposit (kaspi-deposit). This shim runs the same plan on the three-month
   // restrictive one instead — the deposit is a plan decision now, so it is
   // chosen on the plan by id, rather than restating its numbers here where
-  // they could drift from data/deposits.yml.
+  // they could drift from public/db/kz/deposits.yml.
   const allCashRestrictive = (inputs: Inputs): VariantResult =>
     runPlan(inputs, withDeposit(builtIn('all-cash'), 'kaspi-savings'))
 

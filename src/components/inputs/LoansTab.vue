@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { mdiPlus, mdiTrashCanOutline } from '@mdi/js'
 import { useInputs } from '@/app/useInputs'
 import { useFormat } from '@/app/useFormat'
+import { useCountry } from '@/app/useCountry'
 import { BUILT_IN_LOANS, isBuiltInLoanProduct } from '@/infrastructure/loanCatalogue'
 import AppIcon from '@/components/AppIcon.vue'
 import NumberField from './NumberField.vue'
@@ -13,8 +14,9 @@ import OwnItemAccordion from './OwnItemAccordion.vue'
 const { inputs, addLoanProduct, removeLoanProduct, canRemoveLoanProduct } = useInputs()
 const { t } = useI18n()
 const { describeLoan, loanProductTerms } = useFormat()
+const { otbasyEnabled } = useCountry()
 
-const otbasyMeta = computed(() => BUILT_IN_LOANS.find((loan) => loan.id === 'otbasy')!)
+const otbasyMeta = computed(() => BUILT_IN_LOANS.find((loan) => loan.id === 'otbasy') ?? null)
 // Every built-in id but otbasy is a real LoanProduct — Halyk ships as two of
 // these (its no-fee and with-fee rate tiers), so this is a list, not a singular.
 const builtInProducts = computed(() =>
@@ -35,7 +37,7 @@ const ownProducts = computed(() =>
       <span class="item-terms">{{ loanProductTerms(product) }}</span>
       <p class="note">{{ describeLoan(builtInMeta.get(product.id)!) }}</p>
     </div>
-    <div class="built-in">
+    <div v-if="otbasyEnabled && otbasyMeta" class="built-in">
       <span class="item-name">{{ otbasyMeta.name }}</span>
       <p class="note">{{ describeLoan(otbasyMeta) }}</p>
     </div>

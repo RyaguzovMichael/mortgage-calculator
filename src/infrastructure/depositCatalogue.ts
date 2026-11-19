@@ -1,19 +1,24 @@
 import type { DepositProduct } from '@/engine/types/inputs'
-import depositsFile from '../../data/deposits.yml'
 
-// The built-in deposits, from data/deposits.yml. They are deliberately NOT
-// persisted: saveInputs strips them and loadInputs puts them back from here, so
-// editing the file reaches people who already have saved data, and a deposit
-// deleted from the file actually disappears instead of living on in localStorage
-// as an editable "custom" one.
-export const BUILT_IN_PRODUCTS: readonly DepositProduct[] = parseDepositProducts(depositsFile)
+// The deposits of the country currently selected, from public/db/<code>/deposits.yml.
+// Set once at startup by setDepositCatalogue (see currentCountry.ts) — before that
+// these are empty, and nothing may read them. They are deliberately NOT persisted:
+// the file is the source of truth, so edits to it reach people who already have
+// saved data, and a deposit deleted from the file actually disappears instead of
+// living on in localStorage as an editable "custom" one.
+export let BUILT_IN_PRODUCTS: readonly DepositProduct[] = []
 
-const BUILT_IN_IDS = new Set(BUILT_IN_PRODUCTS.map((product) => product.id))
+let builtInIds: ReadonlySet<string> = new Set()
 
-// Derived from the file rather than stored as a flag on the product: a flag would
-// keep claiming "built-in" after the deposit was removed from the YAML.
+export function setDepositCatalogue(products: readonly DepositProduct[]): void {
+  BUILT_IN_PRODUCTS = [...products]
+  builtInIds = new Set(products.map((product) => product.id))
+}
+
+// Derived from the data, not stored as a flag on the product: a flag would keep
+// claiming "built-in" after the deposit was removed from the file.
 export function isBuiltInProduct(id: string): boolean {
-  return BUILT_IN_IDS.has(id)
+  return builtInIds.has(id)
 }
 
 // Throws rather than skipping bad entries: this is data we ship, so a typo is a

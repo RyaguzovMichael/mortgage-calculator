@@ -9,7 +9,7 @@ import {
 } from '@/engine/types/inputs'
 import { simulateAll } from '@/engine/simulate'
 import { TEST_PLANS, testPlan, withBoard } from './plans.fixtures'
-import { DEFAULT_INPUTS } from '@/infrastructure/inputsStorage'
+import { DEFAULT_INPUTS } from './fixtures'
 import type { PurchasePlan } from '@/engine/types/plan'
 
 // Move 1 & 2: the existing apartment is a global start condition, and a plan's

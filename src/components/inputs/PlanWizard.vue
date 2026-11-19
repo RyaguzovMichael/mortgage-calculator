@@ -2,6 +2,7 @@
 import { computed, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useInputs } from '@/app/useInputs'
+import { useCountry } from '@/app/useCountry'
 import { useFormat } from '@/app/useFormat'
 import { planMatchesStart } from '@/engine/types/inputs'
 import type { HousingSituation } from '@/engine/types/inputs'
@@ -27,6 +28,7 @@ const emit = defineEmits<{ save: [plan: PurchasePlan]; cancel: [] }>()
 
 const { inputs } = useInputs()
 const { t } = useI18n()
+const { otbasyEnabled } = useCountry()
 const {
   productTerms,
   loanProductTerms,
@@ -120,12 +122,16 @@ const loanOptions = computed<Choice<string>[]>(() => [
     description: t('planWizard.desc.loan.none'),
     icon: loanIcon('none'),
   },
-  {
-    value: 'otbasy',
-    label: t('format.loanLabels.otbasy'),
-    description: t('planWizard.desc.loan.otbasy'),
-    icon: loanIcon('otbasy'),
-  },
+  ...(otbasyEnabled.value
+    ? [
+        {
+          value: 'otbasy',
+          label: t('format.loanLabels.otbasy'),
+          description: t('planWizard.desc.loan.otbasy'),
+          icon: loanIcon('otbasy'),
+        },
+      ]
+    : []),
   ...inputs.loans.products.map((product) => ({
     value: product.id,
     label: product.name,

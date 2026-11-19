@@ -7,7 +7,7 @@ import {
   type HousingInputs,
   type Inputs,
 } from '@/engine/types/inputs'
-import { DEFAULT_INPUTS } from '@/infrastructure/inputsStorage'
+import { DEFAULT_INPUTS } from './fixtures'
 
 // The model starts in July 2026, so the Junes are months 11, 23, 35...
 const JULY_START = DEFAULT_INPUTS

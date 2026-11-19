@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { mdiClose } from '@mdi/js'
 import { useInputs } from '@/app/useInputs'
+import { useCountry } from '@/app/useCountry'
 import { useFormat, money } from '@/app/useFormat'
 import type { PurchasePlan } from '@/engine/types/plan'
 import AppIcon from '@/components/AppIcon.vue'
@@ -15,6 +16,7 @@ const emit = defineEmits<{ close: [] }>()
 
 const { inputs, planOutcome } = useInputs()
 const { t } = useI18n()
+const { currencySymbol: currency } = useCountry()
 const {
   describePlan,
   loanLabel,
@@ -123,7 +125,7 @@ function toPlain(value: PurchasePlan): PurchasePlan {
           </div>
           <div class="pair">
             <dt>{{ t('planDetails.purchasePrice') }}</dt>
-            <dd>{{ money(outcome.purchasePrice ?? 0) }} ₸</dd>
+            <dd>{{ money(outcome.purchasePrice ?? 0) }} {{ currency }}</dd>
           </div>
           <div class="pair">
             <dt>{{ t('planDetails.debtFree') }}</dt>
@@ -131,7 +133,7 @@ function toPlain(value: PurchasePlan): PurchasePlan {
           </div>
           <div class="pair">
             <dt>{{ t('planDetails.netWorth') }}</dt>
-            <dd>{{ money(outcome.netWorthAtHorizon) }} ₸</dd>
+            <dd>{{ money(outcome.netWorthAtHorizon) }} {{ currency }}</dd>
           </div>
         </dl>
       </section>

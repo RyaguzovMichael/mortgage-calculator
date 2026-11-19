@@ -1,0 +1,18 @@
+# Метаданные страны: всё, что нужно приложению, чтобы поднять «базу данных»
+# этой страны. Список доступных стран на сайте строится по списку папок в
+# public/db/ на фазе сборки — meta.yml каждой страны читается и валидируется
+# там же (см. build/countries.mjs). Поля описаны в docs/countries.md.
+#
+# ЗАГЛУШКА: личных данных нет намеренно. Числа ниже — нейтральные
+# значения по умолчанию (как у kz), не отражают реальный рынок.
+code: ru
+name:
+  ru: Россия
+  en: Russia
+currencySymbol: ₽
+otbasy: false
+defaults:
+  horizonMonths: 60
+  apartmentAnnualGrowthRate: 0.05
+  annualIndexationRate: 0.05
+  raiseMonth: 6

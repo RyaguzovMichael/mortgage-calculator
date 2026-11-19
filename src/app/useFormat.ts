@@ -70,7 +70,7 @@ export function useFormat() {
     return `${percent(product.annualRate)}, ${payoutPhrase(product.payoutPeriodMonths)}`
   }
 
-  // The loan's prose blurb in the active locale, from data/loans.yml. Reads
+  // The loan's prose blurb in the active locale, from the country loans.yml. Reads
   // `locale` directly rather than going through t(), since the text is data, not
   // a message key.
   function describeLoan(loan: LoanMeta): string {

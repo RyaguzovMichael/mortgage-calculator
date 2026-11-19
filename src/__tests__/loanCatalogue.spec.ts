@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest'
+import './fixtures'
 import {
   BUILT_IN_LOANS,
   BUILT_IN_LOAN_PRODUCTS,
@@ -54,7 +55,7 @@ function otbasyEntry(overrides: Record<string, unknown> = {}): Record<string, un
 // Also proves the YAML plugin works end to end: if the file were not parsed at
 // build time, there would be nothing here to assert on.
 describe('BUILT_IN_LOANS', () => {
-  it('comes from data/loans.yml', () => {
+  it('comes from public/db/kz/loans.yml', () => {
     expect(BUILT_IN_LOANS.map((entry) => entry.id)).toEqual([
       'halyk',
       'halyk-fee',
@@ -76,7 +77,7 @@ describe('BUILT_IN_LOANS', () => {
 })
 
 describe('BUILT_IN_LOAN_PRODUCTS / OTBASY_PARAM_DEFAULTS', () => {
-  it('matches the numbers in data/loans.yml', () => {
+  it('matches the numbers in public/db/kz/loans.yml', () => {
     expect(BUILT_IN_LOAN_PRODUCTS).toEqual([
       {
         id: 'halyk',

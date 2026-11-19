@@ -4,7 +4,7 @@ export type Locale = 'ru' | 'en'
 
 export function loadLocale(): Locale {
   const raw = localStorage.getItem(LOCALE_STORAGE_KEY)
-  return raw === 'en' ? 'en' : 'ru'
+  return raw === 'ru' ? 'ru' : 'en'
 }
 
 export function saveLocale(locale: Locale): void {

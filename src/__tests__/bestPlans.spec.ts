@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { enumeratePlans, buildBestPlans, type GeneratorOptions } from '@/engine/bestPlans'
-import { DEFAULT_INPUTS } from '@/infrastructure/inputsStorage'
+import { DEFAULT_INPUTS } from './fixtures'
 
 // A selling run starting the sale sweep at month 4, and a renting run — the two
 // shapes enumeratePlans produces now that the situation is the caller's explicit

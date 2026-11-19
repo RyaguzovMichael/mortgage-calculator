@@ -6,6 +6,6 @@ import en from './locales/en.json'
 export const i18n = createI18n({
   legacy: false,
   locale: loadLocale(),
-  fallbackLocale: 'ru',
+  fallbackLocale: 'en',
   messages: { ru, en },
 })

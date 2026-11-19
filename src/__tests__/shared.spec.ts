@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { createLoan } from '@/engine/loan'
 import { createWallet } from '@/engine/wallet'
 import { payScheduled } from '@/engine/variants/shared'
-import { DEFAULT_INPUTS } from '@/infrastructure/inputsStorage'
+import { DEFAULT_INPUTS } from './fixtures'
 import type { HousingInputs, Inputs } from '@/engine/types/inputs'
 
 const HOUSING: HousingInputs = {

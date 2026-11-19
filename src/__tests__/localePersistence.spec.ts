@@ -30,8 +30,8 @@ describe('localePersistence', () => {
     localStorage.clear()
   })
 
-  it('defaults to ru when nothing is stored', () => {
-    expect(loadLocale()).toBe('ru')
+  it('defaults to en when nothing is stored', () => {
+    expect(loadLocale()).toBe('en')
   })
 
   it('round-trips an explicit choice', () => {
@@ -40,8 +40,8 @@ describe('localePersistence', () => {
     expect(localStorage.getItem(LOCALE_STORAGE_KEY)).toBe('en')
   })
 
-  it('falls back to ru on a garbage stored value', () => {
+  it('falls back to en on a garbage stored value', () => {
     localStorage.setItem(LOCALE_STORAGE_KEY, 'fr')
-    expect(loadLocale()).toBe('ru')
+    expect(loadLocale()).toBe('en')
   })
 })

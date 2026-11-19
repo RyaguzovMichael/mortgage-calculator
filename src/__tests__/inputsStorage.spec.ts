@@ -1,17 +1,18 @@
 import { describe, it, expect, beforeEach, beforeAll, afterAll, vi } from 'vitest'
-// STORAGE_KEY comes from the module rather than being spelled out here: these two
-// tests wrote 'mortgage:inputs:v1' long after the key had been bumped to v3, so
-// loadInputs found nothing, returned null on its `raw === null` early-out, and
-// both passed without ever reaching the catch or the validator they exist for.
+// The storage key is derived from the active country — don't spell it out here,
+// or a rename of the scheme would leave the tests passing against a ghost key.
+// Fixtures select the kz database from disk before any of this runs.
 import {
-  DEFAULT_INPUTS,
-  DEFAULT_SAVINGS_PRODUCT_ID,
+  defaultSavingsProductId,
   loadInputs,
   saveInputs,
-  STORAGE_KEY,
+  storageKey,
 } from '@/infrastructure/inputsStorage'
 import { BUILT_IN_PRODUCTS } from '@/infrastructure/depositCatalogue'
 import { BUILT_IN_LOAN_PRODUCTS } from '@/infrastructure/loanCatalogue'
+import { DEFAULT_INPUTS } from './fixtures'
+
+const STORAGE_KEY = storageKey('kz')
 import type { DepositProduct, Inputs, LoanProduct } from '@/engine/types/inputs'
 
 // localStorage is not provided by this test environment, so back it with memory.
@@ -115,7 +116,7 @@ describe('the deposit catalogue in storage', () => {
     expect(loadInputs()!.deposits.products).toContainEqual(own)
   })
 
-  // They belong to data/deposits.yml. A stored copy would mean edits to the file
+  // They belong to public/db/kz/deposits.yml. A stored copy would mean edits to the file
   // never reached anyone who had already used the app.
   it('does not write the built-ins to storage', () => {
     saveInputs(withOwnDeposit())
@@ -162,7 +163,7 @@ describe('the deposit catalogue in storage', () => {
       plans: { custom: [{ ...plan }], generated: [], shown: [] },
     })
     const loaded = loadInputs()!
-    expect(loaded.plans.custom[0]!.savingsProductId).toBe(DEFAULT_SAVINGS_PRODUCT_ID)
+    expect(loaded.plans.custom[0]!.savingsProductId).toBe(defaultSavingsProductId())
     expect(loaded.horizonMonths).toBe(42)
   })
 
@@ -206,7 +207,7 @@ describe('the loan catalogue in storage', () => {
     expect(loadInputs()!.loans.products).toContainEqual(own)
   })
 
-  // Halyk belongs to data/loans.yml. A stored copy would mean edits to the file
+  // Halyk belongs to public/db/kz/loans.yml. A stored copy would mean edits to the file
   // never reached anyone who had already used the app.
   it('does not write the built-in Halyk product to storage', () => {
     saveInputs(withOwnLoan())

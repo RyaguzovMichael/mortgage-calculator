@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { runPlan } from '@/engine/runPlan'
-import { DEFAULT_INPUTS } from '@/infrastructure/inputsStorage'
+import { DEFAULT_INPUTS } from './fixtures'
 import type { Inputs } from '@/engine/types/inputs'
 import type { PurchasePlan } from '@/engine/types/plan'
 
@@ -13,7 +13,7 @@ const GROWING: Inputs = {
 // The lump/never arbitrage tests below need a deposit that both beats the
 // Otbasy loan rate (8.5%) and locks for long enough that "lump" cannot yank
 // the balance out the moment it clears the loan — a custom product, not one
-// of the catalogue's, so the scenario does not drift if data/deposits.yml
+// of the catalogue's, so the scenario does not drift if public/db/kz/deposits.yml
 // changes.
 const LOCKED_HIGH_RATE_ID = 'locked-high-rate'
 const WITH_LOCKED_HIGH_RATE: Inputs = {

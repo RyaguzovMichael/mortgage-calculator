@@ -1,4 +1,4 @@
-import { computed, reactive, ref, watch } from 'vue'
+import { computed, reactive, ref, watch, type ComputedRef, type Ref } from 'vue'
 import { simulateAll, type SimulationReport } from '@/engine/simulate'
 import { planMatchesStart } from '@/engine/types/inputs'
 import type { DepositProduct, Inputs, LoanProduct } from '@/engine/types/inputs'
@@ -12,24 +12,76 @@ import {
 import { isBuiltInProduct } from '@/infrastructure/depositCatalogue'
 import { isBuiltInLoanProduct } from '@/infrastructure/loanCatalogue'
 import {
-  BLANK_START_INPUTS,
+  buildBlankStartInputs,
   DEFAULT_PLAN_SALE_MONTH,
-  DEFAULT_SAVINGS_PRODUCT_ID,
+  defaultSavingsProductId,
   loadInputs,
   saveInputs,
 } from '@/infrastructure/inputsStorage'
 import { clearOnboarded } from '@/infrastructure/onboardingPersistence'
 import { clearWizardStep } from '@/infrastructure/wizardProgressPersistence'
+import { currentCountry } from '@/infrastructure/currentCountry'
 
 // One line per palette slot: the board colours plans by index, and there are eight
 // validated slots, so the ninth shown plan has no colour to wear.
 export const MAX_SHOWN = 8
 
 // Single reactive tree of inputs plus the report derived from it. There is one
-// page and one model, so this is a plain composable rather than a store.
-const inputs = reactive<Inputs>(structuredClone(loadInputs() ?? BLANK_START_INPUTS))
+// page and one model, so this is a plain composable rather than a store — but the
+// tree can only be built once the country is known and its data fetched, so
+// creation happens in initInputs() at startup rather than at import time.
+let inputs: Inputs
+let report: ComputedRef<SimulationReport>
+let allPlans: ComputedRef<readonly PurchasePlan[]>
+let conditionsChanged: ComputedRef<boolean>
+let generatedDetails: ComputedRef<readonly GeneratedDetail[]>
+const bestProgress = reactive({ running: false, done: 0, total: 0 })
+const noPlansFit = ref(false)
+const lastGeneratorOptions = ref<GeneratorOptions | null>(null)
+let lastBuildHash: Ref<string | null>
+let initialized = false
 
-const report = computed<SimulationReport>(() => simulateAll(toPlain(inputs)))
+// Otbasy plans are meaningless in a country without the programme: the UI hides
+// them everywhere, and the engine never sees them (toPlain strips them). The
+// stored data itself is left untouched — flip the country flag back on and the
+// plans reappear.
+function withoutHiddenPlans(plans: readonly PurchasePlan[]): PurchasePlan[] {
+  if (currentCountry().meta.otbasy) return [...plans]
+  return plans.filter((plan) => plan.loan !== 'otbasy')
+}
+
+export function initInputs(): void {
+  if (initialized) return
+  initialized = true
+
+  inputs = reactive<Inputs>(structuredClone(loadInputs() ?? buildBlankStartInputs()))
+
+  report = computed<SimulationReport>(() => simulateAll(toVisiblePlain(inputs)))
+
+  allPlans = computed<readonly PurchasePlan[]>(() => [
+    ...withoutHiddenPlans(inputs.plans.generated),
+    ...withoutHiddenPlans(inputs.plans.custom),
+  ])
+
+  watch(inputs, (value) => saveInputs(toPlain(value)), { deep: true })
+
+  lastBuildHash = ref<string | null>(
+    inputs.plans.generated.length > 0 ? startConditionsHash(toPlain(inputs)) : null,
+  )
+
+  conditionsChanged = computed(
+    () =>
+      lastBuildHash.value !== null &&
+      startConditionsHash(toPlain(inputs)) !== lastBuildHash.value,
+  )
+
+  generatedDetails = computed<readonly GeneratedDetail[]>(() => {
+    const plain = toVisiblePlain(inputs)
+    return inputs.plans.generated
+      .filter((plan) => currentCountry().meta.otbasy || plan.loan !== 'otbasy')
+      .map((plan) => ({ plan, metrics: evaluatePlan(plain, plan) }))
+  })
+}
 
 // A stable fingerprint of everything the generator's search depends on — every
 // field of Inputs except `plans` itself, which is the generator's *output* (the
@@ -50,16 +102,10 @@ function fnv1a(text: string): string {
   return (hash >>> 0).toString(16)
 }
 
-// Every plan on the board — the generator's winners plus the user's hand-built
-// ones. Used to look a plan up by id (for the board, the recap, and details).
-const allPlans = computed<readonly PurchasePlan[]>(() => [
-  ...inputs.plans.generated,
-  ...inputs.plans.custom,
-])
-
-watch(inputs, (value) => saveInputs(toPlain(value)), { deep: true })
-
 export function useInputs() {
+  if (!initialized) {
+    throw new Error('useInputs() вызван до initInputs(): сначала загрузите данные страны')
+  }
   return {
     inputs,
     report,
@@ -95,7 +141,7 @@ export function useInputs() {
 // forget that onboarding was done, so the caller can send the user back through
 // /start. Programme parameters (catalogues, Otbasy rates) are kept.
 function startOver(): void {
-  Object.assign(inputs, structuredClone(BLANK_START_INPUTS))
+  Object.assign(inputs, structuredClone(buildBlankStartInputs()))
   clearOnboarded()
   clearWizardStep()
 }
@@ -190,7 +236,7 @@ function newPlanDraft(): PurchasePlan {
     term: 'max',
     situation: 'selling',
     saleMonthOffset: DEFAULT_PLAN_SALE_MONTH,
-    savingsProductId: DEFAULT_SAVINGS_PRODUCT_ID,
+    savingsProductId: defaultSavingsProductId(),
   }
 }
 
@@ -264,35 +310,9 @@ function planFingerprint(plan: PurchasePlan): string {
   ])
 }
 
-// Progress the "build best plans" run publishes so the UI can draw a bar and a live
-// "done / total variants" count.
-const bestProgress = reactive({ running: false, done: 0, total: 0 })
-
-// Set true when the most recent run finished with no plan meeting the user's time
-// budget (every variant either never buys or clears too late), so the UI can tell
-// the user to raise the limit instead of leaving them staring at an empty result.
-const noPlansFit = ref(false)
-
-// The start-conditions fingerprint as of the last successful "build best plans"
-// run. Seeded from the loaded inputs, so a page reload with an already-generated
-// board does not immediately read as "stale" just because nothing ran this
-// session yet.
-const lastBuildHash = ref<string | null>(
-  inputs.plans.generated.length > 0 ? startConditionsHash(toPlain(inputs)) : null,
-)
-
-// Whether the conditions the last run searched under have since moved — the
-// board's recalculate button reads this to decide between a quiet reminder and a
-// big "you need to redo this" call to action.
-const conditionsChanged = computed(
-  () => lastBuildHash.value !== null && startConditionsHash(toPlain(inputs)) !== lastBuildHash.value,
-)
-
 // The options chosen the last time the generator dialog ran, so reopening it
 // (to recalculate, or after a conditions change) starts from what was answered
 // before rather than resetting to blank defaults.
-const lastGeneratorOptions = ref<GeneratorOptions | null>(null)
-
 // The generated plans with their freshly-computed headline metrics, for the board's
 // generated section. Recomputed against the live inputs, so the numbers stay honest
 // when a condition changes after the last run (only a handful of plans, so cheap).
@@ -300,16 +320,12 @@ export interface GeneratedDetail {
   readonly plan: GeneratedPlan
   readonly metrics: PlanMetrics
 }
-const generatedDetails = computed<readonly GeneratedDetail[]>(() => {
-  const plain = toPlain(inputs)
-  return inputs.plans.generated.map((plan) => ({ plan, metrics: evaluatePlan(plain, plan) }))
-})
 
 // The headline outcomes of any single plan under the live conditions, for the
 // read-only details dialog. One fresh run — cheap, and always in step with the
 // current inputs.
 function planOutcome(plan: PurchasePlan): PlanMetrics {
-  return evaluatePlan(toPlain(inputs), plan)
+  return evaluatePlan(toVisiblePlain(inputs), plan)
 }
 
 // Enumerate every plan the chosen conditions allow, simulate them all (batched, so
@@ -327,10 +343,12 @@ async function buildBestPlans(
   bestProgress.done = 0
   bestProgress.total = 0
   noPlansFit.value = false
-  lastGeneratorOptions.value = options
+  // A country without the programme generates no otbasy candidates at all.
+  const generatorOptions = { ...options, includeOtbasy: currentCountry().meta.otbasy }
+  lastGeneratorOptions.value = generatorOptions
   try {
-    const plainInputs = toPlain(inputs)
-    const result = await runBestPlans(plainInputs, options, (done, total) => {
+    const plainInputs = toVisiblePlain(inputs)
+    const result = await runBestPlans(plainInputs, generatorOptions, (done, total) => {
       bestProgress.done = done
       bestProgress.total = total
     })
@@ -410,6 +428,29 @@ function toggleShown(id: string): void {
 
 // The engine is pure TypeScript and must not be handed Vue proxies — it reads
 // each value many times per run, and a proxy would tax every read.
+// A plain deep clone. This is what gets persisted — nothing is filtered out, so
+// switching a country never destroys plans stored for it.
 function toPlain(value: Inputs): Inputs {
   return JSON.parse(JSON.stringify(value)) as Inputs
+}
+
+// The subset of the state the engine and the UI are allowed to see. In a country
+// without otbasy, otbasy plans are dropped here (and in allPlans/generatedDetails)
+// rather than deleted — they stay in the stored blob and reappear if the country
+// is ever built with the programme.
+function toVisiblePlain(value: Inputs): Inputs {
+  const plain = toPlain(value)
+  if (currentCountry().meta.otbasy) return plain
+  const keep = (plan: PurchasePlan) => plan.loan !== 'otbasy'
+  const custom = plain.plans.custom.filter(keep)
+  const generated = plain.plans.generated.filter(keep)
+  const visible = new Set([...custom, ...generated].map((plan) => plan.id))
+  return {
+    ...plain,
+    plans: {
+      custom,
+      generated,
+      shown: plain.plans.shown.filter((id) => visible.has(id)),
+    },
+  }
 }

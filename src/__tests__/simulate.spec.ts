@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { simulateAll } from '@/engine/simulate'
 import { runPlan } from '@/engine/runPlan'
 import { TEST_PLANS } from './plans.fixtures'
-import { DEFAULT_INPUTS } from '@/infrastructure/inputsStorage'
+import { DEFAULT_INPUTS } from './fixtures'
 import type { Inputs } from '@/engine/types/inputs'
 import type { PurchasePlan, VariantResult } from '@/engine/types/plan'
 
